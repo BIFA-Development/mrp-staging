@@ -122,3 +122,39 @@ Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=p
   </tr>
 </table>
 <?php endif; ?>
+
+<h5 class="new-page">Biaya Dinas</h5>
+<table class="table table-striped table-nowrap">
+  <thead id="table_header">
+    <tr>
+      <th>No</th>
+      <th>Budget Description</th>
+      <th style="text-align:center;">Days</th>
+      <th style="text-align:right;">Amount</th>
+      <th style="text-align:right;">Total</th>
+    </tr>
+  </thead>
+  <tbody id="table_contents">
+    <?php $n = 1;?>
+    <?php $total = array();?>
+    <?php foreach ($entity['items'] as $item) :?>
+    <tr>
+      <td><?=$n++;?></td>
+      <td><?=print_string($item['expense_name']);?></td>
+      <td style="text-align:center;"><?=number_format($item['qty']);?></td>
+      <td style="text-align:right;"><?=print_number($item['amount'],2);?></td>
+      <td style="text-align:right;"><?=print_number($item['total'],2)?></td>
+    </tr>
+    <?php $total[] = $item['total'];?>
+    <?php endforeach;?>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th>Total</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th style="text-align:right;"><?=print_number(array_sum($total), 2);?></th>
+    </tr>
+  </tfoot>
+</table>
