@@ -41,6 +41,7 @@
             <th>SPD#</th>
             <th>Date</th>
             <th>Person in Charge</th>
+            <th style="text-align:center;">Duration</th>
             <th style="text-align:center;">Remarks</th>
             <th style="text-align:right;">Amount Request</th>
         </tr>
@@ -65,6 +66,9 @@
                 <?= print_string($request['spd_person_incharge']); ?>
             </td>
             <td>
+                <?= print_string($request['duration']); ?> days
+            </td>
+            <td>
                 <?= print_string($request['remarks']); ?>
             </td>
             <td style="text-align:right;">
@@ -76,11 +80,11 @@
     </tbody>
     <tfoot>
         <tr>
-            <th colspan="5">Total</th>
+            <th colspan="6">Total</th>
             <th style="text-align: right;"><?= print_number(array_sum($amount_paid), 2); ?></th>
         </tr>
         <tr>
-            <th colspan="5">Paid</th>
+            <th colspan="6">Paid</th>
             <th style="text-align: right;"><?= print_number($entity['amount_paid'], 2); ?></th>
         </tr>
     </tfoot>
