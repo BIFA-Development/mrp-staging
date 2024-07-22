@@ -1832,10 +1832,22 @@ class Business_Trip_Request_Model extends MY_Model
 
         $query = $this->db->get();
 
+        $notes_for_spd = '';
+
         foreach ($query->result_array() as $key => $req){
             $request['request'][$key] = $req; 
             $spd = $this->findById($req['document_id']);   
-            $request['request'][$key]['items_spd'] = $spd['items'];         
+            $request['request'][$key]['items_spd'] = $spd['items'];
+            $notes_for_spd .= $spd['notes'];
+            
+            $this->db->select('*');
+            $this->db->from('tb_signers');
+            $this->db->where('tb_signers.document_number', $request['document_number']);
+            $this->db->where('tb_signers.roles', 'HR');
+            $query_signer_spd    = $this->db->get();
+            $signer_spd  = $query_signer_spd->unbuffered_row('array');
+            $notes_for_spd .= ' | HR notes : ';
+            $notes_for_spd .= empty($entity['notes'])? '-':$signer_spd['notes'];
         }
 
         if($request['status']=='PAID'){
@@ -1867,6 +1879,8 @@ class Business_Trip_Request_Model extends MY_Model
             $request['signers'][$valuesigners['action']]['action'] = $valuesigners['action'];
             $request['signers'][$valuesigners['action']]['roles'] = $valuesigners['roles'];
         }
+
+        $request['spd_notes'] = $notes_for_spd;
 
         return $request;
     }

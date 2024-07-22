@@ -88,7 +88,7 @@
 
 <div class="clear"></div>
 
-<?= (empty($entity['notes'])) ? '' : '<p>Note: ' . nl2br($entity['notes']) . '</p>'; ?>
+<?= (empty($entity['notes'])) ? '' : '<p>Note: ' . nl2br($entity['spd_notes']) . '</p>'; ?>
 
 <?php if ($entity['approved_date'] != null) : ?>
   <?= (empty($entity['approved_notes'])) ? '' : '<p>Note: ' . nl2br($entity['approved_notes']) . '</p>'; ?>
