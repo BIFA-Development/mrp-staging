@@ -709,8 +709,24 @@ class Business_Trip_Request_Model extends MY_Model
                 $this->db->set('created_at', date('Y-m-d H:i:s'));
                 $this->db->insert('tb_signers');
 
-            }elseif($spd['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(list_user_in_head_department($cost_center['department_id']),config_item('auth_username'))){
-                
+            }elseif($spd['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
+                $this->db->set('status','REJECTED');
+                $this->db->set('rejected_by',config_item('auth_person_name'));
+                $this->db->where('id', $id);
+                $this->db->update('tb_business_trip_purposes');
+
+                $this->db->set('document_type','SPD');
+                $this->db->set('document_number',$spd['document_number']);
+                $this->db->set('document_id', $id);
+                $this->db->set('action','rejected by');
+                $this->db->set('date', date('Y-m-d'));
+                $this->db->set('username', config_item('auth_username'));
+                $this->db->set('person_name', config_item('auth_person_name'));
+                $this->db->set('roles', config_item('auth_role'));
+                $this->db->set('notes', $approval_notes[$x]);
+                $this->db->set('sign', get_ttd(config_item('auth_person_name')));
+                $this->db->set('created_at', date('Y-m-d H:i:s'));
+                $this->db->insert('tb_signers');
             }
             $total++;
             $success++;
