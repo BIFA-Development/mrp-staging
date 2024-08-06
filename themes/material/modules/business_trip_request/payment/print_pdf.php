@@ -11,14 +11,14 @@
         <th>: <?= print_string($entity['document_number']); ?></th>
         <td>Payment to</td>
         <th>: <?= $entity['vendor']; ?></th>
-        <td>Paid at</td>
-        <th>: <?= ($entity['paid_at']!='')? print_date($entity['paid_at']):'-'; ?></th>
+        <td>Status</td>
+        <th>: <?=$entity['status']?> <?= ($entity['paid_at']!='')? ' at '.print_date($entity['paid_at']):''; ?></th>
     </tr>
     <tr>
         <td>Date.</td>
         <th>: <?= print_date($entity['tanggal']); ?></th>
         <td>Payment No</td>
-        <th>: <?= $entity['payment_number']; ?></th>
+        <th>: <?= ($entity['payment_number']!='')? $entity['payment_number']:'n/b'; ?></th>
         <td>No. Konfirmasi</td>
         <th>: <?= ($entity['status']=='PAID')? $entity['no_konfirmasi']:'n/b'; ?></th>
     </tr>
@@ -26,7 +26,7 @@
         <td>Purposed Date</td>
         <th>: <?= print_date($entity['purposed_date']); ?></th>
         <td>Account</td>
-        <th>: <?= $entity['coa_kredit']; ?> <?= $entity['group']; ?></th>
+        <th>: <?= ($entity['status']=='PAID')? $entity['coa_kredit'].' '.$entity['group']:'n/b'; ?></th>
         <td>No. Cheque</td>
         <th>: <?= ($entity['status']=='PAID')? $entity['no_cheque']:'n/b'; ?></th>
     </tr>
@@ -121,7 +121,7 @@
             </p>
         </td>
         <td valign="top" align="center">
-            <p>
+            <!-- <p>
                 Review by:
                 <br /><?=$entity['signers']['review by']['role'];?>
                 <?php if ($entity['signers']['review by']['sign']) : ?>
@@ -131,10 +131,12 @@
                 <?php endif; ?>
                 <br />
                 <br /><?=$entity['signers']['review by']['person_name'];?>
-            </p>
+            </p> -->
+            &nbsp;
         </td>
         <td valign="top" align="center">
-            <p>
+            &nbsp;
+            <!-- <p>
                 Approved by:
                 <br /><?=$entity['signers']['approved by']['role'];?>
                 <?php if ($entity['signers']['approved by']['sign']) : ?>
@@ -144,9 +146,51 @@
                 <?php endif; ?>
                 <br />
                 <br /><?=$entity['signers']['approved by']['person_name'];?>
-            </p>
+            </p> -->
         </td>
     </tr>
+</table>
+
+
+<p class="new-page">Detail Biaya</p>
+
+<div class="clear"></div>
+
+<table class="table table-striped table-nowrap">
+  <thead id="table_header">
+    <tr>
+      <th>No</th>
+      <th>Budget Description</th>
+      <th style="text-align:center;">Days</th>
+      <th style="text-align:right;">Amount</th>
+      <th style="text-align:right;">Total</th>
+    </tr>
+  </thead>
+  <tbody id="table_contents">
+    <?php $n = 1;?>
+    <?php $total = array();?>
+    <?php foreach ($entity['request'] as $item) :?>
+    <?php foreach ($item['items_spd'] as $items_spd) :?>
+    <tr>
+      <td><?=$n++;?></td>
+      <td><?=print_string($items_spd['expense_name']);?></td>
+      <td style="text-align:center;"><?=number_format($items_spd['qty']);?></td>
+      <td style="text-align:right;"><?=print_number($items_spd['amount'],2);?></td>
+      <td style="text-align:right;"><?=print_number($items_spd['total'],2)?></td>
+    </tr>
+    <?php $total[] = $items_spd['total'];?>
+    <?php endforeach;?>
+    <?php endforeach;?>
+  </tbody>
+  <tfoot>
+    <tr>
+      <th>Total</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th style="text-align:right;"><?=print_number(array_sum($total), 2);?></th>
+    </tr>
+  </tfoot>
 </table>
 
 <?php if($entity['status']=='PAID'):?>
