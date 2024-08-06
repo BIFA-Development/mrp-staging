@@ -1112,8 +1112,8 @@ class Sppd_Model extends MY_Model
         $this->connection->set('pr_date', $date);
         $this->connection->set('required_date', $date);
         $this->connection->set('status', 'pending');
-        $this->connection->set('notes', 'expense sppd : #'.$data['document_number']);
-        $this->connection->set('created_by', config_item('auth_person_name'));
+        $this->connection->set('notes', 'expense sppd : #'.$data['document_number'].' an '.$data['person_name'].' to '.$data['business_trip_destination']);
+        $this->connection->set('created_by', $data['signers']['requested by']['person_name']);
         $this->connection->set('updated_by', config_item('auth_person_name'));
         $this->connection->set('created_at', date('Y-m-d H:i:s'));
         $this->connection->set('updated_at', date('Y-m-d H:i:s'));
