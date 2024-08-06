@@ -161,7 +161,7 @@
                   <div class="card-head collapsed">
                     <header>
                       <a href="<?=site_url($modules['business_trip_request']['route']);?>">
-                        Surat Perjalanan Dinas (<strong><font color="red"><?=$count_spd;?></font></strong>)
+                        SPD (<strong><font color="red"><?=$count_spd;?></font></strong>)
                       </a>
                     </header>
                   </div>
@@ -170,7 +170,7 @@
                   <div class="card-head collapsed">
                     <header>
                       <a href="<?=site_url($modules['sppd']['route']);?>">
-                        SPJ Dinas (<strong><font color="red"><?=$count_sppd;?></font></strong>)
+                        SPPD (<strong><font color="red"><?=$count_sppd;?></font></strong>)
                       </a>
                     </header>
                   </div>
