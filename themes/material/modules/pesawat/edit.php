@@ -73,7 +73,7 @@
             <select name="base" id="select_base" class="form-control" required>
               <option value=""></option>
               <?php foreach (available_warehouses_alternate_name() as $base) : ?>
-                <option value="<?= $base['warehouse']; ?>">
+                <option value="<?= $base['warehouse']; ?>" <?= ($entity['base'] == $base['warehouse']) ? 'selected' : ''; ?>>
                   <?= $base['warehouse']; ?> 
                   <?php if($base['alternate_warehouse_name']!=NULL): ?>
                   (<?= $base['alternate_warehouse_name']; ?>)
