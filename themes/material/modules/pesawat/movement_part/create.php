@@ -289,6 +289,17 @@
                             <fieldset>
                                 <legend>Remove Part</legend>
 
+                                <div class="form-group">
+                                    <select name="remove_category" id="remove_category" class="form-control input-sm" style="width: 100%">
+                                        <option value="">-- SELECT category --</option>
+                                        <option value="ROTABLE">ROTABLE</option>
+                                        <option value="CONSUMABLE">CONSUMABLE</option>
+                                        <option value="REPAIRABLE">REPAIRABLE</option>
+                                        <option value="ROBBING">ROBBING</option>
+                                    </select>
+                                    <label for="category">Category</label>
+                                </div>
+
                                 <div class="form-group" style="padding-top: 20px;">
                                     <input type="date" name="date_of_ajlb" id="date_of_ajlb" class="form-control input-sm">
                                     <label for="date_of_ajlb">Date of AJLB</label>
@@ -334,17 +345,6 @@
                                 <div class="form-group">
                                     <input type="text" name="remove_tso" id="remove_tso" data-tag-name="remove_tso" class="form-control input-sm">
                                     <label for="remove_tso">Remove TSO</label>
-                                </div>
-
-                                <div class="form-group">
-                                    <select name="remove_category" id="remove_category" class="form-control input-sm" style="width: 100%">
-                                        <option value="">-- SELECT category --</option>
-                                        <option value="ROTABLE">ROTABLE</option>
-                                        <option value="CONSUMABLE">CONSUMABLE</option>
-                                        <option value="REPAIRABLE">REPAIRABLE</option>
-                                        <option value="ROBBING">ROBBING</option>
-                                    </select>
-                                    <label for="category">Category</label>
                                 </div>
 
                                 <div class="form-group">

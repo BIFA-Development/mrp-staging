@@ -99,13 +99,13 @@
           <div class="form-group">
             <label for="fuel_capacity_mix">Fuel Capacity Mix</label>
             <div class="radio">
-              <input type="radio" name="fuel_capacity_mix" id="MIX" value="MIX" <?= ($entity['fuel_capacity_mix'] == 'MIX') ? 'checked' : ''; ?>>
+              <input type="radio" name="fuel_capacity_mix" id="mix" value="MIX" <?= ($entity['fuel_capacity_mix'] == 'MIX') ? 'checked' : ''; ?>>
               <label for="mix">
                 MIX
               </label>
             </div>
             <div class="radio">
-              <input type="radio" name="fuel_capacity_mix" id="AVGAS" value="AVGAS" <?= ($entity['fuel_capacity_mix'] == 'AVGAS') ? 'checked' : ''; ?>>
+              <input type="radio" name="fuel_capacity_mix" id="avgas" value="AVGAS" <?= ($entity['fuel_capacity_mix'] == 'AVGAS') ? 'checked' : ''; ?>>
               <label for="avgas">
                 AVGAS
               </label>
