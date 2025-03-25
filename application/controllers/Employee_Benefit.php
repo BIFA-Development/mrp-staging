@@ -113,8 +113,8 @@ class Employee_Benefit extends MY_Controller
             $_SESSION['benefit']['id']               = $id;
             $_SESSION['benefit']['edit']             = $entity['id'];
         }
-
-        redirect($this->module['route'] . '/create');
+        
+        redirect($this->module['route'] . '/create/'. $id);
     }
 
     public function set_notes()
@@ -123,6 +123,38 @@ class Employee_Benefit extends MY_Controller
             redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['benefit']['notes'] = $_GET['data'];
+    }
+
+    public function set_kode_akun()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] . '/denied');
+
+        $_SESSION['benefit']['kode_akun'] = $_GET['data'];
+    }
+
+    public function set_gender()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] . '/denied');
+
+        $_SESSION['benefit']['gender'] = $_GET['data'];
+    }
+
+    public function set_benefittype()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] . '/denied');
+
+        $_SESSION['benefit']['benefit_type'] = $_GET['data'];
+    }
+
+    public function set_benefitcode()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] . '/denied');
+
+        $_SESSION['benefit']['benefit_code'] = $_GET['data'];
     }
 
     public function set_employee_benefit()
@@ -137,21 +169,35 @@ class Employee_Benefit extends MY_Controller
     {
         $this->authorized($this->module, 'create');
 
-        if ($category !== NULL) {
-            $category = urldecode($category);
+        // if ($category !== NULL) {
+            // $category = urldecode($category);
       
-            $_SESSION['benefit']['items']                      = array();
-            $_SESSION['benefit']['levels']                     = array();
-            $_SESSION['benefit']['employee_benefit']           = NULL;
-            $_SESSION['benefit']['notes']                      = NULL;
+            // $_SESSION['benefit']['items']                      = array();
+            // $_SESSION['benefit']['levels']                     = array();
+            // $_SESSION['benefit']['employee_benefit']           = NULL;
+            // $_SESSION['benefit']['notes']                      = NULL;
       
-            redirect($this->module['route'] . '/create');
-        }
+            // redirect($this->module['route'] . '/create');
+        // }
 
-        $this->data['page']['content']    = $this->module['view'] .'/create';
-        $this->data['page']['offcanvas']  = $this->module['view'] .'/create_offcanvas_add_item';
+        // if($category == 'new'){
+        //     $_SESSION['benefit']['items']                      = array();
+        //     $_SESSION['benefit']['levels']                     = array();
+        //     $_SESSION['benefit']['employee_benefit']           = NULL;
+        //     $_SESSION['benefit']['notes']                      = NULL;
+        //     $_SESSION['benefit']['id']                         = NULL;
 
-        $this->render_view($this->module['view'] .'/create');
+
+        //     $this->data['page']['content']    = $this->module['view'] .'/create';
+        //     $this->data['page']['offcanvas']  = $this->module['view'] .'/create_offcanvas_add_item';
+        //     $this->render_view($this->module['view'] .'/create');
+        // } else {
+            $this->data['page']['content']    = $this->module['view'] .'/create';
+            $this->data['page']['offcanvas']  = $this->module['view'] .'/create_offcanvas_add_item';
+            $this->render_view($this->module['view'] .'/create');
+        // }
+
+        
     }
 
     public function add_expense_item()
@@ -224,7 +270,7 @@ class Employee_Benefit extends MY_Controller
             $data['success'] = TRUE;
         } else {
             $data['success'] = FALSE;
-            $data['message'] = 'Please select any vendors!';
+            $data['message'] = 'Please select any Level!';
         }
         }
 
@@ -278,13 +324,7 @@ class Employee_Benefit extends MY_Controller
                 $errors = array();
                 if (!isset($_SESSION['benefit']['employee_benefit']) || empty($_SESSION['benefit']['employee_benefit'])){
                     $errors[] = 'Employee Benefit Harus isi.';
-                }
-
-                // if(isset($_SESSION['benefit']['id'])){
-                //     if($this->model->isDestinationExist($_SESSION['benefit']['business_trip_destination'])){
-                //         $errors[] = 'Tujuan Dinas '.$_SESSION['benefit']['business_trip_destination'].' Sudah Terdaftar.';
-                //     }
-                // }                
+                }         
 
                 if (!empty($errors)) {
                     $data['success'] = FALSE;

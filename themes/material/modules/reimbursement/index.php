@@ -1,7 +1,7 @@
 <?php include 'themes/material/page.php' ?>
 
 <?php startblock('page_head_tools') ?>
-<?php $this->load->view('material/templates/datatable_tools') ?>
+<?php $this->load->view('material/templates/datatable_tools_reimbursement') ?>
 <?php endblock() ?>
 
 <?php startblock('page_body') ?>
@@ -55,28 +55,64 @@
   </div>
 
   <div class="form-group">
+    <label for="filter_cost_centers">Cost Center</label>
+    <select class="form-control input-sm filter_cost_centers" data-column="2" id="filter_cost_centers">
+      <?php foreach (config_item('auth_annual_cost_centers') as $annual_cost_center) : ?>
+        <option value=<?= $annual_cost_center['id']; ?>>
+        <?= $annual_cost_center['cost_center_name']; ?>
+      </option>
+      <?php endforeach; ?>
+      
+    </select>
+  </div>
+
+  <div class="form-group">
     <label for="filter_status">Status</label>
-    <select class="form-control input-sm filter_dropdown" data-column="2" id="filter_status">
+    <select class="form-control input-sm filter_dropdown" data-column="3" id="filter_status">
       <option value="all">
         All Status
       </option>
-      <option value="WAITING APPROVAL BY HEAD DEPT" <?php if (config_item('as_head_department')=='yes'):echo 'selected'; endif;?>>
-        Waiting Approval By Head Dept
+      <!-- <option value="WAITING APPROVAL BY COO" <?php if (config_item('auth_role') == 'CHIEF OPERATION OFFICER'):echo 'selected'; endif;?>>
+        Waiting Approval By COO
+      </option>
+      <option value="WAITING APPROVAL BY CFO" <?php if (config_item('auth_role') == 'CHIEF OF FINANCE'):echo 'selected'; endif;?>>
+        Waiting Approval By CFO
+      </option>
+      <option value="WAITING APPROVAL BY VP" <?php if (config_item('auth_role') == 'VP FINANCE'):echo 'selected'; endif;?>>
+        Waiting Approval By VP
+      </option>
+      <option value="WAITING APPROVAL BY HOS" <?php if (config_item('auth_role') == 'HEAD OF SCHOOL'):echo 'selected'; endif;?>>
+        Waiting Approval By HOS
       </option>
       <option value="WAITING APPROVAL BY HR MANAGER" <?php if (in_array(config_item('auth_username'),list_username_in_head_department(11))):echo 'selected'; endif;?>>
         Waiting Approval By HR Manager
+      </option> -->
+      <!-- <option value="WAITING APPROVAL BY FINANCE MANAGER" <?php if (config_item('auth_role')=='FINANCE MANAGER'):echo 'selected'; endif;?>>
+        Waiting Approval By Finance Manager
+      </option> -->
+      <option value="WAITING APPROVAL BY CFO">
+        Waiting Approval By CFO
       </option>
-      <option value="WAITING APPROVAL BY FINANCE MANAGER" <?php if (config_item('auth_role')=='FINANCE MANAGER'):echo 'selected'; endif;?>>
+      <option value="WAITING APPROVAL BY COO">
+        Waiting Approval By COO
+      </option>
+      <option value="WAITING APPROVAL BY HOS">
+        Waiting Approval By HOS
+      </option>
+      <option value="WAITING APPROVAL BY VP">
+        Waiting Approval By VP
+      </option>
+      <option value="WAITING APPROVAL BY HR MANAGER">
+        Waiting Approval By HR Manager
+      </option>
+      <option value="WAITING APPROVAL BY FINANCE MANAGER">
         Waiting Approval By Finance Manager
       </option>
       <option value="APPROVED">
         Approved
       </option>
-      <option value="REJECTED">
-        Rejected
-      </option>
-      <option value="CLOSED">
-        Closed
+      <option value="REJECT">
+        Reject
       </option>
       <option value="REVISED">
         Revised
@@ -325,7 +361,7 @@
           $(row).addClass('selected');
         }
       },
-      drawCallback: function(settings) {
+      drawCallback: function(settings) { 
         var api = this.api();
         var data = api.rows({
           page: 'current'
@@ -518,6 +554,12 @@
       datatable.columns(i).search(v).draw();
     });
 
+    $('.filter_cost_centers').on('change', function() {
+      var i = $(this).data('column');
+      var v = $(this).val();
+      datatable.columns(i).search(v).draw();
+    });
+
     $('.filter_boolean').on('change', function() {
       var checked = $(this).is(':checked');
       var i = $(this).data('column');
@@ -693,6 +735,7 @@
         toastr.options.positionClass = 'toast-top-right';
         toastr.error('Empty selected data');
       }
+    
     });
 
     $(datatableElement).find('tbody').on('click', 'tr', function(e) {
@@ -718,6 +761,37 @@
       console.log(document_id);
     });
 
+    function getAttachment(id) {
+      $.ajax({
+        type: "GET",
+        url: 'reimbursement/listAttachment/' + id,
+        cache: false,
+        success: function(response) {
+          var data = $.parseJSON(response);
+          $("#attachment_modal").modal("show");
+          $("#attachment_modal")
+          .find('.modal-body')
+          .empty()
+          .append(data.info);
+          // var data = jQuery.parseJSON(response)
+          // $("#listView").html("")
+          // $("#attachment_modal").modal("show");
+          // $.each(data, function(i, item) {
+          //   var text = '<tr>' +
+          //     '<td>' + (i + 1) + '</td>' +
+          //     '<td><a href="<?= base_url() ?>' + item.file + '" target="_blank">' + item.file + '</a></td>' +
+          //     '</tr>';
+          //   $("#listView").append(text);
+          // });
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+          console.log(xhr.status);
+          console.log(xhr.responseText);
+          console.log(thrownError);
+        }
+      });
+    }
+
     function encodeNotes() {
       new_document_id = document_id.replace(/\|/g, "");
       new_document_id = new_document_id.substring(0, new_document_id.length - 1);
@@ -728,6 +802,7 @@
         if ($("#note_" + x).val() != "") {
           notes = notes + "|" + $("#note_" + x).val() + "##,";
           y += 1;
+          
         } else {
           return false;
         }
@@ -737,6 +812,8 @@
       } else {
         return false
       }
+
+      
     }
 
     $("#modal-reject-data-button-multi").click(function() {

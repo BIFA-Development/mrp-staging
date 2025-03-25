@@ -45,7 +45,7 @@ class Employee extends MY_Controller
             $return['type'] = 'danger';
             $return['info'] = "You don't have permission to access this page!";
         } else {
-              $entities = $this->model->getIndex();
+            $entities = $this->model->getIndex();
 
             $data = array();
             $no   = $_POST['start'];
@@ -59,6 +59,14 @@ class Employee extends MY_Controller
                 $col[] = print_string($row['name']);
                 $col[] = print_string($department['department_name']);
                 $col[] = print_string($row['position']);
+                $col[] = print_string($row['benefits']);
+                $col[] = print_string($row['contract_number']);
+                $diff = (strtotime($row['end_date']) - strtotime(date('Y-m-d'))) / (60 * 60 * 24);
+                if ($diff <= 20) {
+                $col[] = "<b style='color:red;'>".print_string(print_date($row['start_date']) . ' - '. print_date($row['end_date']))."</b>";
+                } else {
+                    $col[] = print_string(print_date($row['start_date']) . ' - '. print_date($row['end_date']));
+                }
                 $col[] = print_date($row['updated_at']);
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];
@@ -174,6 +182,7 @@ class Employee extends MY_Controller
                         'updated_by'                        => config_item('auth_person_name'),
                         'updated_at'                        => date('Y-m-d H:i:s'),
                         'employee_id'                       => $this->input->post('employee_id'),
+                        'level_id'                       => $this->input->post('level_id'),
                     );
 
                     $criteria = $this->input->post('id');
@@ -222,6 +231,8 @@ class Employee extends MY_Controller
                         'updated_by'                        => config_item('auth_person_name'),
                         'updated_at'                        => date('Y-m-d H:i:s'),
                         'employee_id'                       => $this->model->get_unused_id(),
+                        'level_id'                         => $this->input->post('level_id'),
+
                     );
 
                     if ($this->model->insert($form_data)){
@@ -757,14 +768,15 @@ class Employee extends MY_Controller
                 $col = array();
                 $col[] = print_number($no);
                 $col[] = print_string($row['employee_benefit']);
-                $col[] = print_date($row['start_date']).' s/d '.print_date($row['end_date']);
+                $col[] = print_string($row['benefit_name_type'].' ('.$row['start_date'].' s/d '.print_date($row['end_date']) . ')');
+                // $col[] = print_date($row['start_date']).' s/d '.print_date($row['end_date']);
                 $col[] = print_number($row['amount_plafond']);
                 $col[] = print_number($row['used_amount_plafond']);
                 $col[] = print_number($row['left_amount_plafond']);
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];
                 $col['DT_RowAttr']['data-target'] = '#data-modal';
-                $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/edit_benefit/'. $row['id']);
+                $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info_benefit/'. $row['id']);
                 $col['DT_RowAttr']['onClick']     = '';
 
                 $data[] = $col;
@@ -806,6 +818,27 @@ class Employee extends MY_Controller
 
         echo json_encode($return);
     }
+    public function info_benefit($id)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'edit') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to edit this data!";
+        } else {
+            $entity = $this->model->findEmployeeBenefitById($id);
+            $employee_has_benefit = $this->model->checkHistoryClaim($entity['employee_number'],$entity['employee_benefit_id']);
+
+            $this->data['entity'] = $entity;
+            $this->data['entity']['last_claim'] = $employee_has_benefit['created_at'];
+
+            $return['type'] = 'success';
+            $return['info'] = $this->load->view($this->module['view'] .'/info_benefit', $this->data, TRUE);
+        }
+
+        echo json_encode($return);
+    }
 
     public function edit_benefit($id)
     {
@@ -836,61 +869,122 @@ class Employee extends MY_Controller
             $return['type'] = 'danger';
             $return['info'] = "You don't have permission to access this page!";
         } else {
-            if ($this->input->post('id')){
-                if ($this->model->isBenefitExist($this->input->post('employee_benefit_id'), $this->input->post('employee_contract_id'),$this->input->post('employee_benefit_id_exception'), $this->input->post('employee_contract_id_exception'))){
-                    $selectedBenefit = $this->model->findBenefitById($this->input->post('employee_benefit_id'));
-                    $selectedContract = $this->model->findContractById($this->input->post('employee_contract_id'));
-                    $return['type'] = 'danger';
-                    $return['info'] = 'Benefit '. $selectedBenefit['employee_benefit'] .'for periode Contract '.print_date($selectedContract['start_date']).' s/d '.print_date($selectedContract['end_date']).' already exists.';
+            if ($this->input->post('id') != ''){
+                $form_data = array(
+                    'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                    'employee_number'       => $this->input->post('employee_number'),
+                    'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
+                    'amount_plafond'        => $this->input->post('amount_plafond'),
+                    'left_amount_plafond'   => $this->input->post('amount_plafond'),
+                    'used_amount_plafond'   => 0,
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                $criteria = $this->input->post('id');
+
+                if ($this->model->update_benefit($form_data, $criteria)){
+                    $return['type'] = 'success';
+                    $return['info'] = 'Benefit updated.';
                 } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
+                }
                     
-                    $form_data = array(
-                        'employee_contract_id'  => $this->input->post('employee_contract_id'),
-                        'employee_number'       => $this->input->post('employee_number'),
-                        'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
-                        'amount_plafond'        => $this->input->post('amount_plafond'),
-                        'left_amount_plafond'   => $this->input->post('amount_plafond'),
-                        'used_amount_plafond'   => 0,
-                    );
-
-                    $criteria = $this->input->post('id');
-
-                    if ($this->model->update_benefit($form_data, $criteria)){
-                        $return['type'] = 'success';
-                        $return['info'] = 'Benefit updated.';
-                    } else {
-                        $return['type'] = 'danger';
-                        $return['info'] = 'There are error while updating data. Please try again later.';
-                    }
-                }
+                
             } else {
-                if ($this->model->isBenefitExist($this->input->post('employee_benefit_id'), $this->input->post('employee_contract_id'))){
-                    $selectedBenefit = $this->model->findBenefitById($this->input->post('employee_benefit_id'));
-                    $selectedContract = $this->model->findContractById($this->input->post('employee_contract_id'));
-                    $return['type'] = 'danger';
-                    $return['info'] = 'Benefit '. $selectedBenefit['employee_benefit'] .'for periode Contract '.print_date($selectedContract['start_date']).' s/d '.print_date($selectedContract['end_date']).' already exists.';
-                } else {
+                $selectedBenefit = $this->model->findBenefitById($this->input->post('employee_benefit_id'));
+                $selectedContract = $this->model->findContractById($this->input->post('employee_contract_id'));
 
-                    $form_data = array(
-                        'employee_contract_id'  => $this->input->post('employee_contract_id'),
-                        'employee_number'       => $this->input->post('employee_number'),
-                        'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
-                        'amount_plafond'        => $this->input->post('amount_plafond'),
-                        'left_amount_plafond'   => $this->input->post('amount_plafond'),
-                        'used_amount_plafond'   => 0,
-                    );
-
-                    if ($this->model->insert_benefit($form_data)){
-                        $return['type'] = 'success';
-                        $return['info'] = 'Benefit added.';
+                if($selectedBenefit['benefit_type'] == 'yearly'){
+                    $isCanTopupOptik = checkReimburseOptik($this->input->post('employee_number'),$selectedBenefit['id']);
+                    if($isCanTopupOptik){
+                        $form_data = array(
+                            'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                            'employee_number'       => $this->input->post('employee_number'),
+                            'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
+                            'amount_plafond'        => $this->input->post('amount_plafond'),
+                            'left_amount_plafond'   => $this->input->post('amount_plafond'),
+                            'used_amount_plafond'   => 0,
+                        );
+    
+                        if ($this->model->insert_benefit($form_data)){
+                            $return['type'] = 'success';
+                            $return['info'] = 'Benefit added.';
+                        } else {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'There are error while updating data. Please try again later.';
+                        }
                     } else {
                         $return['type'] = 'danger';
-                        $return['info'] = 'There are error while updating data. Please try again later.';
+                        $return['info'] = 'Benefit '. $selectedBenefit['employee_benefit'] .'for periode Contract '.print_date($selectedContract['start_date']).' s/d '.print_date($selectedContract['end_date']).' already exists.';
+                    }
+
+                } else if ($selectedBenefit['benefit_type'] == 'once'){
+                    $isCanTopupOnce = checkReimburseOnce($this->input->post('employee_number'),$selectedBenefit['id']);
+                    if($isCanTopupOnce){
+                        $form_data = array(
+                            'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                            'employee_number'       => $this->input->post('employee_number'),
+                            'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
+                            'amount_plafond'        => $this->input->post('amount_plafond'),
+                            'left_amount_plafond'   => $this->input->post('amount_plafond'),
+                            'used_amount_plafond'   => 0,
+                        );
+    
+                        if ($this->model->insert_benefit($form_data)){
+                            $return['type'] = 'success';
+                            $return['info'] = 'Benefit added.';
+                        } else {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'There are error while updating data. Please try again later.';
+                        }
+                    } else {
+                        $return['type'] = 'danger';
+                        $return['info'] = 'Benefit '. $selectedBenefit['employee_benefit'] .'for periode Contract '.print_date($selectedContract['start_date']).' s/d '.print_date($selectedContract['end_date']).' already exists.';
+                    }
+                } else {
+                    if ($this->model->isBenefitExist($this->input->post('employee_benefit_id'), $this->input->post('employee_contract_id'))){
+                        $return['type'] = 'danger';
+                        $return['info'] = 'Benefit '. $selectedBenefit['employee_benefit'] .'for periode Contract '.print_date($selectedContract['start_date']).' s/d '.print_date($selectedContract['end_date']).' already exists.';
+                    } else {
+    
+                        $form_data = array(
+                            'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                            'employee_number'       => $this->input->post('employee_number'),
+                            'employee_benefit_id'   => $this->input->post('employee_benefit_id'),
+                            'amount_plafond'        => $this->input->post('amount_plafond'),
+                            'left_amount_plafond'   => $this->input->post('amount_plafond'),
+                            'used_amount_plafond'   => 0,
+                        );
+    
+                        if ($this->model->insert_benefit($form_data)){
+                            $return['type'] = 'success';
+                            $return['info'] = 'Benefit added.';
+                        } else {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'There are error while updating data. Please try again later.';
+                        }
                     }
                 }
+                
             }
         }
 
         echo json_encode($return);
+    }
+
+
+    public function get_history_benefit()
+    {
+        // if ($this->input->is_ajax_request() === FALSE)
+        //     redirect($this->modules['secure']['route'] .'/denied');
+        
+
+        $employee_number = $_GET['employee'];
+        $benefit_id = $_GET['id'];
+
+        $employee_has_benefit = $this->model->checkHistoryClaim($employee_number,$benefit_id);
+        
+        echo json_encode($employee_has_benefit);
     }
 }

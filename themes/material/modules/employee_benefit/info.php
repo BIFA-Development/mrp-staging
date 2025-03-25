@@ -43,21 +43,24 @@
                         <tbody id="table_contents">
                         <?php $n = 0;?>
                         <?php $total_expense = array();?>
-                        <?php foreach ($entity['levels'] as $i => $detail):?>
+                        <?php if (isset($_SESSION['benefit']['levels'])) : ?>
+                            <?php foreach ($entity['levels'] as $id => $item):?>
                             <?php $n++;?>
                             <tr>
                                 <td class="no-space">
                                     <?=print_number($n);?>
                                 </td>
-                                <td>
-                                    <?=print_string($detail['level']);?>
-                                </td>
-                                <td style="text-align:right;">
-                                    <?=print_number($detail['amount'], 2);?>
-                                    <?php $total_expense[] = $detail['amount'];?>
-                                </td>
+                                <td><?=$item['level'];?></td>
+                                <td style="text-align:left;">
+                                    <?= number_format($item['amount'], 2); ?>
+                                </td>     
                             </tr>
                         <?php endforeach;?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="5" class="text-center">No items available</td>
+                            </tr>
+                        <?php endif; ?>
                         </tbody>
                         <tfoot>
                         

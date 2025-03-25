@@ -864,8 +864,20 @@ class Dashboard_Model extends MY_Model
       $status = 'WAITING APPROVAL BY HR MANAGER';
     }
 
-    if(config_item('auth_role')=='FINANCE MANAGER'){
-      $status = 'WAITING APPROVAL BY FINANCE MANAGER';
+    if(config_item('auth_role')=='HEAD OF SCHOOL'){
+      $status = 'WAITING APPROVAL BY HOS';
+    }
+
+    if(config_item('auth_role')=='VP FINANCE'){
+      $status = 'WAITING APPROVAL BY VP';
+    }
+
+    if(in_array(config_item('auth_role'),['CHIEF OF FINANCE'])){
+      $status = 'WAITING APPROVAL BY CFO';
+    }
+
+    if(in_array(config_item('auth_role'),['CHIEF OPERATION OFFICER'])){
+      $status = 'WAITING APPROVAL BY COO';
     }
 
     $this->db->from('tb_reimbursements');
@@ -873,9 +885,9 @@ class Dashboard_Model extends MY_Model
     $query = $this->db->get();
     $count_as_role = $query->num_rows();
 
-    if(config_item('as_head_department')=='yes'){
+    if(config_item('as_head_department')=='yes' || in_array(config_item('auth_role'),['VP FINANCE','HEAD OF SCHOOL'])){
       $this->db->from('tb_reimbursements');
-      $this->db->where_in('tb_reimbursements.status', ['WAITING APPROVAL BY HEAD DEPT']);
+      $this->db->where_in('tb_reimbursements.status', ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY VP']);
       $this->db->where('tb_reimbursements.head_dept', config_item('auth_username'));
       $query = $this->db->get();
       $count_as_role_head = $query->num_rows();

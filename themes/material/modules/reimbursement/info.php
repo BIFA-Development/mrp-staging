@@ -43,12 +43,12 @@
             <dt>Status</dt>
             <dd><?=$entity['status'];?></dd>
 
-            <?php if($entity['status']=='REJECTED'):?>
+            <?php if($entity['status']=='REJECT'):?>
               <dt>Rejected By</dt>
               <dd><?=($entity['rejected_by']==null)? 'N/A':print_string($entity['rejected_by']);?></dd>
             <?php else:?>
               <dt>Validated By</dt>
-              <dd><?=($entity['validated_by']==null)? 'N/A':print_string($entity['knvalidated_byown_by']);?></dd>
+              <dd><?=($entity['validated_by']==null)? 'N/A':print_string($entity['validated_by']);?></dd>
 
               <dt>HR Approved By</dt>
               <dd><?=($entity['hr_approved_by']==null)? 'N/A':print_string($entity['hr_approved_by']);?></dd>
@@ -56,9 +56,7 @@
               <dt>Finance Approved By</dt>
               <dd><?=($entity['finance_approved_by']==null)? 'N/A':print_string($entity['finance_approved_by']);?></dd>
             <?php endif;?>
-
-            <dt>Supervisor/Atasan</dt>
-            <dd><?=$entity['head_dept_name'];?></dd>
+           
 
             <dt>Employee Number</dt>
             <dd><?=$entity['employee_number'];?></dd>
@@ -74,6 +72,15 @@
 
             <dt>Requested By</dt>
             <dd><?=strtoupper($entity['request_by']);?></dd>
+
+            <dt>Plafond</dt>
+            <dd><?=strtoupper($entity['type']);?></dd>
+
+            <dt>Plafond Tyoe</dt>
+            <dd><?=strtoupper($entity['benefit_name_type']);?></dd>
+
+
+            
         </dl>
       </div>
     </div>
@@ -85,15 +92,19 @@
             <thead id="table_header">
               <tr>
                 <th></th>
-                <th><?= ($entity['type']=='MEDICAL')? 'Patient Name':'Expense Detail'?></th>
+                <th>Expense Detail</th>
                 <th>Date</th>
-                <th><?= ($entity['type']=='MEDICAL')? 'Diagnoses':'Description'?></th>
+                <th>Description</th>
+                <th>Account Code (COA)</th>
                 <th>Amount</th>
+                <th>Paid Amount</th>
+                <th>Attachment</th>
               </tr>
             </thead>
             <tbody id="table_contents">
               <?php $n = 1;?>
               <?php $total = array();?>
+              <?php if (!empty($entity['items'])): ?>
               <?php foreach ($entity['items'] as $i => $detail):?>
               <tr>
                 <td class="no-space">
@@ -109,11 +120,31 @@
                   <?=print_string($detail['notes']);?>
                 </td>
                 <td>
+                  <?=print_string($detail['account_code']);?>
+                </td>
+                <td>
                   <?=print_number($detail['amount'],2);?>
                 </td>
+                <td>
+                  <?=print_number($detail['paid_amount'],2);?>
+                </td>
+                <td>
+                  <?php if (!empty($detail['attachment'])): ?>
+                      <a href="<?= base_url('attachment/reimbursement/' . $detail['attachment']); ?>" target="_blank" title="View Attachment">
+                          <i class="fa fa-eye text-primary"></i>
+                      </a>
+                  <?php else: ?>
+                      <span class="text-muted">No Attachment</span>
+                  <?php endif; ?>
+              </td>
                 <?php $total[] = $detail['amount'];?>
               </tr>
-              <?php endforeach;?>
+              <?php endforeach; ?>
+              <?php else: ?>
+                  <tr>
+                      <td colspan="5" class="text-center">No items available</td>
+                  </tr>
+              <?php endif; ?>
             </tbody>
             <tfoot>
               <tr>
@@ -143,19 +174,19 @@
         ));?>
         <input type="hidden" name="id" id="id" value="<?=$entity['id'];?>">
 
-        <a href="<?=site_url($module['route'] .'/delete_ajax/');?>" class="btn btn-floating-action btn-danger btn-xhr-delete btn-tooltip ink-reaction" id="modal-delete-data-button">
+        <!-- <a href="<?=site_url($module['route'] .'/delete_ajax/');?>" class="btn btn-floating-action btn-danger btn-xhr-delete btn-tooltip ink-reaction" id="modal-delete-data-button">
             <i class="md md-delete"></i>
             <small class="top left">delete</small>
-        </a>
+        </a> -->
         <?=form_close();?>
         <?php endif;?>
-        <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
+        <!-- <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
             <i class="md md-attach-file"></i>
             <small class="top right">Manage Attachment</small>
-        </a>
+        </a> -->
 
         <div class="pull-right">
-            <?php if (is_granted($module, 'create') && $entity['date'] >= $data):?>
+            <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED' && $entity['status'] != 'EXPENSE REQUEST'): ?>
             <a href="<?=site_url($module['route'] .'/edit/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" id="modal-edit-data-button">
                 <i class="md md-edit"></i>
                 <small class="top right">edit</small>
@@ -173,11 +204,11 @@
                 'class' => 'form-xhr-create-expense pull-left',
             ));?>
             <input type="hidden" name="id" id="id" value="<?=$entity['id'];?>">
-
+<!-- 
             <a href="<?=site_url($module['route'] .'/create_expense_ajax/');?>" class="btn btn-floating-action btn-primary btn-xhr-create-expense btn-tooltip ink-reaction" id="btn-xhr-create-expense">
                 <i class="fa fa-money"></i>
                 <small class="top left">Create Expense</small>
-            </a>
+            </a> -->
             <?=form_close();?>
         </div>
     </div>

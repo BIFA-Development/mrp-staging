@@ -18,6 +18,7 @@
     <?php
     foreach (available_modules() as $mainMenu => $subMenu) {
       $parentMenu = config_item('parent');
+      $roleUser = config_item('auth_role');
       $parentMenuClass = ( $mainMenu === $module['parent'] ) ? 'active' : '';
 
       echo '<li class="gui-folder '.$parentMenuClass.'">';
@@ -28,15 +29,41 @@
       echo '<ul>';
 
       foreach ($subMenu as $childMenu){
-        $childMenuClass = ($childMenu['route'] === $module['route']) ? 'active' : '';
-
+        $childMenuClass = ($childMenu['permission'] === $module['route']) ? 'active' : '';
         echo '<li class="'.$childMenuClass.'">';
         echo '<a href="'.site_url($childMenu['route']).'">';
         echo '<span class="title">';
         echo $childMenu['label'];
         echo '</span>';
         echo '</a>';
+
+        $roles = explode(',', $childMenu['permission']['index_approval']);
+        $roles = array_map('trim', $roles); // Trim spaces to avoid mismatch issues
+        if ($childMenu['route'] === 'reimbursement' && in_array(config_item('auth_role'), $roles) != '' ) {
+          $childMenuApp = ('reimbursement/approval' === ($module['route'].'/approval')) ? 'active' : '';
+          echo '<li class="'.$childMenuApp.'">';
+          echo '<a href="'.site_url('reimbursement/approval').'">';
+          echo '<span class="title">';
+          echo 'Reimbursement Approval';
+          echo '</span>';
+          echo '</a>';
+          echo '</li>';
+        }
         echo '</li>';
+
+        // if($childMenu['route'] == 'reimbursement' && $roleUser != 'REIMBURSEMENT'){
+        //   $roles = explode(',', $module['permission']['index_approval']);
+        //   $roles = array_map('trim', $roles); // Trim spaces to avoid mismatch issues
+        //   if(!empty($module['permission']['index_approval'] && $childMenu['parent'] == 'reimbursment')){
+        //   $childMenuApp = ('reimbursement/approval' === ($module['route'].'/approval')) ? 'active' : '';
+        //   echo '<li class="'.$childMenuApp.'">';
+        //   echo '<a href="'.site_url('reimbursement/approval').'">';
+        //   echo '<span class="title">';
+        //   echo 'Reimbursement Approval';
+        //   echo '</span>';
+        //   echo '</a>';
+        //   echo '</li>';
+        // }
       }
 
       echo '</ul>';

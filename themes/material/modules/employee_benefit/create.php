@@ -22,6 +22,55 @@
                             <input type="text" name="employee_benefit" id="employee_benefit" value="<?= $_SESSION['benefit']['employee_benefit']; ?>" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_benefit'); ?>" required>
                             <label for="employee_benefit">Employee's Benefit</label>
                         </div>
+
+                        <div class="form-group">
+                            <select name="gender" id="gender" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_gender'); ?>" required>
+                                <option value="" <?= ("" == $_SESSION['benefit']['spesific_gender']) ? 'selected' : ''; ?> >All Gender</option>
+                                <option value="male" <?= ("male" == $_SESSION['benefit']['spesific_gender']) ? 'selected' : ''; ?>>Male</option>
+                                <option value="female" <?= ("female" == $_SESSION['benefit']['spesific_gender']) ? 'selected' : ''; ?>>Female</option>
+                            </select>
+                            <label for="gender">Select Gender</label>
+                        </div>
+
+                        <div class="form-group">
+                            <select name="type" id="benefit_code" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_benefitcode'); ?>"  required>
+                                <?php foreach(getBenefitCategory() as $benefit):?>
+                                <option data-account-id="<?=$benefit['id'];?>" value="<?=$benefit['benefit_code'];?>" <?= ($benefit['benefit_code'] == $_SESSION['benefit']['benefit_code']) ? 'selected' : ''; ?>><?=$benefit['benefit_name'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="benefit_code">Type</label>
+                        </div>
+
+                        <div class="form-group">
+                            <select name="type" id="benefit_type" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_benefittype'); ?>"  required>
+                                <?php foreach(getBenefitType() as $benefit):?>
+                                <option data-account-id="<?=$benefit['id'];?>" value="<?=$benefit['benefit_type'];?>" <?= ($benefit['benefit_type'] == $_SESSION['benefit']['benefit_type']) ? 'selected' : ''; ?>><?=$benefit['notes'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="benefit_code">Type</label>
+                        </div>
+
+                        <!-- <div class="form-group">
+                            <select name="benefit_code" id="benefit_code" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_benefitcode'); ?>" required>
+                                <option value="B1" <?= ("B1" == $_SESSION['benefit']['benefit_code']) ? 'selected' : ''; ?>>BENEFIT MEDICAL</option>
+                                <option value="B2" <?= ("B2" == $_SESSION['benefit']['benefit_code']) ? 'selected' : ''; ?>>BENEFIT OPTIK</option>
+                                <option value="B3" <?= ("B3" == $_SESSION['benefit']['benefit_code']) ? 'selected' : ''; ?>>DONATION PERSALINAN</option>
+                                <option value="B4" <?= ("B4" == $_SESSION['benefit']['benefit_code']) ? 'selected' : ''; ?>>DONATION SANTUNAN</option>
+
+                            </select>
+                            <label for="benefit_code">Select Benefit Category</label>
+                        </div> -->
+
+                        <!-- <div class="form-group">
+                            <select name="benefit_type" id="benefit_type" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_benefittype'); ?>" required>
+                                <option value="yearly" <?= ("yearly" == $_SESSION['benefit']['benefit_type']) ? 'selected' : ''; ?>>2 Tahun Sekali</option>
+                                <option value="once" <?= ("once" == $_SESSION['benefit']['benefit_type']) ? 'selected' : ''; ?>>Sekali</option>
+                                <option value="contract" <?= ("contract" == $_SESSION['benefit']['benefit_type']) ? 'selected' : ''; ?>>Mengikuti Kontrak</option>
+                            </select>
+                            <label for="benefit_type">Select Type Benefit</label>
+                        </div> -->
+
+
                         <div class="form-group">
                             <textarea name="notes" id="notes" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_notes'); ?>"><?= $_SESSION['benefit']['notes']; ?></textarea>
                             <label for="notes">Notes</label>
@@ -65,11 +114,11 @@
                 </button> -->
                 <div class="pull-left">
                     <a href="<?=site_url($module['route'] .'/add_level');?>" onClick="return popup(this, 'add_level')" class="btn btn-primary ink-reaction">
-                        Add Value
+                        Add Leveling Assignment
                     </a>
                     <?php if (isset($_SESSION['tujuan_dinas']['items'])) : ?>            
-                    <a href="<?=site_url($module['route'] .'/edit_expense');?>" onClick="return popup(this, 'edit_expense')" class="btn btn-primary ink-reaction">
-                        Edit Value
+                    <!-- <a href="<?=site_url($module['route'] .'/edit_expense');?>" onClick="return popup(this, 'edit_expense')" class="btn btn-primary ink-reaction">
+                        Edit Value -->
                     </a>
                     <?php endif;?>
                 </div>                

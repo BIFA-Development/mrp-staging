@@ -161,7 +161,7 @@
                   <div class="card-head collapsed">
                     <header>
                       <a href="<?=site_url($modules['business_trip_request']['route']);?>">
-                        SPD (<strong><font color="red"><?=$count_spd;?></font></strong>)
+                        Surat Perjalanan Dinas (<strong><font color="red"><?=$count_spd;?></font></strong>)
                       </a>
                     </header>
                   </div>
@@ -170,7 +170,7 @@
                   <div class="card-head collapsed">
                     <header>
                       <a href="<?=site_url($modules['sppd']['route']);?>">
-                        SPPD (<strong><font color="red"><?=$count_sppd;?></font></strong>)
+                        SPJ Dinas (<strong><font color="red"><?=$count_sppd;?></font></strong>)
                       </a>
                     </header>
                   </div>
@@ -178,7 +178,7 @@
                 <?php if (is_granted($modules['reimbursement'], 'approval')):?>
                   <div class="card-head collapsed">
                     <header>
-                      <a href="<?=site_url($modules['reimbursement']['route']);?>">
+                      <a href="<?=site_url($modules['reimbursement']['route'].'/approval');?>">
                         Reimbursement (<strong><font color="red"><?=$count_reimbursement;?></font></strong>)
                       </a>
                     </header>

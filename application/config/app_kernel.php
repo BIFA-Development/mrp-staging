@@ -54,6 +54,12 @@ $config['parent']['finance_report']['icon']   = 'fa fa-money';
 $config['parent']['perjalanan_dinas']['label']  = 'Perjalanan Dinas';
 $config['parent']['perjalanan_dinas']['icon']   = 'fa fa-road';
 
+
+$config['parent']['reimbursment']['label']  = 'Reimbursement';
+$config['parent']['reimbursment']['icon']   = 'fa fa-ticket';
+
+
+
 $config['module'] = array();
 
 
@@ -64,6 +70,9 @@ require('modules/user_position.php');
 require('modules/employee_benefit.php');
 require('modules/employee.php');
 require('modules/master_expense_duty.php');
+require('modules/master_expense_reimbursement.php');
+require('modules/master_benefit_category.php');
+require('modules/master_benefit_type.php');
 require('modules/tujuan_perjalanan_dinas.php');
 require('modules/master_transportation.php');
 
@@ -92,6 +101,7 @@ require('modules/daftar_pajak.php');
 require('modules/business_trip_request.php');
 require('modules/sppd.php');
 require('modules/reimbursement.php');
+
 
 //aircraft
 require('modules/pesawat.php');
@@ -208,6 +218,9 @@ require('modules/setting.php');
 // require('modules/item_on_delivery.php');
 // require('modules/item_on_return.php');
 // require('modules/item_on_shipping.php');
+
+require('modules/profile.php');
+
 
 
 //tambahan

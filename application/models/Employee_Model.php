@@ -19,6 +19,9 @@ class Employee_Model extends MY_Model
             'Name',
             'Department',
             'Occupation',
+            'Has Benefit',
+            'Last Contract',
+            'Contract Start - End',
             'Last Update'
         );
     }
@@ -26,7 +29,6 @@ class Employee_Model extends MY_Model
     public function getSearchableColumns()
     {
         return array(
-            'employee_number',
             'name',
             'position',
         );
@@ -67,8 +69,48 @@ class Employee_Model extends MY_Model
 
     function getIndex($return = 'array')
     {
-        $this->db->select('*');
-        $this->db->from('tb_master_employees');
+        // $this->db->select('*');
+        // $this->db->from('tb_master_employees');
+        $this->db->select('
+        emp.employee_number,
+        emp.name AS name,
+        emp.position,
+        emp.department_id,
+        emp.updated_at,
+        emp.employee_id,
+        latest_contract.contract_number,
+        latest_contract.start_date,
+        latest_contract.end_date,
+        latest_contract.status AS contract_status,
+        COALESCE(STRING_AGG(benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits
+        ');
+        $this->db->from('tb_master_employees emp');
+        
+        // Subquery untuk kontrak terbaru dengan alias yang lebih jelas
+        $this->db->join('(
+            SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status
+            FROM tb_employee_contracts
+            WHERE status = \'ACTIVE\'
+            ORDER BY employee_number, start_date DESC
+        ) latest_contract', 'emp.employee_number = latest_contract.employee_number', 'left');
+        
+        $this->db->join('tb_employee_has_benefit emp_benefit', 'emp.employee_number = emp_benefit.employee_number', 'left');
+        $this->db->join('tb_master_employee_benefits benefit', 'emp_benefit.employee_benefit_id = benefit.id', 'left');
+        
+        // Gunakan emp.employee_number untuk menghindari ambigu
+        $this->db->group_by([
+            'emp.employee_number',
+            'emp.name',
+            'emp.position',
+            'emp.department_id',
+            'emp.updated_at',
+            'emp.employee_id',
+            'latest_contract.contract_number',
+            'latest_contract.start_date',
+            'latest_contract.end_date',
+            'latest_contract.status'
+        ]);
+    
 
         $this->searchIndex();
 
@@ -118,29 +160,105 @@ class Employee_Model extends MY_Model
 
     public function findById($id)
     {
-        $this->db->where('employee_number', $id);
-        $query      = $this->db->get('tb_master_employees');
-        $row        = $query->unbuffered_row('array');
+        $this->db->select(array(
+            'tb_master_levels.level AS level_name',
+            'tb_master_levels.id AS level_id',
+            'tb_master_employees.*'
+        ));
+        $this->db->from('tb_master_employees');
+        $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+        $this->db->where('tb_master_employees.employee_number', $id);
 
+        
+        $query = $this->db->get();
+
+        $row = $query->unbuffered_row('array');
+        
         $department = getDepartmentById($row['department_id']);
         $row['department_name'] = $department['department_name'];
+        
 
         return $row;
     }
 
-    public function findOneBy($criteria)
+
+    // public function findById($id)
+    // {
+    //     $this->db->select(array(
+    //         'tb_master_levels.level AS level_name',
+    //         'tb_master_levels.id AS level_id',
+    //         'tb_master_employees.*'
+    //     ));
+    //     $this->db->from('tb_master_employees');
+    //     $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+    //     $this->db->where('tb_master_employees.employee_number', $id);
+    //     $query      = $this->db->get('tb_master_employees');
+    //     $row        = $query->unbuffered_row('array');
+
+    //     $department = getDepartmentById($row['department_id']);
+    //     $row['department_name'] = $department['department_name'];
+
+    //     return $row;
+    // }
+
+//     public function findOneBy($conditions)
+// {
+
+//     $this->db->select(
+        
+//         'tb_master_employees.*'
+//     );
+//     $this->db->from('tb_master_employees');
+//     $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id'); 
+//     $this->db->where($conditions); // Use the associative array for WHERE conditions
+
+//     $query = $this->db->get();
+//     $row = $query->unbuffered_row('array');
+
+//     if ($row) {
+//         $department = getDepartmentById($row['department_id']);
+//         $row['department_name'] = $department['department_name'];
+//     }
+
+//     return $row;
+// }
+
+    public function findOneBy($conditions)
     {
+
+        $this->db->select(array(
+            'tb_master_levels.level AS level_name',
+            'tb_master_levels.id AS level_id',
+            'tb_master_employees.*'
+        ));
         $this->db->from('tb_master_employees');
-        $this->db->where($criteria);
+        $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+        $this->db->where($conditions); // Dynamic conditions
 
         $query = $this->db->get();
-        $row   = $query->unbuffered_row('array');
+        $row = $query->unbuffered_row('array');
 
-        $department = getDepartmentById($row['department_id']);
-        $row['department_name'] = $department['department_name'];
+        if ($row) {
+            $department = getDepartmentById($row['department_id']);
+            $row['department_name'] = $department['department_name'];
+        }
 
         return $row;
     }
+
+    // public function findOneBy($criteria)
+    // {
+    //     $this->db->from('tb_master_employees');
+    //     $this->db->where($criteria);
+
+    //     $query = $this->db->get();
+    //     $row   = $query->unbuffered_row('array');
+
+    //     $department = getDepartmentById($row['department_id']);
+    //     $row['department_name'] = $department['department_name'];
+
+    //     return $row;
+    // }
 
     public function insert(array $user_data)
     {
@@ -513,10 +631,12 @@ class Employee_Model extends MY_Model
             'tb_employee_has_benefit.amount_plafond',
             'tb_employee_has_benefit.used_amount_plafond',
             'tb_employee_has_benefit.left_amount_plafond',
-            'tb_master_employee_benefits.employee_benefit'
+            'tb_master_employee_benefits.employee_benefit',
+             'tb_master_benefit_type.notes as benefit_name_type',
         ));
         $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_benefit.employee_contract_id');
         $this->db->join('tb_master_employee_benefits', 'tb_master_employee_benefits.id = tb_employee_has_benefit.employee_benefit_id');
+        $this->db->join('tb_master_benefit_type', 'tb_master_benefit_type.benefit_type = tb_master_employee_benefits.benefit_type', 'left');
         $this->db->where('tb_employee_has_benefit.employee_number',$employee_number);
         $this->db->from('tb_employee_has_benefit');
 
@@ -633,21 +753,27 @@ class Employee_Model extends MY_Model
             'tb_employee_has_benefit.left_amount_plafond',
             'tb_master_employee_benefits.employee_benefit',
             'tb_master_employees.name',
+            'tb_master_employees.gender',
             'tb_master_employees.position',
             'tb_employee_has_benefit.employee_number',
             'tb_employee_has_benefit.employee_benefit_id',
             'tb_employee_has_benefit.employee_contract_id',
+            'tb_employee_has_benefit.created_at',
+            'tb_employee_has_benefit.updated_at',
+            'tb_employee_has_benefit.updated_by',
+            'tb_master_benefit_type.notes as name_type',
         ));
         $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_benefit.employee_contract_id');
         $this->db->join('tb_master_employee_benefits', 'tb_master_employee_benefits.id = tb_employee_has_benefit.employee_benefit_id');
+        $this->db->join('tb_master_benefit_type','tb_master_employee_benefits.benefit_type = tb_master_benefit_type.benefit_type','left');
         $this->db->join('tb_master_employees', 'tb_master_employees.employee_number = tb_employee_has_benefit.employee_number');
         $this->db->where('tb_employee_has_benefit.id', $id);
         $query      = $this->db->get('tb_employee_has_benefit');
         $row        = $query->unbuffered_row('array');
         
-        $this->db->select('tb_used_benefits.*');
-        $this->db->where('tb_used_benefits.employee_has_benefit_id', $id);
-        $queryUsed      = $this->db->get('tb_used_benefits');
+        $this->db->select('tb_reimbursements.*');
+        $this->db->where('tb_reimbursements.employee_has_benefit_id', $id);
+        $queryUsed      = $this->db->get('tb_reimbursements');
 
         foreach ($queryUsed->result_array() as $key => $value){
             $row['itemUseds'][$key] = $value;
@@ -669,5 +795,33 @@ class Employee_Model extends MY_Model
         $this->db->trans_commit();
         return TRUE;
     }
+
+    
+    public function checkHistoryClaim($employee_id, $id_benefit) {
+        
+        // Ambil data pengajuan terakhir untuk karyawan ini
+        $this->db->select(array(
+            'created_at',
+            'document_number'
+        ));
+        $this->db->where('employee_number', $employee_id);
+        $this->db->where('status !=', 'REJECT');
+        $this->db->where('status !=', 'REVISED');
+        $this->db->where('id_benefit', $id_benefit);
+        $this->db->from('tb_reimbursements');
+        $this->db->order_by('created_at', 'DESC');
+        $this->db->limit(1);
+        $query = $this->db->get();
+        $result = $query->result_array();
+        $return = array();
+    
+        if ($query->num_rows() === 0) {
+            return $return;
+        } else {
+            return $result;
+        }
+    
+    }
+      
 
 }

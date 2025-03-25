@@ -110,7 +110,7 @@ $config['modules_for_head_dept'] = array(
   'Capex Order Evaluation',
   'business_trip_request',
   'sppd',
-  'reimbursement'
+  'reimbursement',
 );
 
 $config['type_reimbursement'] = array(
@@ -126,6 +126,8 @@ $config['additional_modules_for_hr_depatment'] = array(
   'employee_benefit',
   'user_position',
   'employee',
+  'expense_reimbursement',
+  'benefit_category'
 );
 
 $config['hr_department_name'] = 'Human Resources Dept';

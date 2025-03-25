@@ -17,32 +17,65 @@
             <div class="document-header force-padding">
                 <div class="row">
                     <div class="col-sm-6 col-lg-4">
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <div class="input-group">
                                 <div class="input-group-content">
-                                    <input type="text" name="document_number" id="document_number" class="form-control" maxlength="6" value="<?= $_SESSION['reimbursement']['document_number']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_doc_number'); ?>" required>
+                                    <input type="text" name="document_number" id="document_number" class="form-control" maxlength="6" value="<?= $_SESSION['reimbursement']['document_number']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_doc_number'); ?>" required disabled>
                                     <label for="document_number">Document No.</label>
                                 </div>
                                 <span class="input-group-addon"><?= $_SESSION['reimbursement']['format_number']; ?></span>
                             </div>
                         </div>
 
+                        <label for="document_number">Document No Automatic</label>
+
                         <div class="form-group">
                             <input type="text" name="date" id="date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['reimbursement']['date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_received_date'); ?>" required>
-                            <label for="date">Date</label>
+                            <label for="date">Date Invoice</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="last_status" id="last_status" class="form-control" value="<?= $_SESSION['reimbursement']['last_status']; ?>" data-input-type="autoset" required>
+                            <label for="last_status">last_status</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="gender" id="gender" class="form-control" value="<?= $_SESSION['reimbursement']['gender']; ?>" data-input-type="autoset" required>
+                            <label for="gender">gender</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="annual_cost_center_ida" id="annual_cost_center_ida" class="form-control" value="<?= $_SESSION['reimbursement']['annual_cost_center_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_annual_cost_center_id'); ?>"readonly>
+                            <label for="annual_cost_center_ida">Annual Cost</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="annual_cost_center_id" id="annual_cost_center_id" class="form-control" value="<?= $_SESSION['reimbursement']['annual_cost_center_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_annual_cost_center_id'); ?>"readonly>
+                            <label for="annual_cost_center_id">Annual Cost</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="group_id" id="group_id" class="form-control" value="<?= $_SESSION['reimbursement']['group_id']; ?>" readonly>
+                            <label for="group_id">Group ID Cost</label>
                         </div>
 
                         <div class="form-group">
-                            <select name="type" id="type_reimbursement" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_type_reimbursement'); ?>" required>
-                                <option></option>
-                                <?php foreach(getBenefits() as $benefit):?>
-                                <option data-account-code="<?=$benefit['kode_akun'];?>" value="<?=$benefit['employee_benefit'];?>" <?= ($benefit['employee_benefit'] == $_SESSION['reimbursement']['type']) ? 'selected' : ''; ?>><?=$benefit['employee_benefit'];?></option>
+                            <input type="text" name="date_created" id="date_created" data-date-format="dd-mm-yyyy" class="form-control" value="<?= date('Y-m-d') ?>" data-input-type="autoset" readonly>
+                            <label for="date_created">Date Created</label>
+                        </div>
+
+                        <!-- <div class="form-group">
+                            <select name="type" id="type_reimbursement" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_type_reimbursement'); ?>"  data-source-get-expense-name="<?= site_url($module['route'] . '/get_expense_name'); ?>" <?= !empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?> required>
+                                <option value="">---Choose Benefit----</option> 
+                                <?php foreach(getBenefits($_SESSION['reimbursement']['employee_number'],$_SESSION['reimbursement']['gender'] ) as $benefit):?>
+                                <option data-account-ben-type="<?=$benefit['benefit_type'];?>" data-account-id="<?=$benefit['id'];?>" data-account-ben-code="<?=$benefit['benefit_code'];?>" data-account-code="<?=$benefit['kode_akun'];?>" value="<?=$benefit['employee_benefit'];?>" <?= ($benefit['employee_benefit'] == $_SESSION['reimbursement']['type']) ? 'selected' : ''; ?>><?=$benefit['employee_benefit'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="type_reimbursement">Type</label>
-                        </div>
+                        </div> -->
 
-                        <div class="form-group">
+
+                        <!-- <div class="form-group">
                             <select name="head_dept" id="head_dept" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" required>
                                 <option></option>
                                 <?php foreach(list_user_in_head_department($_SESSION['reimbursement']['department_id']) as $head):?>
@@ -50,24 +83,24 @@
                                 <?php endforeach;?>
                             </select>
                             <label for="head_dept">Supervisor / Atasan</label>
-                        </div>
-
-                                      
+                        </div> -->
                     </div>
 
                     <div class="col-sm-12 col-lg-4">
+
+
                         <div class="form-group" style="padding-top: 25px;">
-                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-balance="<?= site_url($module['route'] . '/get_employee_saldo'); ?>" required>
+                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-balance="<?= site_url($module['route'] . '/get_employee_saldo'); ?>" <?= !empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?> <?= (config_item('auth_role') != 'REIMBURSEMENT' || config_item('auth_role') == 'ADMIN' || config_item('auth_role') == 'SUPER ADMIN' || config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') ? '' : 'disabled'; ?>  required>
                                 <option></option>
-                                <?php foreach(available_employee($_SESSION['reimbursement']['department_id']) as $user):?>
-                                <option data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['reimbursement']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
+                                <?php foreach(available_employee($_SESSION['reimbursement']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
+                                <option data-cost-groupid="<?=$user['group_id'];?>" data-cost-annualcost="<?=$user['annual_cost_center_id'];?>" data-cost-centername="<?=$user['cost_center_name'];?>"  data-cost-centerid="<?=$user['cost_center_id'];?>" data-cost-center-code="<?=$user['cost_center_code'];?>" data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['reimbursement']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="employee_number">Name</label>
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
-                            <select name="occupation" id="occupation" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_occupation'); ?>" required>
+                            <select name="occupation" id="occupation" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_occupation'); ?>" <?= !empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?> <?= (config_item('auth_role') != 'REIMBURSEMENT' || config_item('auth_role') == 'ADMIN' || config_item('auth_role') == 'SUPER ADMIN') ? '' : 'disabled'; ?> required>
                                 <option></option>
                                 <?php foreach(occupation_list() as $occupation):?>
                                 <option value="<?=$occupation['position'];?>" <?= ($occupation['position'] == $_SESSION['reimbursement']['occupation']) ? 'selected' : ''; ?>><?=$occupation['position'];?></option>
@@ -75,16 +108,48 @@
                             </select>
                             <label for="occupation">Occupation / Jabatan</label>
                         </div>
+
+                        
+                        <div class="form-group">
+                            <label for="type_reimbursement">Type</label>
+                            <select name="type" id="type_reimbursement" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_type_reimbursement'); ?>" data-source-get-employee-benefit-list="<?= site_url($module['route'] . '/get_employee_benefits_list'); ?>" data-source-get-expense-name="<?= site_url($module['route'] . '/get_expense_name'); ?>" required <?= !empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?> <?= ($_SESSION['reimbursement']['id'] == NULL || $_SESSION['reimbursement']['id'] == '') ? '' : 'disabled'; ?>>
+                                <option value="">---Choose Benefit----</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <select name="type" id="type_benefit" class="form-control" data-input-type="autoset" disabled>
+                                <option value="">-</option> <!-- Adding an empty option inside the loop -->
+                                <option value="yearly" <?= ("yearly" == $_SESSION['reimbursement']['benefit_type']) ? 'selected' : ''; ?>>2 Tahun Sekali</option>
+                                <option value="once" <?= ("once" == $_SESSION['reimbursement']['benefit_type']) ? 'selected' : ''; ?>>Sekali</option>
+                                <option value="contract" <?= ("contract" == $_SESSION['reimbursement']['benefit_type']) ? 'selected' : ''; ?>>Mengikuti Kontrak</option>
+                            </select>
+                            <label for="type_benefit">Type</label>
+                        </div>
                         
                         <div class="form-group">
                             <input type="text" name="department_name" id="department_name" class="form-control" value="<?= $_SESSION['reimbursement']['department_name']; ?>" readonly>
                             <label for="department_name">Department</label>
-                        </div>  
+                        </div>
+                        <div class="form-group">
+                            <input type="text" name="plafond_balance" id="plafond_balance" class="form-control number" value="<?= $_SESSION['reimbursement']['plafond_balance']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_plafond_saldo_balance'); ?>" readonly>
+                            <label for="plafond_balance">Plafond Balance</label>
+                        </div> 
+
+                        <div class="form-group">
+                            <input type="text" name="used_balance" id="used_balance" class="form-control number" value="<?= $_SESSION['reimbursement']['used_balance']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_used_saldo_balance'); ?>" readonly>
+                            <label for="used_balance">Used Balance</label>
+                        </div> 
                         
                         <div class="form-group">
                             <input type="text" name="saldo_balance" id="saldo_balance" class="form-control number" value="<?= $_SESSION['reimbursement']['saldo_balance']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_saldo_balance'); ?>" readonly>
                             <label for="saldo_balance">Saldo Balance</label>
                         </div>  
+
+                        <div class="form-group hide">
+                            <input type="text" name="saldo_balance_initial" id="saldo_balance_initial" class="form-control number" value="<?= $_SESSION['reimbursement']['saldo_balance_initial']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_saldo_balance_init'); ?>" readonly>
+                            <label for="saldo_balance_initial">Saldo Balance Initial</label>
+                        </div>  
+
 
                         <div class="form-group hide">
                             <input type="text" name="employee_has_benefit_id" id="employee_has_benefit_id" class="form-control" value="<?= $_SESSION['reimbursement']['employee_has_benefit_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_has_benefit_id'); ?>" readonly>
@@ -99,8 +164,53 @@
                         </div>
                         <div class="form-group hide">
                             <input type="text" name="account_code" id="account_code" class="form-control" value="<?= $_SESSION['reimbursement']['account_code']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_account_code'); ?>" readonly>
-                            <label for="account_code">Account Code</label>
+                            <label for="account_code">Account Code (COA)</label>
                         </div>  
+
+                        <div class="form-group hide">
+                            <input type="text" name="department_id" id="department_id" class="form-control" value="<?= $_SESSION['reimbursement']['department_id']; ?>"  readonly>
+                            <label for="department_id">Department ID</label>
+                        </div> 
+
+                        <div class="form-group hide">
+                            <input type="text" name="id_benefit" id="id_benefit" class="form-control" value="<?= $_SESSION['reimbursement']['id_benefit']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_id_benefit'); ?>" readonly>
+                            <label for="id_benefit">ID Benefit</label>
+                        </div>  
+
+                        <div class="form-group hide">
+                            <input type="text" name="benefit_code" id="benefit_code" class="form-control" value="<?= $_SESSION['reimbursement']['benefit_code']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_benefitcode'); ?>" readonly>
+                            <label for="benefit_code">Benefit CODE</label>
+                        </div>  
+
+                        <div class="form-group hide">
+                            <input type="text" name="cost_center_code" id="cost_center_code" class="form-control" value="<?= $_SESSION['reimbursement']['cost_center_code']; ?>" readonly>
+                            <label for="cost_center_code">Cost Code</label>
+                        </div> 
+
+                        <div class="form-group hide">
+                            <input type="text" name="cost_center_id" id="cost_center_id" class="form-control" value="<?= $_SESSION['reimbursement']['cost_center_id']; ?>" readonly>
+                            <label for="cost_center_id">Cost ID</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="cost_center_name" id="cost_center_name" class="form-control" value="<?= $_SESSION['reimbursement']['cost_center_name']; ?>" readonly>
+                            <label for="cost_center_name">Cost Name</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <input type="text" name="cost_center_group_id" id="cost_center_group_id" class="form-control" value="<?= $_SESSION['reimbursement']['cost_center_group_id']; ?>" data-input-type="autoset" readonly>
+                            <label for="cost_center_group_id">Cost Center Group</label>
+                        </div> 
+
+                        <div class="form-group hide">
+                            <input type="text" name="id_reimbursement_log" id="id_reimbursement_log" class="form-control" value="<?= $_SESSION['reimbursement']['id']; ?>" data-input-type="autoset" readonly>
+                            <label for="id_reimbursement_log">ID REIMBURSEMENT</label>
+                        </div> 
+
+                        <div class="form-group hide">
+                            <input type="text" name="head_dept" id="head_dept" class="form-control" value="<?= $_SESSION['reimbursement']['head_dept']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" readonly>
+                            <label for="head_dept">Head Dept</label>
+                        </div> 
                     </div>
                 </div>
             </div>
@@ -113,46 +223,58 @@
                             <th><span class="title_1">Expense Detail</span></th>
                             <th>Date</th>
                             <th><span class="title_2">Description/Notes</span></th>
+                            <th>Account Code (A)</th>
                             <th>Amount</th>
+                            <th>Paid Amount</th>
+                            <th>Attachment</th>
                         </tr>
                     </thead>
-                <tbody>
-                    <?php $total = array();?>
-                <?php foreach ($_SESSION['reimbursement']['items'] as $i => $items) : ?>
-                    <tr id="row_<?= $i; ?>">
-                        <td>
+                    <tbody>
+                        <?php $total = array(); ?>
 
-                            <a href="<?= site_url($module['route'] . '/del_item/' . $i); ?>" class="btn btn-icon-toggle btn-danger btn-sm btn_delete_document_item">
-                                <i class="fa fa-trash"></i>
-                            </a>
-                            <a class="btn btn-icon-toggle btn-info btn-sm btn_edit_document_item" data-todo='{"todo":<?= $i; ?>}'>
-                                <i class="fa fa-edit"></i>
-                            </a>
-                        </td>
+                        <?php if (!empty($_SESSION['reimbursement']['items'])): ?>
+                            <?php foreach ($_SESSION['reimbursement']['items'] as $i => $items): ?>
+                                <?php $total[] = $items['paid_amount']; ?>
+                                <tr id="row_<?= $i; ?>">
+                                    <td>
+                                        <a href="<?= site_url($module['route'] . '/del_item/' . $i); ?>" class="btn btn-icon-toggle btn-danger btn-sm btn_delete_document_item">
+                                            <i class="fa fa-trash"></i>
+                                        </a>
+                                        <a class="btn btn-icon-toggle btn-info btn-sm btn_edit_document_item" onClick="setPlafondBalance()" data-todo='{"todo":<?= $i; ?>}'data-item-id-db='{"item":<?= $items['id']; ?>}'>
+                                            <i class="fa fa-edit"></i>
+                                        </a>
+                                    </td>
+                                    <td><?= $items['description']; ?></td>
+                                    <td><?= ($items['transaction_date'] == '') ?$_SESSION['reimbursement']['date'] : $items['transaction_date']; ?></td>
+                                    <td><?= ($items['notes'] == '') ? $items['notes_modal'] : $items['notes']; ?></td>
+                                    <td><?= ($items['account_code'] == '') ? $items['account_code_item'] : $items['account_code']; ?></td>
+                                    <td><?= number_format($items['amount'], 2); ?></td>
+                                    <td><?= number_format($items['paid_amount'], 2); ?></td>
+                                    <td>
+                                        <?php if (!empty($items['attachment'])): ?>
+                                            <a href="<?= base_url('attachment/reimbursement/' . $items['attachment']); ?>" target="_blank" title="View Attachment">
+                                                <i class="fa fa-eye text-primary"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">No Attachment</span>
+                                        <?php endif; ?>
+                                    </td>
 
-                        <td>
-                            <?= $items['description']; ?>
-                        </td>
 
-                        <td>
-                            <?= $items['transaction_date']; ?>
-                        </td>
-                        <td>
-                            <?= $items['notes']; ?>
-                        </td>
-                        
-                        <td>
-                            <?= number_format($items['amount'],2); ?>
-                        </td>
-                        <?php $total[] = $items['amount'];?>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
+                                    
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" class="text-center">No items available</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
                 <tfoot>
                     <tr>
                         <th></th>
                         <th colspan="3">Total</th>
-                        <th><?= number_format(array_sum($total),2);?>
+                        <th><?= number_format(array_sum($total));?>
                         <input type="hidden" name="total" id="total" value="<?= array_sum($total); ?>">
                         </th>
                     </tr>
@@ -166,9 +288,19 @@
                 Add
                 </button>
 
-                <a href="#modal-add-item" data-toggle="modal" data-target="#modal-add-item" class="btn btn-primary ink-reaction btn-open-offcanvas pull-left">
+                <a href="#modal-add-item" data-toggle="modal" onClick="setPlafondBalance()" data-target="#modal-add-item" class="btn btn-primary ink-reaction btn-open-offcanvas pull-left">
                     Add Item
                 </a>
+
+                <div class="pull-left">
+                    <button type="button" href="" onClick="addRow()" class="btn btn-primary ink-reaction pull-left hide">
+                    Add
+                    </button>
+<!-- 
+                    <a style="margin-left: 15px;" href="<?= site_url($module['route'] . '/attachment'); ?>" onClick="return popup(this, 'attachment')" class="btn btn-primary ink-reaction">
+                        Attachment
+                    </a> -->
+                </div>
 
                 <a href="<?= site_url($module['route'] . '/discard'); ?>" class="btn btn-flat btn-danger ink-reaction">
                     Discard
@@ -179,7 +311,7 @@
         <?= form_close(); ?>
         <div class="section-action style-default-bright">
             <div class="section-floating-action-row">
-                <a class="btn btn-floating-action btn-lg btn-danger btn-tooltip ink-reaction" id="btn-submit-document" href="<?= site_url($module['route'] . '/save'); ?>">
+                <a class="btn btn-floating-action btn-lg btn-danger btn-tooltip ink-reaction"<?= empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?>  id="btn-submit-document" href="<?= site_url($module['route'] . '/save'); ?>" >
                     <i class="md md-save"></i>
                     <small class="top right">Save Document</small>
                 </a>
@@ -197,7 +329,7 @@
                     <h4 class="modal-title" id="modal-add-item-label">Add Item</h4>
                 </div>
 
-                <?= form_open(site_url($module['route'] . '/add_item'), array(
+                <?= form_open_multipart(site_url($module['route'] . '/add_item'), array(
                     'autocomplete' => 'off',
                     'id'    => 'ajax-form-create-document',
                     'class' => 'form form-validate ui-front',
@@ -211,25 +343,91 @@
                                 <div class="col-sm-12">
                                 <fieldset>
                                     <legend><?=$_SESSION['reimbursement']['type']?></legend>
+                                    <div class="form-group" style="padding-top: 25px;">
+                                        <select name="description" id="description" class="form-control" 
+                                            data-input-type="autoset" 
+                                            data-source="<?= site_url($module['route'] . '/set_description'); ?>"
+                                            required>
+                                            <option></option>
+                                        </select>
+                                        <label for="description">Expense Name</label>
+                                    </div>
+
 
                                     <div class="form-group">
-                                        <input type="text" name="description" id="description" class="form-control input-sm input-autocomplete">
-                                        <label for="description"><span class="title_1">Expense Detail</span></label>
+                                        <textarea name="notes_modal" id="notes_modal" data-tag-name="notes_modal" class="form-control input-sm"></textarea>
+                                        <label for="notes_modal"><span class="notes_modal">Description/Notes</span></label>
                                     </div>
 
                                     <div class="form-group">
-                                        <input type="text" name="date" id="date" data-tag-name="date" class="form-control input-sm" required="required" data-provide="datepicker">
-                                        <label for="date">Date</label>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <textarea name="notes" id="notes" data-tag-name="notes" class="form-control input-sm"></textarea>
-                                        <label for="notes"><span class="title_2">Description/Notes</span></label>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <input type="text" id="amount" class="form-control input-sm" name="amount" value="0" step=".02">
+                                        <input type="text" id="amount" class="form-control input-sm" name="amount" value="0" step=".02" oninput="updateSaldoBalance()">
                                         <label for="amount">Amount</label>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <input type="text" id="paid_amount_modal" class="form-control input-sm" name="paid_amount_modal" value="0" step=".02" readonly>
+                                        <label for="paid_amount_modal">Paid Amount</label>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <input type="text" id="plafond_balance_modal" class="form-control input-sm" name="plafond_balance_modal" value="0" step=".02" readonly>
+                                        <label for="plafond_balance_modal">Plafond Balance</label>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <input type="text" id="used_balance_modal" class="form-control input-sm" name="used_balance_modal" value="0" step=".02" readonly>
+                                        <label for="used_balance_modal">Last Used Balance</label>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <input type="text" id="saldo_balance_modal" class="form-control input-sm" name="saldo_balance_modal" value="0" step=".02" readonly>
+                                        <label for="saldo_balance_modal">Saldo Balance</label>
+                                    </div>
+
+                                    <!-- <div class="form-group">
+                                        <label for="attachment">Attachment</label>
+                                        <input type="file" id="attachment" class="form-control input-sm" name="attachment" accept=".jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.pdf">
+                                        <small id="file-error" class="text-danger" style="display: none;">File size must be less than 1MB.</small>
+                                    </div> -->
+                                    <div class="form-group">
+                                        <label for="attachment">Attachment</label>
+                                        
+                                        <!-- Display Existing File (if any) -->
+                                        <div id="existing-attachment">
+                                            <?php if (!empty($item['attachment'])): ?>
+                                                <a href="<?= base_url('attachment/reimbursement/' . $item['attachment']); ?>" target="_blank">
+                                                    <i class="fa fa-eye text-primary"></i> View Existing File
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">No Attachment</span>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <!-- File Input -->
+                                        <input type="file" id="attachment" class="form-control input-sm" name="attachment"
+                                            accept=".jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.pdf" required>
+                                        <small id="file-error" class="text-danger" style="display: none;">File size must be less than 1MB.</small>
+                                    </div>
+                                    <label for="saldo_balance_modal"><?php $item['attachment']; ?></label>
+
+                                    <div class="form-group hide">
+                                        <input type="text" name="account_code_item" id="account_code_item" class="form-control"  data-input-type="autoset" readonly>
+                                        <label for="account_code_item">Account Code (COA)</label>
+                                    </div>
+
+                                    <div class="form-group hide">
+                                        <input type="text" name="id_reimbursement_item" id="id_reimbursement_item" class="form-control"  data-input-type="autoset" readonly>
+                                        <label for="id_reimbursement_item">ID Reimbusement Item</label>
+                                    </div>
+
+                                    <div class="form-group hide">
+                                        <input type="text" name="amount_awal_item" id="amount_awal_item" class="form-control" step=".02"  data-input-type="autoset" readonly>
+                                        <label for="amount_awal_item">Amount Awal Item</label>
+                                    </div>
+
+                                    <div class="form-group hide">
+                                        <textarea name="existing_attachment" id="existing_attachment" data-tag-name="existing_attachment" class="form-control input-sm"></textarea>
+                                        <label for="existing_attachment">Existing Attachment</label>
                                     </div>
                                 </fieldset>
                             </div>
@@ -239,7 +437,8 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-flat btn-default" data-dismiss="modal">Close</button>
-                    <button type="submit" id="modal-add-item-submit" class="btn btn-primary btn-create ink-reaction">
+                    <button type="submit" id="modal-add-item-submit" onClick="setLastBalance(event)" class="btn btn-primary btn-create ink-reaction">
+                    
                         Add Item
                     </button>
 
@@ -302,6 +501,406 @@
     $('.select2').select2({
         // theme: "bootstrap",
     });
+
+    var selectedBenefit = "<?= isset($_SESSION['reimbursement']['type']) ? $_SESSION['reimbursement']['type'] : ''; ?>";
+
+
+    window.onload = async function(){
+        console.log('mulaiinit');
+        var id = $('#id_reimbursement_log').val();
+        $('#employee_number').trigger('change');
+
+
+        
+
+        // if(id != ''){
+        // $('#type_reimbursement').trigger('change');
+        // $('#employee_number').trigger('change');
+        // await calculateItemReimbursement();
+        // }
+
+    };
+    document.getElementById("attachment").addEventListener("change", function() {
+        var file = this.files[0];
+        var errorMessage = document.getElementById("file-error");
+
+        if (file && file.size > 1048576) { // 1MB = 1048576 bytes
+            errorMessage.style.display = "block"; // Show error message
+            this.value = ""; // Clear the file input
+        } else {
+            errorMessage.style.display = "none"; // Hide error message if valid
+        }
+    });
+
+    function calculateItemReimbursement(){
+        console.log("calculated");
+
+        var total = $('#total').val();
+        var used_balance = $('#used_balance').val();
+        var saldo_balance = $('#saldo_balance').val();
+
+
+        var lastSaldo = parseFloat(used_balance)+parseFloat(total);
+        var saldoLast = parseFloat(saldo_balance) - parseFloat(lastSaldo);
+
+
+        // localStorage.setItem("saldoModal", saldoLast); 
+        // localStorage.setItem("usedBalance", lastSaldo); 
+
+        $('#saldo_balance').val(saldoLast).trigger('change');
+        $('#used_balance').val(lastSaldo).trigger('change');
+        
+        console.log("HitungCalculate");
+        console.log(total);
+        console.log(used_balance);
+        console.log(saldoLast);
+        console.log(lastSaldo);
+
+
+
+    };
+
+    function setLastBalance(event) {
+        event.preventDefault(); // Prevent form submission
+
+        let isValid = true;
+        let errors = [];
+
+        let submitButton = document.getElementById("modal-add-item-submit");
+        submitButton.disabled = true;
+
+
+        // Clear previous error messages
+        document.querySelectorAll(".error-message").forEach(el => el.remove());
+        document.querySelectorAll(".form-group").forEach(el => el.classList.remove("has-error"));
+
+        // Get form fields
+        let description = document.getElementById("description");
+        let amount = document.getElementById("amount");
+        let attachment = document.getElementById("attachment");
+
+        // Validate Expense Name
+        if (description.value.trim() === "") {
+            isValid = false;
+            showError(description, "Expense Name is required.");
+        }
+
+        // Validate Amount
+        if (amount.value.trim() === "" || isNaN(amount.value) || parseFloat(amount.value) <= 0) {
+            isValid = false;
+            showError(amount, "Amount must be greater than 0.");
+        }
+
+        // Validate Attachment
+        if (attachment.files.length === 0) {
+            isValid = false;
+            showError(attachment, "Attachment is required.");
+        } else {
+            // Validate file size (max 1MB)
+            let fileSize = attachment.files[0].size / 1024 / 1024; // Convert to MB
+            if (fileSize > 1) {
+                isValid = false;
+                showError(attachment, "Attachment file size must be less than 1MB.");
+            }
+        }
+
+        // If validation fails, stop form submission
+        if (!isValid) {
+            console.error("Form validation failed:", errors);
+            submitButton.disabled = false;
+            return false;
+        }
+
+        console.log("Form is valid. Proceeding with submission.");
+
+        console.log("Mulai menghitung saldo");
+        var saldo_balance_modal = $('#saldo_balance_modal').val();
+        var paid_amount_modal = $('#paid_amount_modal').val();
+        var used_balance_modal = $('#used_balance_modal').val();
+        var amount_awal_item = $('#amount_awal_item').val();
+        var used_balance = $('#used_balance').val();
+        var usedMerge = 0;
+        var lastStatus = $('#last_status').val();
+
+        if(lastStatus == 'REJECT'){
+            usedMerge = parseFloat(used_balance)+parseFloat(paid_amount_modal);
+        } else {
+            if(amount_awal_item != 0){
+                    usedMerge = (parseFloat(used_balance)-parseFloat(amount_awal_item))+parseFloat(paid_amount_modal);
+            } else {
+                usedMerge = parseFloat(used_balance)+parseFloat(paid_amount_modal);
+            }
+        }
+
+
+        $('#saldo_balance').val(saldo_balance_modal).trigger('change');
+        $('#used_balance').val(usedMerge).trigger('change');
+
+        console.log(saldo_balance_modal);
+        console.log(paid_amount_modal);
+        console.log(used_balance_modal);
+        console.log(used_balance);
+        console.log(usedMerge);
+
+        console.log("Form is valid. Proceeding with submission.");
+        
+        
+        // If valid, submit the form
+        document.getElementById("ajax-form-create-document").submit();
+        
+        
+    }
+
+    function showError(inputElement, message) {
+        let formGroup = inputElement.closest(".form-group");
+        
+        if (formGroup) {
+            formGroup.classList.add("has-error"); // Highlight the field
+            let errorMessage = document.createElement("span");
+            errorMessage.className = "text-danger error-message";
+            errorMessage.innerText = message;
+            formGroup.appendChild(errorMessage);
+        }
+    }
+
+    function setLastBalance2() {
+        
+        console.log("Mulai menghitung saldo");
+        var saldo_balance_modal = $('#saldo_balance_modal').val();
+        var paid_amount_modal = $('#paid_amount_modal').val();
+        var used_balance_modal = $('#used_balance_modal').val();
+        var amount_awal_item = $('#amount_awal_item').val();
+        var used_balance = $('#used_balance').val();
+        var usedMerge = 0;
+        var lastStatus = $('#last_status').val();
+
+
+
+        if(lastStatus == 'REJECT'){
+            usedMerge = parseFloat(used_balance)+parseFloat(paid_amount_modal);
+        } else {
+            if(amount_awal_item != 0){
+                usedMerge = (parseFloat(used_balance)-parseFloat(amount_awal_item))+parseFloat(paid_amount_modal);
+            } else {
+                usedMerge = parseFloat(used_balance)+parseFloat(paid_amount_modal);
+            }
+        }
+        // localStorage.setItem("saldoModal", saldo_balance_modal); 
+        // localStorage.setItem("usedBalanceModal", usedMerge); 
+
+        $('#saldo_balance').val(saldo_balance_modal).trigger('change');
+        $('#used_balance').val(usedMerge).trigger('change');
+
+        console.log(saldo_balance_modal);
+        console.log(paid_amount_modal);
+        console.log(used_balance_modal);
+        console.log(used_balance);
+        console.log(usedMerge);
+        
+    };
+        
+
+        
+
+    
+
+    async function setPlafondBalance() {
+
+        $("#amount").val("0");
+        $("#paid_amount_modal").val("0");
+        $("#notes_modal").val("");
+
+
+        
+        console.log("MulaiBuka1");
+        await getExpenseName();
+
+        var saldo_balance_modal = $('#saldo_balance').val();
+        var plafond_balance_modal = $('#plafond_balance').val();
+        var used_balance_modal = $('#used_balance').val();
+
+        console.log("MulaiBuka");
+
+        $('#saldo_balance_modal').val(saldo_balance_modal).trigger('change');
+        $('#plafond_balance_modal').val(plafond_balance_modal).trigger('change');
+        $('#used_balance_modal').val(used_balance_modal).trigger('change');
+
+        
+
+    };
+
+    async function getExpenseName(expenseName) {
+
+        console.log("MasukGetEXPENSE)");
+        // var account_code = $('#type_reimbursement option:selected').data('account-code');  
+        var id_benefit = $('#type_reimbursement option:selected').data('account-id');
+        var benefit_code = $('#type_reimbursement option:selected').data('account-ben-code');
+        var benefit_type = $('#type_reimbursement option:selected').data('account-ben-type');
+
+        console.log('masuk expense name');
+
+
+
+        // $('#account_code').val(account_code).trigger('change');
+        $('#id_benefit').val(id_benefit).trigger('change');
+        $('#benefit_code').val(benefit_code).trigger('change');
+        $('#type_benefit').val(benefit_type).trigger('change');
+
+
+
+        var employee_number = $('#employee_number').val();     
+                        
+        var position = $('#employee_number option:selected').data('position');  
+        var sourceUrl = $('#type_reimbursement').data('source-get-expense-name');
+
+        var type = $('#type_reimbursement').val();   
+
+        console.log("dataexpense");
+        console.log(id_benefit);
+        var dataGroup =$('#cost_center_group_id').val();     
+
+        $.ajax({
+                url: sourceUrl,
+                type: 'GET',
+                data: {
+                    id_type   : id_benefit,
+                    cost_center_group_id : dataGroup
+                },
+                success: function (data) {
+                console.log('Mulaidisini');
+                    console.log(data);
+                    objExpense = $.parseJSON(data);
+                    localStorage.removeItem("expense_name_item");
+                    $('#description').empty();
+                    if(Object.keys(objExpense).length == 1){
+                        objExpense.forEach(function (item) {
+                        const option = `
+                            <option data-account-code-item="${item.account_code}" 
+                                    value="${item.expense_name}" selected>
+                                ${item.expense_name} - ${item.account_code}
+                            </option>`;
+                        $('#description').append(option); // Append each option
+                    });
+
+                    var account_code_item = $('#description option:selected').data('account-code-item');  
+                    $('#account_code_item').val(account_code_item).trigger('change');
+
+                    console.log('DariPertama');
+                    console.log(account_code_item);
+
+                    } else {
+                
+                    const emptyOption = `<option data-account-code-item="" 
+                                    value="">
+                                    Pilih Expense Name 
+                            </option>`;
+                    $('#description').append(emptyOption);
+                    
+                    objExpense.forEach(function (item) {
+                        var isSelected = (item.expense_name == expenseName) ? 'selected' : '';
+                        const option = `
+                            <option data-account-code-item="${item.account_code}" 
+                                    value="${item.expense_name}" ${isSelected}>
+                                ${item.expense_name} - ${item.account_code}
+                            </option>`;
+                        $('#description').append(option); // Append each option
+                        var account_code_item = $('#description option:selected').data('account-code-item');  
+                        $('#account_code_item').val(account_code_item).trigger('change');
+                    });
+                    
+
+                    localStorage.setItem("expense_name_item", data); 
+                    }
+                    
+                },
+                error: function () {
+                    alert('Failed to fetch data. Please try again.');
+                }
+            });
+
+        // type_reimbursement();            
+    };
+
+    function updateSaldoBalance() {
+        console.log('masuksini');
+        console.log('lastStatus');
+
+
+
+
+        var initialBalance = $('#saldo_balance').val();
+        var initialBalanceAwal = $('#saldo_balance_initial').val();
+
+        const valueAmountAwal = $('#amount_awal_item').val();
+        const amountAwal = valueAmountAwal.trim() === "" ? 0 : parseFloat(valueAmountAwal);
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const saldoBalanceField = document.getElementById('saldo_balance_modal');
+        const paidAmountField = document.getElementById('paid_amount_modal'); // Field paid amount modal
+
+        const id_reimbursement_item = document.getElementById('id_reimbursement_item');
+        var hasLastStatus = $('#last_status').val();
+        console.log(hasLastStatus);
+
+
+
+        var paidAmount = amount; // Default nilai paidAmount adalah amount
+
+        if(amountAwal == 0){
+            console.log('masuksini2');
+            if (amount >= initialBalance) {
+            // Jika amount melebihi initialBalance
+            paidAmount = initialBalance; // Paid amount adalah sisa saldo awal
+            saldoBalanceField.value = 0; // Saldo menjadi 0
+            } else {
+                // Jika amount tidak melebihi initialBalance
+                const updatedBalance = (parseFloat(initialBalance) - parseFloat(amount)) + parseFloat(amountAwal); // Hitung saldo yang diperbarui
+                saldoBalanceField.value = updatedBalance.toFixed(0); // Update saldo tersisa
+            }
+        } else {
+            console.log('masuksini3');
+            console.log(amount);
+            console.log((parseFloat(initialBalance) + parseFloat(amountAwal)));
+
+            if(hasLastStatus == 'REJECT'){
+                console.log('masukreject');
+                if (amount >= initialBalance) {
+                console.log('masukreject1');
+
+            // Jika amount melebihi initialBalance
+                paidAmount = initialBalance; // Paid amount adalah sisa saldo awal
+                saldoBalanceField.value = 0; // Saldo menjadi 0
+            } else {
+                console.log('masukreject2');
+                console.log(parseFloat(amount));
+                console.log(parseFloat(initialBalance));
+
+
+
+                // Jika amount tidak melebihi initialBalance
+                const updatedBalance = (parseFloat(initialBalance) - parseFloat(amount)); // Hitung saldo yang diperbarui
+                saldoBalanceField.value = updatedBalance.toFixed(0); // Update saldo tersisa
+            }
+
+            } else {
+                if (amount >= (parseFloat(initialBalance) + parseFloat(amountAwal))) {
+                console.log('masuksini4');
+
+                // Jika amount melebihi initialBalance
+                paidAmount = (parseFloat(initialBalance) + parseFloat(amountAwal)); // Paid amount adalah sisa saldo awal
+                saldoBalanceField.value = 0; // Saldo menjadi 0
+                } else {
+                console.log('masuksini5');
+
+                    // Jika amount tidak melebihi initialBalance
+                    const updatedBalance = parseFloat(initialBalance) - parseFloat(amount) + parseFloat(amountAwal); // Hitung saldo yang diperbarui
+                    saldoBalanceField.value = updatedBalance.toFixed(0); // Update saldo tersisa
+                }
+            }
+        }
+
+        // Update paidAmount field
+        paidAmountField.value = paidAmount;
+    };
 
     function popup(mylink, windowname){
         var height = window.innerHeight;
@@ -446,11 +1045,14 @@
         var lastDate = new Date(<?= config_item('period_year'); ?>, <?= config_item('period_month'); ?>, 0);
         var last_publish = $('[name="opname_start_date"]').val();
         var today = new Date();
-        today.setDate(today.getDate() - 2);
+        today.setDate(today.getDate() - 30);
+        var lastToday = new Date();
         $('[data-provide="datepicker"]').datepicker({
             autoclose: true,
             todayHighlight: true,
-            format: 'dd-mm-yyyy',
+            format: 'yyyy-mm-dd',
+            startDate: today,
+            endDate: lastToday
         });
 
         $('[data-provide="daterange"]').daterangepicker({
@@ -493,6 +1095,7 @@
             button.attr('disabled', true);
 
             if (form.valid()) {
+                console.log("Masuk sini");
                 $.post(action, form.serialize()).done(function(data) {
                     var obj = $.parseJSON(data);
 
@@ -518,63 +1121,76 @@
             button.attr('disabled', false);
         });
 
-        $(buttonSubmitDocument).on('click', function(e) {
+        $(buttonSubmitDocument).on('click', function (e) {
             e.preventDefault();
-            $(buttonSubmitDocument).attr('disabled', true);
+            var button = $(this);
+            button.attr('disabled', true); // Disable the button to prevent multiple clicks.
 
-            var url = $(this).attr('href');
+            var dataBalanceInit = $('#saldo_balance_initial').val();
 
-            var saldo = $('#saldo_balance').val();
-            var total = $('#total').val();
+            var url = button.attr('href');
+            var saldo = parseFloat($('#saldo_balance').val()) || 0; // Default to 0 if invalid.
+            var saldoinit = parseFloat(dataBalanceInit) || 0; // Default to 0 if invalid.
+            var id = parseFloat($('#employee_has_benefit_id').val()) || 0; // Default to 0 if invalid.
 
-            if(saldo<total){
-                if (confirm('Your balance is less than the total reimbursement. The amount to be reimbursed is the balance. Continue?')) {
-                    $.post(url, formDocument.serialize(), function(data) {
-                        var obj = $.parseJSON(data);
+            var total = parseFloat($('#total').val()) || 0;         // Default to 0 if invalid.
 
-                        if (obj.success == false) {
-                            toastr.options.timeOut = 10000;
-                            toastr.options.positionClass = 'toast-top-right';
-                            toastr.error(obj.message);
-                        } else {
-                            toastr.options.timeOut = 4500;
-                            toastr.options.closeButton = false;
-                            toastr.options.progressBar = true;
-                            toastr.options.positionClass = 'toast-top-right';
-                            toastr.success(obj.message);
+            console.log("Total:", total);
+            console.log("Saldo init:", saldoinit);
+            console.log("Saldo balance:", saldo);
 
-                            window.setTimeout(function() {
-                                window.location.href = '<?= site_url($module['route']); ?>';
-                            }, 5000);
-                        }
-                    });
-                }
-            }else{
-                $.post(url, formDocument.serialize(), function(data) {
-                    var obj = $.parseJSON(data);
 
-                    if (obj.success == false) {
-                        toastr.options.timeOut = 10000;
-                        toastr.options.positionClass = 'toast-top-right';
-                        toastr.error(obj.message);
-                    } else {
-                        toastr.options.timeOut = 4500;
-                        toastr.options.closeButton = false;
-                        toastr.options.progressBar = true;
-                        toastr.options.positionClass = 'toast-top-right';
-                        toastr.success(obj.message);
+            
 
-                        window.setTimeout(function() {
-                            window.location.href = '<?= site_url($module['route']); ?>';
-                        }, 5000);
-                    }
-
-                    $(buttonSubmitDocument).attr('disabled', false);
-                });
+            // Validation for invalid inputs
+            if (isNaN(saldo) || isNaN(total)) {
+                alert('Invalid balance or total value. Please check your inputs.');
+                button.attr('disabled', false); // Re-enable the button.
+                return;
             }
 
-            $(buttonSubmitDocument).attr('disabled', false);            
+            // Check if saldo is less than the total reimbursement
+            if (saldoinit < total ) {
+                if (confirm('Your balance is less than the total reimbursement. The amount to be reimbursed is the balance. Continue?')) {
+                    submitForm(url, button);
+                } else {
+                    button.attr('disabled', false); // Re-enable the button if user cancels.
+                }
+            } else {
+                submitForm(url, button);
+            }
         });
+
+// Function to submit the form via POST
+function submitForm(url, button) {
+    $.post(url, formDocument.serialize(), function (data) {
+        var obj = $.parseJSON(data);
+
+        if (obj.success === false) {
+            toastr.options.timeOut = 10000;
+            toastr.options.positionClass = 'toast-top-right';
+            toastr.error(obj.message);
+        } else {
+            toastr.options.timeOut = 4500;
+            toastr.options.closeButton = false;
+            toastr.options.progressBar = true;
+            toastr.options.positionClass = 'toast-top-right';
+            toastr.success(obj.message);
+
+            setTimeout(function () {
+                window.location.href = '<?= site_url($module['route']); ?>';
+            }, 5000);
+        }
+
+        button.attr('disabled', true); // Re-enable the button after completion.
+    }).fail(function () {
+        alert('An error occurred while submitting the form.');
+        button.attr('disabled', false); // Re-enable the button on error.
+    });
+}
+
+
+       
 
         $(buttonDeleteDocumentItem).on('click', function(e) {
             e.preventDefault();
@@ -582,14 +1198,34 @@
             var url = $(this).attr('href');
             var tr = $(this).closest('tr');
 
-            $.get(url);
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    var data = JSON.parse(response);
 
-            $(tr).remove();
+                    // Remove the row from the table
+                    $(tr).remove();
 
-            if ($("#table-document > tbody > tr").length == 0) {
-                $(buttonSubmit).attr('disabled', true);
-            }
+                    // Update the total in the footer
+                    $('#total').val(data.total);
+                    $('#table-document tfoot th:last').text(data.total.toFixed(2));
+
+                    // Check if table is empty
+                    // if ($("#table-document > tbody > tr").length == 0) {
+                    //     $(buttonSubmitDocument).attr('disabled', true);
+                    // }
+                    window.location.reload();
+
+
+                    
+                },
+                error: function() {
+                    alert('Failed to delete the item.');
+                }
+            });
         });
+
 
         $(autosetInputData).on('change', function() {
             var val = $(this).val();
@@ -601,13 +1237,108 @@
             });
         });
 
+
+
         $('#employee_number').change(function () {
+            var sourceUrl = $('#type_reimbursement').data('source-get-employee-benefit-list');
+            var employeeNumber = $('#employee_number').val();            
+            var position = $('#employee_number option:selected').data('position');  
+
+            // var gender = $('#gender').val();      
+            var gender = $('#employee_number option:selected').data('gender');
+            // var department_name = $('#employee_number option:selected').data('department-name');
+            // var department_id = $('#employee_number option:selected').data('department-id'); 
+            // var cost_code = $('#employee_number option:selected').data('cost-center-code');  
+            // var cost_id = $('#employee_number option:selected').data('cost-centerid');  
+            // var cost_name = $('#employee_number option:selected').data('cost-centername');  
+            // var cost_annual = $('#employee_number option:selected').data('cost-annualcost');  
+            // var group_id = $('#employee_number option:selected').data('cost-groupid');  
+
+
+
+
+
+
+
+
+                 
+            console.log("initemplo");   
+            console.log(employeeNumber);   
+            console.log(gender);   
+            $('#occupation').val(position).trigger('change');  
+            // $('#department_name').val(department_name).trigger('change');
+            // $('#cost_center_code').val(cost_code).trigger('change');
+            // $('#cost_center_id').val(cost_id).trigger('change');
+            // $('#cost_center_name').val(cost_name).trigger('change');
+            // $('#annual_cost_center_id').val(cost_annual).trigger('change');
+            // $('#group_id').val(group_id).trigger('change');
+            // $('#cost_center_group_id').val(group_id).trigger('change');
+
+
+
+
+
+
+
+            $.ajax({
+                url: sourceUrl,
+                type: 'GET',
+                data: { employee_number: employeeNumber, gender: gender },
+                success: function (data) {
+                                      console.log(data);
+                    var response = $.parseJSON(data);
+                    let $select = $('#type_reimbursement');
+
+                    // Clear current options and append the default option
+                    $select.empty().append('<option value="">---Choose Benefit----</option>');
+                    console.log('selectedValue' + selectedBenefit);
+
+
+                    if (response.length > 0) {
+                        $.each(response, function (index, benefit) {
+                            // $select.append(`<option data-account-ben-type="${benefit.benefit_type}" 
+                            //                             data-account-id="${benefit.id}" 
+                            //                             data-account-ben-code="${benefit.benefit_code}" 
+                            //                             data-account-code="${benefit.kode_akun}" 
+                            //                             value="${benefit.employee_benefit}">
+                            //                             ${benefit.employee_benefit}
+                            //                 </option>`);
+                            var isSelected = (benefit.employee_benefit == selectedBenefit) ? 'selected' : '';
+                            var option = `<option value="${benefit.employee_benefit}" 
+                                            data-account-ben-type="${benefit.benefit_type}" 
+                                            data-account-id="${benefit.id}" 
+                                            data-account-ben-code="${benefit.benefit_code}" 
+                                            data-account-code="${benefit.kode_akun}"
+                                            ${isSelected}>
+                                            ${benefit.employee_benefit}
+                                        </option>`;
+                            $select.append(option);
+
+                            if(isSelected == 'selected'){
+                                var benefit_type = $('#type_reimbursement option:selected').data('account-ben-type');
+                                $('#type_benefit').val(benefit_type).trigger('change');
+                            }
+                        });
+                    }
+
+                    // Trigger change event if needed
+                    // $select.trigger('change');
+                    
+                },
+                error: function () {
+                    toastr.error('Failed to update benefits. Please try again.');
+                }
+            });
+        });
+
+        function getEmployeeBenefit () {
             var employee_number = $('#employee_number').val();                        
             var position = $('#employee_number option:selected').data('position');  
-            var url = $(this).data('source-get-balance');
-            var type = $('#type_reimbursement').val();   
-            $('#occupation').val(position).trigger('change');
-
+            var url = $('#employee_number').data('source-get-balance');
+            // var type = $('#type_reimbursement').data('account-id');
+            var type = $('#type_reimbursement option:selected').data('account-id');  
+            console.log('URL:' +url);
+            
             $.ajax({
                 url: url,
                 type: 'GET',
@@ -622,9 +1353,29 @@
 
                     if(obj.status=='success'){
                         $('#saldo_balance').val(obj.saldo_balance).trigger('change');
+                        $('#saldo_balance_initial').val(obj.saldo_balance).trigger('change');
+                        $('#plafond_balance').val(obj.plafond_balance).trigger('change');
+                        $('#used_balance').val(obj.used_balance).trigger('change');
+                        //modal
+                        $('#saldo_balance_modal').val(obj.saldo_balance).trigger('change');
+                        $('#plafond_balance_modal').val(obj.plafond_balance).trigger('change');
+                        $('#used_balance_modal').val(obj.used_balance).trigger('change');
+
+                        var dataInit = $('#saldo_balance_initial').val();
+                        console.log("Saldo init");
+                        console.log(dataInit);
+                        
+                        
+
+
+                        // localStorage.setItem("saldoInit", obj.saldo_balance);
+                        // localStorage.setItem("saldoModal", obj.saldo_balance); 
+                        // localStorage.setItem("plafonModal", obj.plafond_balance); 
+                        // localStorage.setItem("usedBalance", obj.used_balance); 
+
                         $('#employee_has_benefit_id').val(obj.employee_has_benefit_id).trigger('change');
                     }else{
-                        toastr.options.timeOut = 10000;
+                        toastr.options.timeOut = 2000;
                         toastr.options.positionClass = 'toast-top-right';
                         if(obj.status=='error'){
                             toastr.error(obj.message);
@@ -632,80 +1383,76 @@
                             toastr.warning(obj.message);
                         }
 
+                        
+
                         $('#saldo_balance').val(obj.saldo_balance).trigger('change');
+                        $('#saldo_balance_initial').val(obj.saldo_balance).trigger('change');
+                        $('#plafond_balance').val(obj.plafond_balance).trigger('change');
+                        $('#used_balance').val(obj.used_balance).trigger('change');
+
+                        $('#saldo_balance_modal').val(obj.saldo_balance).trigger('change');
+                        $('#plafond_balance_modal').val(obj.plafond_balance).trigger('change');
+                        $('#used_balance_modal').val(obj.used_balance).trigger('change');
+
+
                         $('#employee_has_benefit_id').val(obj.employee_has_benefit_id).trigger('change');
+                       
+
                         
                     }                    
                     
                 }
             });
+            
+
+          
+
+        };
+
+        $('#description').change(function () {
+            var account_code_item = $('#description option:selected').data('account-code-item');  
+            $('#account_code_item').val(account_code_item).trigger('change');
+            console.log("Data account code");
+            console.log(account_code_item);
         });
+
+        var objExpense;
 
         $('#type_reimbursement').change(function () {
-            var account_code = $('#type_reimbursement option:selected').data('account-code');  
-
-            $('#account_code').val(account_code).trigger('change');
-            var employee_number = $('#employee_number').val();                        
-            var position = $('#employee_number option:selected').data('position');  
-            var url = $('#employee_number').data('source-get-balance');
-            var type = $('#type_reimbursement').val();   
-            if(employee_number!=NULL){
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    data: {
-                        employee_number   : employee_number,
-                        type      : type,
-                        position : position
-                    },
-                    success: function(data) {
-                        console.log(data);
-                        var obj = $.parseJSON(data);
-
-                        if(obj.status=='success'){
-                            $('#saldo_balance').val(obj.saldo_balance).trigger('change');
-                            $('#employee_has_benefit_id').val(obj.employee_has_benefit_id).trigger('change');
-                        }else{
-                            toastr.options.timeOut = 10000;
-                            toastr.options.positionClass = 'toast-top-right';
-                            if(obj.status=='error'){
-                                toastr.error(obj.message);
-                            }else if(obj.status=='warning'){
-                                toastr.warning(obj.message);
-                            }
-
-                            $('#saldo_balance').val(obj.saldo_balance).trigger('change');
-                            $('#employee_has_benefit_id').val(obj.employee_has_benefit_id).trigger('change');
-                            
-                        }                    
-                        
-                    }
-                });
-            }
-            
-            type_reimbursement();            
+            getEmployeeBenefit();
+            getExpenseName();
         });
 
-        function type_reimbursement(){
-            var type_reimbursement = $('#type_reimbursement').val(); 
-            if(type_reimbursement=='MEDICAL'){
-                $('.title_1').html('Patient Name');
-                $('.title_2').html('Diagnoses');
-            }else{
-                $('.title_1').html('Expense Detail');
-                $('.title_2').html('Description/Notes');
-            }
-        }
 
-        type_reimbursement();
+         
+        
+
+        // function type_reimbursement(){
+        //     var type_reimbursement = $('#type_reimbursement').val(); 
+        //     if(type_reimbursement=='MEDICAL'){
+        //         $('.title_1').html('Patient Name');
+        //         $('.title_2').html('Diagnoses');
+        //     }else{
+        //         $('.title_1').html('Expense Detail');
+        //         $('.title_2').html('Description/Notes');
+        //     }
+        // }
+
+        // type_reimbursement();
 
         $(buttonEditDocumentItem).on('click', function(e) {
             e.preventDefault();
 
             var id = $(this).data('todo').todo;
+            var idDbItem = $(this).data('item-id-db').item;
+
+            console.log("ID DB");
+            console.log(idDbItem);
             var data_send = {
                 id: id
             };
+
+            
 
             var save_method = 'update';
 
@@ -715,23 +1462,81 @@
                 data: data_send,
                 dataType: "JSON",
                 success: function(response) {
-                    var action = "<?=site_url($module['route'] .'/edit_item')?>";
+                    var action = "<?=site_url($module['route'] .'/edit_item')?>/" + id;
                     console.log(JSON.stringify(response));
                     $('[name="description"]').val(response.description);
-                    $('[name="date"]').val(response.transaction_date);
-                    $('[name="notes"]').val(response.notes);
+                    $('[name="notes_modal"]').val(response.notes_modal);
                     $('[name="amount"]').val(response.amount);
+                    $('[name="existing_attachment"]').val(response.attachment);
+                    $('[name="id_reimbursement_item"]').val(response.id);
+                    $('[name="amount_awal_item"]').val(response.paid_amount);
+
+                    
+
+
+                    // Handle attachment display
+                    if (response.attachment) {
+                        var attachmentUrl = "<?= base_url('attachment/reimbursement') ?>" +"/" + response.attachment;
+                        $('#existing-attachment').html(
+                            `<a href="${attachmentUrl}" target="_blank" value="${response.attachment}">
+                                <i class="fa fa-eye text-primary"></i> View Existing File
+                            </a>`
+                        );
+                    } else {
+                        $('#existing-attachment').html('<span class="text-muted">No Attachment</span>');
+                    }
+
+                    $('#saldo_balance_modal').val($('#saldo_balance').val()).trigger('change');
+                    $('#paid_amount_modal').val(response.paid_amount).trigger('change');
+                    $('#plafond_balance_modal').val($('#plafond_balance').val()).trigger('change');
+                    $('#used_balance_modal').val($('#used_balance').val()).trigger('change');
+
+                    getExpenseName(response.description);
+                    
+
+                    // var objExpenseItem = localStorage.getItem("expense_name_item");
+                    // var objExpenseData = $.parseJSON(objExpenseItem);
+                    // $('#description').empty();
+                    // const emptyOption = `
+                    //             <option data-account-code-item="" 
+                    //                     value="">
+                    //                  Pilih Expense Name
+                    //             </option>`;
+                    //     $('#description').append(emptyOption);
+                    // objExpenseData.forEach(function (item) {
+                    //         const option = `
+                    //             <option data-account-code-item="${item.account_code}" 
+                    //                     value="${item.expense_name}">
+                    //                 ${item.expense_name} - ${item.account_code}
+                    //             </option>`;
+                    //         $('#description').append(option); // Append each option
+                    //     });
+
+                        
+
+                       
+
+                    if(response.account_code_item == ""){
+                        var account_code_item = $('#description option:selected').data('account-code-item');  
+                        $('#account_code_item').val(account_code_item).trigger('change');
+                    } else {
+                        $('[name="account_code_item"]').val(response.account_code_item);
+                    }
+
 
 
                     $('#modal-add-item').modal('show'); // show bootstrap modal when complete loaded
                     $('.modal-title').text('Edit Item'); // Set title to Bootstrap modal title
                     $('#modal-add-item form').attr('action', action);// Set form action
+                    
 
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     alert('Error get data from ajax');
                 }
             });
+
+            
         });
     });
 </script>
