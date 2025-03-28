@@ -299,6 +299,9 @@ class Reimbursement_Model extends MY_Model
                 'tb_reimbursements.*',
             );
             $this->db->select($selected);
+            $this->db->order_by('status', 'desc');
+            $this->db->order_by('id', 'desc');
+            $this->db->order_by('date', 'desc');
             $this->db->from('tb_reimbursements');
         } else {
             $selected_person            = getEmployeeById(config_item('auth_user_id'));

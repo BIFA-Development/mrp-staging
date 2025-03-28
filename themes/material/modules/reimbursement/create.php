@@ -1170,19 +1170,22 @@ function submitForm(url, button) {
             toastr.options.timeOut = 10000;
             toastr.options.positionClass = 'toast-top-right';
             toastr.error(obj.message);
+            button.attr('disabled', false); // Re-enable the button after completion.
+
         } else {
             toastr.options.timeOut = 4500;
             toastr.options.closeButton = false;
             toastr.options.progressBar = true;
             toastr.options.positionClass = 'toast-top-right';
             toastr.success(obj.message);
+            button.attr('disabled', true); // Re-enable the button after completion.
 
             setTimeout(function () {
                 window.location.href = '<?= site_url($module['route']); ?>';
             }, 5000);
         }
 
-        button.attr('disabled', true); // Re-enable the button after completion.
+        
     }).fail(function () {
         alert('An error occurred while submitting the form.');
         button.attr('disabled', false); // Re-enable the button on error.
