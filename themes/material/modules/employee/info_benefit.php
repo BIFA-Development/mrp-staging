@@ -167,6 +167,7 @@
                         <div class="form-group">
                             <input type="number" name="amount_plafond" id="amount_plafond" class="form-control number" value="<?=$entity['amount_plafond']?>" step=".01">
                             <label for="amount_plafond">Amount Plafond</label>
+                            <input type="hidden" name="employee_benefit_id" id="employee_benefit_id" class="form-control" value="<?=$entity['employee_benefit_id'];?>" readonly>
                             <input type="hidden" name="id" id="id" class="form-control" value="<?=$entity['id'];?>" readonly>
                         </div>
                     </div>
