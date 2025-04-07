@@ -691,6 +691,15 @@ class Reimbursement extends MY_Controller
             $cost_center_group_id  = $cost_center['group_id'];
             $employee_has_benefit    = $this->model->getEmployeeHasBenefitById($entity['employee_has_benefit_id']);
 
+            $last_status = $entity['status'];
+            $saldo_balance = $employee_has_benefit['left_amount_plafond'];
+            $used_balance = $employee_has_benefit['used_amount_plafond'];
+
+
+            if($last_status == 'REJECT'){
+                $saldo_balance = $employee_has_benefit['left_amount_plafond'] - $entity['total'];
+                $used_balance = $employee_has_benefit['used_amount_plafond'] + $entity['total'];
+            }
 
 
             $_SESSION['reimbursement']['annual_cost_center_id']     = $entity['annual_cost_center_id'];
@@ -704,10 +713,10 @@ class Reimbursement extends MY_Controller
             $_SESSION['reimbursement']['format_number']             = $format_number;
             $_SESSION['reimbursement']['department_id']             = $department_id;
             $_SESSION['reimbursement']['person_in_charge']          = $entity['user_id'];
-            $_SESSION['reimbursement']['saldo_balance']             = $employee_has_benefit['left_amount_plafond'];
+            $_SESSION['reimbursement']['saldo_balance']             = $saldo_balance;
             $_SESSION['reimbursement']['saldo_balance_initial']     = $employee_has_benefit['left_amount_plafond'];
             $_SESSION['reimbursement']['plafond_balance']           = $employee_has_benefit['amount_plafond'];
-            $_SESSION['reimbursement']['used_balance']              = $employee_has_benefit['used_amount_plafond'];
+            $_SESSION['reimbursement']['used_balance']              = $used_balance;
             $_SESSION['reimbursement']['cost_center_group_id']      = $cost_center_group_id;
             $_SESSION['reimbursement']['benefit_type']              = $type_benefit['benefit_type'];
             $_SESSION['reimbursement']['last_status']               = $entity['status'];

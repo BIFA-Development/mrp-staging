@@ -623,7 +623,7 @@
         var lastStatus = $('#last_status').val();
 
         if(lastStatus == 'REJECT'){
-            usedMerge = parseFloat(used_balance)+parseFloat(paid_amount_modal);
+            usedMerge = (parseFloat(used_balance)-parseFloat(amount_awal_item))+parseFloat(paid_amount_modal);
         } else {
             if(amount_awal_item != 0){
                     usedMerge = (parseFloat(used_balance)-parseFloat(amount_awal_item))+parseFloat(paid_amount_modal);
@@ -839,6 +839,7 @@
 
         const id_reimbursement_item = document.getElementById('id_reimbursement_item');
         var hasLastStatus = $('#last_status').val();
+        console.log("DatLastStatus");
         console.log(hasLastStatus);
 
 
@@ -863,23 +864,27 @@
 
             if(hasLastStatus == 'REJECT'){
                 console.log('masukreject');
-                if (amount >= initialBalance) {
-                console.log('masukreject1');
-
-            // Jika amount melebihi initialBalance
-                paidAmount = initialBalance; // Paid amount adalah sisa saldo awal
-                saldoBalanceField.value = 0; // Saldo menjadi 0
-            } else {
-                console.log('masukreject2');
-                console.log(parseFloat(amount));
-                console.log(parseFloat(initialBalance));
+                if (amount >= initialBalanceAwal) {
+                    console.log('masukreject1');
+                    console.log(initialBalance);
+                    console.log(initialBalanceAwal);
 
 
 
-                // Jika amount tidak melebihi initialBalance
-                const updatedBalance = (parseFloat(initialBalance) - parseFloat(amount)); // Hitung saldo yang diperbarui
-                saldoBalanceField.value = updatedBalance.toFixed(0); // Update saldo tersisa
-            }
+                // Jika amount melebihi initialBalance
+                    paidAmount = initialBalanceAwal; // Paid amount adalah sisa saldo awal
+                    saldoBalanceField.value = 0; // Saldo menjadi 0
+                } else {
+                    console.log('masukreject2');
+                    console.log(parseFloat(amount));
+                    console.log(parseFloat(initialBalanceAwal));
+
+
+
+                    // Jika amount tidak melebihi initialBalance
+                    const updatedBalance = (parseFloat(initialBalanceAwal) - parseFloat(amount)); // Hitung saldo yang diperbarui
+                    saldoBalanceField.value = updatedBalance.toFixed(0); // Update saldo tersisa
+                }
 
             } else {
                 if (amount >= (parseFloat(initialBalance) + parseFloat(amountAwal))) {
