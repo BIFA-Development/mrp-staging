@@ -93,7 +93,7 @@
                             <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-balance="<?= site_url($module['route'] . '/get_employee_saldo'); ?>" <?= !empty($_SESSION['reimbursement']['items']) ? 'disabled' : ''; ?> <?= (config_item('auth_role') != 'REIMBURSEMENT' || config_item('auth_role') == 'ADMIN' || config_item('auth_role') == 'SUPER ADMIN' || config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') ? '' : 'disabled'; ?>  required>
                                 <option></option>
                                 <?php foreach(available_employee($_SESSION['reimbursement']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
-                                <option data-cost-groupid="<?=$user['group_id'];?>" data-cost-annualcost="<?=$user['annual_cost_center_id'];?>" data-cost-centername="<?=$user['cost_center_name'];?>"  data-cost-centerid="<?=$user['cost_center_id'];?>" data-cost-center-code="<?=$user['cost_center_code'];?>" data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['reimbursement']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
+                                <option data-get-warehouse="<?=$user['warehouse'];?>" data-cost-groupid="<?=$user['group_id'];?>" data-cost-annualcost="<?=$user['annual_cost_center_id'];?>" data-cost-centername="<?=$user['cost_center_name'];?>"  data-cost-centerid="<?=$user['cost_center_id'];?>" data-cost-center-code="<?=$user['cost_center_code'];?>" data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['reimbursement']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="employee_number">Name</label>
@@ -107,6 +107,11 @@
                                 <?php endforeach;?>
                             </select>
                             <label for="occupation">Occupation / Jabatan</label>
+                        </div>
+
+                        <div class="form-group hide">
+                            <textarea name="warehouse" id="warehouse" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>"><?= $_SESSION['reimbursement']['warehouse']; ?></textarea>
+                            <label for="warehouse">Warehouse</label>
                         </div>
 
                         
@@ -1259,7 +1264,7 @@ function submitForm(url, button) {
             // var cost_code = $('#employee_number option:selected').data('cost-center-code');  
             // var cost_id = $('#employee_number option:selected').data('cost-centerid');  
             // var cost_name = $('#employee_number option:selected').data('cost-centername');  
-            // var cost_annual = $('#employee_number option:selected').data('cost-annualcost');  
+            var warehouse = $('#employee_number option:selected').data('get-warehouse');  
             // var group_id = $('#employee_number option:selected').data('cost-groupid');  
 
 
@@ -1274,6 +1279,8 @@ function submitForm(url, button) {
             console.log(employeeNumber);   
             console.log(gender);   
             $('#occupation').val(position).trigger('change');  
+            $('#warehouse').val(warehouse).trigger('change');  
+
             // $('#department_name').val(department_name).trigger('change');
             // $('#cost_center_code').val(cost_code).trigger('change');
             // $('#cost_center_id').val(cost_id).trigger('change');

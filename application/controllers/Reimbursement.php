@@ -535,6 +535,14 @@ class Reimbursement extends MY_Controller
         $_SESSION['reimbursement']['notes'] = $_GET['data'];
     }
 
+    public function set_warehouse()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        $_SESSION['reimbursement']['warehouse'] = $_GET['data'];
+    }
+
     public function create($annual_cost_center_id = NULL)
     {
         $this->authorized($this->module, 'create');
