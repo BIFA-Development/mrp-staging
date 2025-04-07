@@ -182,7 +182,11 @@ Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=p
     <td valign="top" style="text-align:center;">
       <p>
         Validated by
-        <br />HOS / VP Finance<br />
+        <?php if ($entity['warehouse'] == "JAKARTA") : ?>
+        <br />VP FINANCE<br />
+        <?php else:?>
+        <br />HOS<br />
+        <?php endif; ?>
         <?php if ($entity['signers']['validated by']['sign']) : ?>
           <?=print_date($entity['signers']['validated by']['date'],'d M Y');?>
           <br>
