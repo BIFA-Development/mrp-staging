@@ -157,7 +157,9 @@ class Reimbursement extends MY_Controller
                 $col = array();
                 if (is_granted($this->module, 'approval')){
                     // if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && in_array($department_name,config_item('head_department')) && $row['head_dept']==config_item('auth_username') ){
-                    if(($row['status']=='WAITING APPROVAL BY HOS' || $row['status']=='WAITING APPROVAL BY VP') && (config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'HEAD OF SCHOOL')){
+                    if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     } else if($row['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';

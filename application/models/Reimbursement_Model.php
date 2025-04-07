@@ -152,7 +152,7 @@ class Reimbursement_Model extends MY_Model
             // if (config_item('as_head_department')=='yes' && !in_array(config_item('auth_username'),config_item('hr_manager'))){
             if (config_item('auth_role')=='VP FINANCE' ){                
 
-            $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL VP');
+            $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY VP');
                 // $this->db->where('tb_reimbursements.head_dept ', config_item('auth_username'));
             }
             elseif (config_item('auth_role')=='HEAD OF SCHOOL' ){                
@@ -279,19 +279,19 @@ class Reimbursement_Model extends MY_Model
     {
 
         if(config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'HEAD OF SCHOOL'){
-            if(config_item('auth_warehouse')=='JAKARTA'){
+            if(config_item('auth_role') == 'VP FINANCE'){
                 $selected = array(
                     'tb_reimbursements.*',
                 );
                 $this->db->select($selected);
-                $this->db->where('tb_reimbursements.warehouse', 'JAKARTA');
+                $this->db->where('tb_reimbursements.status', 'WAITING APPROVAL BY VP');
                 $this->db->from('tb_reimbursements');
-            } else {
+            } else if(config_item('auth_role') == 'HEAD OF SCHOOL') {
                 $selected = array(
                     'tb_reimbursements.*',
                 );
                 $this->db->select($selected);
-                $this->db->where('tb_reimbursements.warehouse !=', 'JAKARTA');
+                $this->db->where('tb_reimbursements.status', 'WAITING APPROVAL BY HOS');
                 $this->db->from('tb_reimbursements');
             }
         } elseif(in_array(config_item('auth_username'),list_username_in_head_department(11))){
