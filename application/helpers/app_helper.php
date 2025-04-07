@@ -3571,7 +3571,7 @@ if (!function_exists('currency_for_vendor_list')) {
 
         // } else 
         
-        if($auth_role != 'REIMBURSEMENT'){
+        if($auth_role != 'REIMBURSEMENT' && !in_array(config_item('auth_username'),list_username_in_head_department(11))){
           $CI->db->select('*');
           $CI->db->from('tb_master_employees');  
           $CI->db->where('department_id', $department_id);
