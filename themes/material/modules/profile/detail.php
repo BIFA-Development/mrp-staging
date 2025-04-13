@@ -27,118 +27,118 @@
                                                 Employee Number
                                             </dt>
                                             <dd>
-                                                <?=print_string($entity['employee_number']);?>
+                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
                                             </dd>
 
                                             <dt>
                                                 Name
                                             </dt>
                                             <dd>
-                                                <?=print_string($entity['name']);?>
+                                                <?=$entity['name'] == null ? print_string('Not set yet') : print_string($entity['name']);?>
                                             </dd>
 
                                             <dt>
                                                 Base
                                             </dt>
                                             <dd>
-                                                <?=print_string($entity['warehouse']);?>
+                                                <?= $entity['warehouse'] == null ? print_string('Not set yet') : print_string($entity['warehouse']);?>
                                             </dd>
 
                                             <dt>
                                                 Department
                                             </dt>
                                             <dd>
-                                                <?=print_string($entity['department_name']);?>
+                                                <?=$entity['department_name'] == null ? print_string('Not set yet') : print_string($entity['department_name']);?>
                                             </dd>
 
                                             <dt>
                                                 Position
                                             </dt>
                                             <dd>
-                                                <?=print_string($entity['position']);?>
+                                                <?= $entity['position'] == null ? print_string('Not set yet') : print_string($entity['position']);?>
                                             </dd>
 
                                             <dt>
                                                 Date of Birth
                                             </dt>
                                             <dd>
-                                                <?=print_date($entity['date_of_birth']);?>
+                                                <?=$entity['date_of_birth'] == null ? print_string('Not set yet') : print_date($entity['date_of_birth']);?>
                                             </dd>
 
                                             <dt>
                                                 Phone
                                             </dt>
                                             <dd>
-                                                <?=$entity['phone_number'];?>
+                                                <?=$entity['phone_number'] == null ? print_string('Not set yet') : $entity['phone_number'];?>
                                             </dd> 
 
                                             <dt>
                                                 E-mail
                                             </dt>
                                             <dd>
-                                                <?=$entity['email'];?>
+                                                <?=$entity['email'] == null ? print_string('Not set yet') : $entity['email'];?>
                                             </dd>
 
                                             <dt>
                                                 Address
                                             </dt>
                                             <dd>
-                                                <?=$entity['address'];?>
+                                                <?=$entity['address'] == null ? print_string('Not set yet') : $entity['address'];?>
                                             </dd>
 
                                             <dt>
                                                 Gender
                                             </dt>
                                             <dd>
-                                                <?=$entity['gender'];?>
+                                                <?=$entity['gender'] == null ? print_string('Not set yet') : $entity['gender'];?>
                                             </dd>
 
                                             <dt>
                                                 Religion
                                             </dt>
                                             <dd>
-                                                <?=$entity['religion'];?>
+                                                <?=$entity['religion'] == null ? print_string('Not set yet') : $entity['religion'];?>
                                             </dd>
 
                                             <dt>
                                                 Marital Status
                                             </dt>
                                             <dd>
-                                                <?=$entity['marital_status'];?>
+                                                <?=$entity['marital_status'] == null ? print_string('Not set yet') : $entity['marital_status'];?>
                                             </dd>
 
                                             <dt>
                                                 Identity Number
                                             </dt>
                                             <dd>
-                                                <?=$entity['identity_type'];?> <?=$entity['identity_number'];?>
+                                                <?=$entity['identity_type'] == null ? print_string('Not set yet') : $entity['identity_type'];?> <?=$entity['identity_number'];?>
                                             </dd>
 
                                             <dt>
                                                 NPWP
                                             </dt>
                                             <dd>
-                                                <?=$entity['npwp'];?>
+                                                <?=$entity['npwp'] == null ? print_string('Not set yet') : $entity['npwp'];?>
                                             </dd>
 
                                             <dt>
                                                 Bank Account
                                             </dt>
                                             <dd>
-                                                <?=$entity['bank_account_name'];?> <?=$entity['bank_account'];?>
+                                                <?=$entity['bank_account_name'] == null ? print_string('Not set yet') : $entity['bank_account_name'];?> <?=$entity['bank_account'];?>
                                             </dd>
                                             
                                             <dt>
                                                 Join Date
                                             </dt>
                                             <dd>
-                                                <?=print_date($entity['tanggal_bergabung']);?>
+                                                <?=$entity['tanggal_bergabung'] == null ? print_string('Not set yet') : print_date($entity['tanggal_bergabung']);?>
                                             </dd>
                                             <dt>
                                                 Level Akun
                                             </dt>
                                             <dd>
-                                                <?=$entity['level_name'];?>
+                                                <?=$entity['level_name'] == null ? print_string('Not set yet') : $entity['level_name'];?>
                                             </dd>
                                             <dt>
                                                 Signature
