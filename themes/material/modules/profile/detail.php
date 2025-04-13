@@ -140,6 +140,12 @@
                                             <dd>
                                                 <?=$entity['level_name'];?>
                                             </dd>
+                                            <dt>
+                                                Signature
+                                            </dt>
+                                            <dd>
+                                                <img src="<?= get_ttd(config_item('auth_person_name')) == null ? base_url('ttd_user/no_signature.PNG') : base_url('ttd_user/' . get_ttd(config_item('auth_person_name'))); ?>" width="auto" height="100">
+                                            </dd>
                                         </dl>
                                     </div>
                                 </div>
