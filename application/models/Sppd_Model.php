@@ -1120,6 +1120,8 @@ class Sppd_Model extends MY_Model
         $this->connection->set('with_po', false);
         $this->connection->set('head_dept', $data['head_dept']);
         $this->connection->set('base', config_item('auth_warehouse'));
+        $this->connection->set('head_approved_by', $data['known_by']);
+        $this->connection->set('head_approved_date', date('Y-m-d H:i:s'));
         if($data['advance_spd']>0){            
             $this->connection->set('advance_account_code', $akun_advance_dinas->coa);
             $this->connection->set('advance_nominal', $data['advance_spd']);

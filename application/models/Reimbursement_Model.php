@@ -848,6 +848,25 @@ class Reimbursement_Model extends MY_Model
         $cost_center = $this->findCostCenter($reimbursement['annual_cost_center_id']);
         $format_number = $this->getExpenseFormatNumber($cost_center['cost_center_code']);
         $pr_number = $order_number.$format_number;
+
+        $validateHos = null;
+        $validateVP = null;
+        $validateCLevel = null;
+        $validateHead = null;
+
+        $userValidate = getUsernameByPersonName($reimbursement['validated_by']);
+        $validateHR = $reimbursement['hr_approved_by'];
+
+        if(in_array($userValidate['auth_level'], [9, 16, 11])){
+            $validateCLevel = $reimbursement['validated_by'];
+        } else if($userValidate['auth_level'] == 3){
+            $validateHead =  $reimbursement['validated_by'];
+            $validateVP = $reimbursement['validated_by'];
+        } else if($userValidate['auth_level'] == 10){
+            $validateHos = $reimbursement['validated_by'];
+            $validateHead =  $reimbursement['validated_by'];
+        }
+
         $this->connection->set('annual_cost_center_id', $reimbursement['annual_cost_center_id']);
         $this->connection->set('order_number', $order_number);
         $this->connection->set('pr_number', $pr_number);
@@ -855,16 +874,29 @@ class Reimbursement_Model extends MY_Model
         $this->connection->set('required_date', $date);
         $this->connection->set('status', 'approved');
         $this->connection->set('notes', 'expense reimbursement : #'.$reimbursement['document_number']);
-        $this->connection->set('created_by', config_item('auth_person_name'));
-        $this->connection->set('updated_by', config_item('auth_person_name'));
-        $this->connection->set('created_at', date('Y-m-d H:i:s'));
-        $this->connection->set('updated_at', date('Y-m-d H:i:s'));
+       
         $this->connection->set('with_po', false);
         $this->connection->set('head_dept', $reimbursement['head_dept']);
         $this->connection->set('base', config_item('auth_warehouse'));
         $this->connection->set('revisi', 1);//expense dari reimbursement tidak bisa direvisi
         $this->connection->set('approval_type', 'automatic');
         $this->connection->set('reference_document', json_encode(['RF',$id,$reimbursement['document_number'],$url_rf]));
+        if (!empty($validateHead)) {
+            $this->connection->set('head_approved_by', $validateHead);
+            $this->connection->set('head_approved_date', date('Y-m-d H:i:s'));
+        }
+        if (!empty($validateHos)) {
+            $this->connection->set('hos_approved_by', $validateHos);
+            $this->connection->set('hos_approved_date', date('Y-m-d H:i:s'));
+        }
+        if (!empty($validateCLevel)) {
+            $this->connection->set('ceo_approved_by', $validateCLevel);
+            $this->connection->set('ceo_approved_date', date('Y-m-d H:i:s'));
+        }
+        $this->connection->set('created_by', $reimbursement['request_by']);
+        $this->connection->set('updated_by', $reimbursement['request_by']);
+        $this->connection->set('created_at', date('Y-m-d H:i:s'));
+        $this->connection->set('updated_at', date('Y-m-d H:i:s'));
         $this->connection->insert('tb_expense_purchase_requisitions');
 
         $document_id = $this->connection->insert_id();
