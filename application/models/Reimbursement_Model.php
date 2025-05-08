@@ -853,6 +853,7 @@ class Reimbursement_Model extends MY_Model
         $validateVP = null;
         $validateCLevel = null;
         $validateHead = null;
+        $validateFinance = getUsernameByUserId('373694289');
 
         $userValidate = getUsernameByPersonName($reimbursement['validated_by']);
         $validateHR = $reimbursement['hr_approved_by'];
@@ -893,6 +894,8 @@ class Reimbursement_Model extends MY_Model
             $this->connection->set('ceo_approved_by', $validateCLevel);
             $this->connection->set('ceo_approved_date', date('Y-m-d H:i:s'));
         }
+        $this->connection->set('finance_approved_by', $validateFinance['person_name']);
+        $this->connection->set('finance_approved_date', date('Y-m-d H:i:s'));
         $this->connection->set('created_by', $reimbursement['request_by']);
         $this->connection->set('updated_by', $reimbursement['request_by']);
         $this->connection->set('created_at', date('Y-m-d H:i:s'));

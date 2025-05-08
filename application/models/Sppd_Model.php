@@ -1100,6 +1100,7 @@ class Sppd_Model extends MY_Model
         $date = date('Y-m-d');
         $akun_advance_dinas = get_set_up_akun(6);
         $cekSettingApproval = cekSettingApproval('EXPENSE from SPPD');
+        $validateFinance = getUsernameByUserId('373694289');
 
         $url_spd = site_url('sppd/print_pdf/'.$id);
         $order_number = $this->getExpenseOrderNumber();
@@ -1122,6 +1123,8 @@ class Sppd_Model extends MY_Model
         $this->connection->set('base', config_item('auth_warehouse'));
         $this->connection->set('head_approved_by', $data['known_by']);
         $this->connection->set('head_approved_date', date('Y-m-d H:i:s'));
+        $this->connection->set('finance_approved_by', $validateFinance['person_name']);
+        $this->connection->set('finance_approved_date', date('Y-m-d H:i:s'));
         if($data['advance_spd']>0){            
             $this->connection->set('advance_account_code', $akun_advance_dinas->coa);
             $this->connection->set('advance_nominal', $data['advance_spd']);

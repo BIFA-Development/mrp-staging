@@ -2298,6 +2298,21 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+  if ( ! function_exists('getUsernameByUserId')) {
+    function getUsernameByUserId($user_id)
+    {
+      $CI =& get_instance();
+
+      $CI->db->select('*');
+      $CI->db->from('tb_auth_users');
+      $CI->db->where('user_id', $user_id);
+
+      $query = $CI->db->get();
+
+      return $query->unbuffered_row('array');
+    }
+  }
+
   if ( ! function_exists('listAttachmentRequest')) {
     function listAttachmentRequest($poe_id,$tipe)
     {
