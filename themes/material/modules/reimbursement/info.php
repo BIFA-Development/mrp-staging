@@ -76,7 +76,7 @@
             <dt>Plafond</dt>
             <dd><?=strtoupper($entity['type']);?></dd>
 
-            <dt>Plafond Tyoe</dt>
+            <dt>Plafond Type</dt>
             <dd><?=strtoupper($entity['benefit_name_type']);?></dd>
 
 
