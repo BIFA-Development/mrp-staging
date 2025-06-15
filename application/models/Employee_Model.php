@@ -572,6 +572,17 @@ class Employee_Model extends MY_Model
         );
     }
 
+    public function getSelectedColumnsForLeave()
+    {
+        return array(
+            'No',
+            'Name Leave',
+            'Amount Leave',
+            'Used Leave',
+            'Left Leave',
+        );
+    }
+
     public function getSearchableColumnsForBenefit()
     {
         return array(
@@ -619,6 +630,47 @@ class Employee_Model extends MY_Model
             }
 
             $i++;
+        }
+    }
+
+    
+
+    function getIndexForLeave($employee_number,$return = 'array')
+    {
+        $this->db->select(array(
+            'tb_employee_contracts.start_date',
+            'tb_employee_contracts.end_date',
+            'tb_employee_has_leave.id',
+            'tb_employee_has_leave.amount_leave',
+            'tb_employee_has_leave.used_leave',
+            'tb_employee_has_leave.left_leave',
+        ));
+        $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_leave.employee_contract_id');
+        $this->db->from('tb_employee_has_leave');
+
+        // $this->searchIndexForBenefit();
+
+        // $column_order = $this->getOrderableColumnsForBenefit();
+
+        if (isset($_POST['order'])){
+            foreach ($_POST['order'] as $key => $order){
+                $this->db->order_by($column_order[$_POST['order'][$key]['column']], $_POST['order'][$key]['dir']);
+            }
+        } else {
+            $this->db->order_by('id', 'desc');
+        }
+
+        if ($_POST['length'] != -1)
+            $this->db->limit($_POST['length'], $_POST['start']);
+
+        $query = $this->db->get();
+
+        if ($return === 'object'){
+            return $query->result();
+        } elseif ($return === 'json'){
+            return json_encode($query->result());
+        } else {
+            return $query->result_array();
         }
     }
 

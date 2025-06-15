@@ -1,0 +1,792 @@
+<?php include 'themes/material/template.php' ?>
+
+<?php startblock('content') ?>
+<section class="has-actions style-default">
+    <div class="section-body">
+        <?= form_open(current_url(), array('autocomplete' => 'off', 'class' => 'form form-validate', 'id' => 'form-create-document')); ?>
+        <div class="card">
+        <div class="card-head style-primary-dark">
+            <header><?= PAGE_TITLE; ?></header>
+        </div>
+        <div class="card-body no-padding">
+            <?php
+            if ($this->session->flashdata('alert'))
+                render_alert($this->session->flashdata('alert')['info'], $this->session->flashdata('alert')['type']);
+            ?>
+
+            <div class="document-header force-padding">
+                <div class="row">
+                    <div class="col-sm-6 col-lg-4">
+                        
+                        <div class="form-group">
+                            <div class="input-group">
+                                <div class="input-group-content">
+                                    <input type="text" name="document_number" id="document_number" class="form-control" value="<?= $_SESSION['leave']['document_number']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_doc_number'); ?>" readonly>
+                                    <label for="document_number">No Form</label>
+                                </div>
+                                <span class="input-group-addon"><?= $_SESSION['leave']['format_number']; ?></span>
+                            </div>
+                        </div>
+
+                        <label for="type_leave"><?= $_SESSION['leave']['employee_has_leave_id']; ?></label>
+
+                        <div class="form-group" style="padding-top: 25px;">
+                            <select name="type_leave" id="type_leave" class="form-control select2">
+                            <option> -- Pilih Tipe Cuti --</option>
+                                <?php foreach(getLeaveType($_SESSION['leave']['gender']) as $leaveType):?>
+                                <option data-leave-id="<?=$leaveType['id'];?>" data-leave-code="<?=$leaveType['leave_code'];?>" data-leave-name="<?=$leaveType['name_leave'];?>" value="<?=$leaveType['id'];?>" <?= ($leaveType['id'] == $_SESSION['leave']['leave_type']) ? 'selected' : ''; ?>><?=$leaveType['name_leave'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="type_leave">Tipe Cuti</label>
+                        </div>
+
+                        <div class="form-group" style="padding-top: 25px;">
+                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>">
+                                <option></option>
+                                <?php foreach(available_employee($_SESSION['leave']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
+                                <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="employee_number">Name</label>
+                        </div>
+
+                        
+                        <div class="form-group">
+                            <input type="text" name="department_name" id="department_name" class="form-control" value="<?= $_SESSION['leave']['department_name']; ?>" readonly>
+                            <label for="department_name">Department</label>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-12 col-lg-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <input type="text" name="leave_start_date" id="leave_start_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave']['leave_start_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_start_date'); ?>" required>
+                                    <label for="leave_start_date">Leave Start Date</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <input type="text" name="leave_end_date" id="leave_end_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave']['leave_end_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_end_date'); ?>" required>
+                                    <label for="leave_end_date">Leave End Date</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <input type="number" name="total_leave_days" id="total_leave_days" class="form-control number" value="<?= $_SESSION['leave']['total_leave_days']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_total_leave_days'); ?>">
+                                    <label for="total_leave_days">Jumlah Hari Cuti</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group" id="left_leave_group">
+                                    <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?= $_SESSION['leave']['left_leave']; ?>" data-input-type="autoset" readonly>
+                                    <label for="left_leave">Sisa Cuti Tahunan</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <div class="radio">
+                                        <input type="checkbox" name="ignore_weekend" id="ignore_weekend" value="no">
+                                        <label for="ignore_weekend">Abaikan Sabtu & Minggu</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <div class="radio">
+                                        <input type="checkbox" name="is_reserved" id="is_reserved" value="no" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_is_reserved'); ?>">
+                                        <label for="is_reserved">Rencana Cuti Tahunan</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <textarea name="reason" id="reason" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_reason'); ?>"><?= $_SESSION['leave']['reason']; ?></textarea>
+                            <label for="reason">Reason</label>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
+                            <label for="leave_type">leave type</label>
+                        </div> 
+
+                        <div class="form-group">
+                            <input type="text" name="employee_has_leave_id" id="employee_has_leave_id" class="form-control" value="<?= $_SESSION['leave']['employee_has_leave_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_has_leave_id'); ?>" readonly>
+                            <label for="employee_has_leave_id">employee_has_leave_id</label>
+                        </div> 
+                        <div class="form-group">
+                            <textarea name="warehouse" id="warehouse" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>"><?= $_SESSION['leave']['warehouse']; ?></textarea>
+                            <label for="warehouse">Warehouse</label>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-12 col-lg-4">
+                    
+                    <div class="form-group" id="holiday_list_group" style="display:none;">
+                        <label>Hari Libur Nasional</label>
+                        <ul id="holiday_list" class="form-control-static" style="margin-top: 10px; padding-left: 20px;"></ul>
+                    </div>
+
+                    </div>
+
+
+                    
+                </div>
+            </div>
+
+        </div>
+        
+        <?= form_close(); ?>
+        <div class="section-action style-default-bright">
+            <div class="section-floating-action-row">
+                <a class="btn btn-floating-action btn-lg btn-danger btn-tooltip ink-reaction"  id="btn-submit-document" href="<?= site_url($module['route'] . '/save'); ?>" >
+                    <i class="md md-save"></i>
+                    <small class="top right">Save Document</small>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    
+
+    
+</section>
+<?php endblock() ?>
+
+<?php startblock('scripts') ?>
+<?= html_script('vendors/pace/pace.min.js') ?>
+<?= html_script('vendors/jQuery/jQuery-2.2.1.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/jquery-ui/jquery-ui.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/bootstrap/bootstrap.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/nanoscroller/jquery.nanoscroller.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/spin.js/spin.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/autosize/jquery.autosize.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/toastr/toastr.js') ?>
+<?= html_script('themes/material/assets/js/libs/jquery-validation/dist/jquery.validate.min.js') ?>
+<?= html_script('themes/material/assets/js/libs/jquery-validation/dist/additional-methods.min.js') ?>
+<?= html_script('vendors/bootstrap-daterangepicker/moment.min.js') ?>
+<?= html_script('vendors/bootstrap-daterangepicker/daterangepicker.js') ?>
+<?= html_script('themes/material/assets/js/libs/bootstrap-datepicker/bootstrap-datepicker.js') ?>
+<?= html_script('themes/script/jquery.number.js') ?>
+<?= html_script('vendors/select2-4.0.3/dist/js/select2.min.js') ?>
+<?= html_script('vendors/select2-pmd/js/pmd-select2.js') ?>
+
+<script>
+
+const holidaysData = <?= json_encode($_SESSION['leave']['holidays']); ?>;
+const holidays = holidaysData.map(h => h.holiday_date);
+console.log('Holidays:', holidays);
+
+window.onload = async function(){
+        console.log('mulaiinit');
+        var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+        console.log(warehouse);
+        $('#employee_number').trigger('change');
+        
+        // var type = $('#type_leave option:selected').data('leave-code');  
+
+
+        // if (type === 'L01') {
+        //     console.log('Init L01');
+        //     getAnnualLeave();
+        //     $('#left_leave_group').show();
+        // } else {
+        //     $('#left_leave_group').hide();
+        // }
+
+
+    };
+
+    function parseDate(str) {
+        const [day, month, year] = str.split("-");
+        return new Date(`${year}-${month}-${day}`);
+    }
+
+    function getHolidaysInRange(startStr, endStr) {
+        const startDate = parseDate(startStr);
+        const endDate = parseDate(endStr);
+        return holidaysData.filter(h => {
+            const hDate = new Date(h.holiday_date);
+            return hDate >= startDate && hDate <= endDate;
+        });
+    }
+
+    function showHolidaysBetweenDates() {
+        const start = $('#leave_start_date').val();
+        const end = $('#leave_end_date').val();
+
+        const $list = $('#holiday_list');
+        const $listGroup = $('#holiday_list_group');
+
+        $list.empty();
+
+        if (start && end) {
+            const filtered = getHolidaysInRange(start, end);
+            if (filtered.length > 0) {
+                filtered.forEach(h => {
+                    $list.append(`<li style="color: red; font-weight: bold;">${h.holiday_date} - ${h.description}</li>`);
+                });
+                $listGroup.show();
+            } else {
+                $list.append('<li>Tidak ada hari libur di rentang ini.</li>');
+                $listGroup.hide();
+            }
+        }
+    }
+
+    $('#leave_start_date, #leave_end_date').on('change', showHolidaysBetweenDates);
+
+    function countWorkingDays(startDate, endDate, holidays = [], includeWeekend = false) {
+        let count = 0;
+        const current = new Date(startDate);
+
+        while (current <= endDate) {
+            const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+            const dateStr = current.toISOString().slice(0, 10); // Format YYYY-MM-DD
+            const isHoliday = holidays.includes(dateStr);
+            const isWeekend = (day === 0 || day === 6);
+
+            // Hitung hanya jika bukan holiday
+            if (!isHoliday) {
+                if (includeWeekend) {
+                    count++; // Hitung semua hari kecuali holiday
+                } else if (!isWeekend) {
+                    count++; // Hitung hanya weekdays yang bukan holiday
+                }
+            }
+
+            current.setDate(current.getDate() + 1);
+        }
+
+        return count;
+    }
+
+    function updateLeaveDays() {
+        const startVal = $('#leave_start_date').val();
+        const endVal = $('#leave_end_date').val();
+
+        if (!startVal || !endVal) return;
+
+        const [ds, ms, ys] = startVal.split('-');
+        const [de, me, ye] = endVal.split('-');
+
+        const startDate = new Date(`${ys}-${ms}-${ds}`);
+        const endDate = new Date(`${ye}-${me}-${de}`);
+
+        if (startDate > endDate) {
+            $('#total_leave_days').val(0).trigger('change');
+            return;
+        }
+
+        const includeWeekend = $('#ignore_weekend').is(':checked');
+
+        const workingDays = countWorkingDays(startDate, endDate, holidays, includeWeekend);
+
+        $('#total_leave_days').val(workingDays).trigger('change');
+    }
+
+    
+    $(function() {
+        var buttonDeleteDocumentItem = $('.btn_delete_document_item');
+        var buttonEditDocumentItem = $('.btn_edit_document_item');
+        toastr.options.closeButton = true;
+        var buttonSubmitDocument = $('#btn-submit-document');
+        var formDocument = $('#form-create-document');
+        var autosetInputData = $('[data-input-type="autoset"]');
+
+
+
+        $('#leave_start_date, #leave_end_date').datepicker({
+            autoclose: true,
+            format: 'dd-mm-yyyy'
+        }).on('changeDate', function () {
+            updateLeaveDays();
+        });
+
+        // Tambahkan event untuk checkbox juga
+        $('#ignore_weekend').on('change', function () {
+            updateLeaveDays();
+        });
+
+        $('#is_reserved').on('change', function () {
+            if ($(this).is(':checked')) {
+                $(this).val('yes');
+            } else {
+                $(this).val('no');
+            }
+            var val = $(this).val();
+            var url = $(this).data('source');
+
+            $.get(url, {
+                data: val
+            });
+        });
+
+        $('#type_leave').change(function () {
+            const leave_typedata = $(this).val(); 
+            var leave_code = $('#type_leave option:selected').data('leave-code');  
+            $('#leave_type').val(leave_typedata).trigger('change');
+
+            var leave_type_data = $('#leave_type').val(); // Default to 0 if invalid.
+
+            console.log('Perubahan Code Leave:',leave_code);
+            console.log('Perubahan Data Leave:',leave_type_data);
+
+
+
+            if (leave_code === 'L01') {
+                 getAnnualLeave();
+                $('#left_leave_group').show();
+            } else {
+                $('#left_leave_group').hide();
+            }
+            
+        });
+        
+
+
+        $(buttonSubmitDocument).on('click', function (e) {
+            e.preventDefault();
+            var button = $(this);
+            var url = button.attr('href');
+            var type_leave = $('#type_leave').val(); // Default to 0 if invalid.
+            var leave_type = $('#leave_type').val(); // Default to 0 if invalid.
+
+            var total_leave_days = $('#total_leave_days').val(); // Default to 0 if invalid.
+
+            var reason = $('#reason').val(); // Default to 0 if invalid.
+
+            console.log("TypeLeave:", type_leave);
+            console.log("LeaveType:", leave_type);
+
+            console.log("Total:", total_leave_days);
+
+            console.log("Reason:", reason);
+            console.log("Url:", url);
+            console.log('Data', formDocument.serialize());
+
+            submitForm(url,button);
+        });
+
+        $(autosetInputData).on('change', function() {
+            var val = $(this).val();
+            var url = $(this).data('source');
+            var id = $(this).attr('id');
+
+            $.get(url, {
+                data: val
+            });
+        });
+
+        function submitForm(url, button) {
+        $.post(url, formDocument.serialize(), function (data) {
+            var obj = $.parseJSON(data);
+
+            if (obj.success === false) {
+                toastr.options.timeOut = 10000;
+                toastr.options.positionClass = 'toast-top-right';
+                toastr.error(obj.message);
+                button.attr('disabled', false); // Re-enable the button after completion.
+
+            } else {
+                toastr.options.timeOut = 4500;
+                toastr.options.closeButton = false;
+                toastr.options.progressBar = true;
+                toastr.options.positionClass = 'toast-top-right';
+                toastr.success(obj.message);
+                button.attr('disabled', true); // Re-enable the button after completion.
+
+                setTimeout(function () {
+                    window.location.href = '<?= site_url($module['route']); ?>';
+                }, 5000);
+            }
+
+            
+        }).fail(function () {
+            alert('An error occurred while submitting the form.');
+            button.attr('disabled', false); // Re-enable the button on error.
+        });
+        }
+
+        $('[data-toggle="redirect"]').on('click', function(e) {
+            e.preventDefault;
+
+            var url = $(this).data('url');
+
+            window.document.location = url;
+        });
+
+        $('[data-toggle="back"]').on('click', function(e) {
+            e.preventDefault;
+
+            history.back();
+        });
+
+        var startDate = new Date(<?= config_item('period_year'); ?>, <?= config_item('period_month'); ?> - 1, 1);
+        var lastDate = new Date(<?= config_item('period_year'); ?>, <?= config_item('period_month'); ?>, 0);
+        var last_publish = $('[name="opname_start_date"]').val();
+        var today = new Date();
+        today.setDate(today.getDate() - 30);
+        var lastToday = new Date();
+        $('[data-provide="datepicker"]').datepicker({
+            autoclose: true,
+            todayHighlight: true,
+            format: 'yyyy-mm-dd',
+            startDate: today,
+            endDate: lastToday
+        });
+        $('[data-provide="daterange"]').daterangepicker({
+            autoUpdateInput: false,
+            parentEl: '#offcanvas-datatable-filter',
+            locale: {
+                cancelLabel: 'Clear'
+            }
+        }).on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('DD-MM-YYYY') + ' s/d ' + picker.endDate.format('DD-MM-YYYY')).trigger('change');
+
+            var start_date  = new Date(picker.startDate.format('YYYY-MM-DD'));
+            var end_date    = new Date(picker.endDate.format('YYYY-MM-DD'));
+
+            // To calculate the time difference of two dates
+            var Difference_In_Time = end_date.getTime() - start_date.getTime();
+            
+            // To calculate the no. of days between two dates
+            var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
+
+            console.log(start_date);
+            console.log(end_date);
+            console.log(Difference_In_Days+1);
+
+            $('#duration').val(Difference_In_Days+1).trigger('change');
+            $('#start_date').val(picker.startDate.format('YYYY-MM-DD')).trigger('change');
+            $('#end_date').val(picker.endDate.format('YYYY-MM-DD')).trigger('change');
+            
+        }).on('cancel.daterangepicker', function(ev, picker) {
+            
+        });
+
+        $(document).on('click', '.btn-xhr-submit', function(e) {
+            e.preventDefault();
+
+            var button = $(this);
+            var form = $('.form-xhr');
+            var action = form.attr('action');
+
+            button.attr('disabled', true);
+
+            if (form.valid()) {
+                console.log("Masuk sini");
+                $.post(action, form.serialize()).done(function(data) {
+                    var obj = $.parseJSON(data);
+
+                    if (obj.type == 'danger') {
+                        toastr.options.timeOut = 10000;
+                        toastr.options.positionClass = 'toast-top-right';
+                        toastr.error(obj.info);
+                    } else {
+                        toastr.options.positionClass = 'toast-top-right';
+                        toastr.success(obj.info);
+
+                        form.reset();
+
+                        $('[data-dismiss="modal"]').trigger('click');
+
+                        if (datatable) {
+                            datatable.ajax.reload(null, false);
+                        }
+                    }
+                });
+            }
+
+            button.attr('disabled', false);
+        });
+
+
+        $(buttonDeleteDocumentItem).on('click', function(e) {
+            e.preventDefault();
+
+            var url = $(this).attr('href');
+            var tr = $(this).closest('tr');
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    var data = JSON.parse(response);
+
+                    // Remove the row from the table
+                    $(tr).remove();
+
+                    // Update the total in the footer
+                    $('#total').val(data.total);
+                    $('#table-document tfoot th:last').text(data.total.toFixed(2));
+
+                    // Check if table is empty
+                    // if ($("#table-document > tbody > tr").length == 0) {
+                    //     $(buttonSubmitDocument).attr('disabled', true);
+                    // }
+                    window.location.reload();
+
+
+                    
+                },
+                error: function() {
+                    alert('Failed to delete the item.');
+                }
+            });
+        });
+
+
+
+        //END
+        
+    });
+
+    $('#employee_number').change(function () {
+        var type = $('#type_leave').val();
+        var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+        $('#warehouse').val(warehouse).trigger('change');  
+        console.log('Init Employee');
+        var leave_code = $('#type_leave option:selected').data('leave-code');  
+        if (leave_code === 'L01') {
+            console.log('Init L01');
+            getAnnualLeave();
+            $('#left_leave_group').show();
+        } else {
+            $('#left_leave_group').hide();
+        }
+    });
+
+    function getAnnualLeave() {
+        console.log('InitAnnualLeave');
+        var employee_number = $('#employee_number').val();                        
+        var url = $('#employee_number').data('source-get-annual');
+        var type = $('#type_leave').val();
+        console.log('URL:' +url);
+        
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: {
+                employee_number   : employee_number,
+                type      : type,
+            },
+            success: function(data) {
+                console.log(data);
+                var obj = $.parseJSON(data);
+
+                if(obj.status=='success'){
+                    $('#left_leave').val(obj.left_leave).trigger('change');
+                    console.log('Sukses');
+                    console.log(obj);
+
+                    $('#employee_has_leave_id').val(obj.employee_has_leave_id).trigger('change');
+                    //harus update type_leave nya
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+                    var employee_has_leave_id = $('#employee_has_leave_id').val();
+                    $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
+
+                }else{
+                    console.log('gagal');
+                    toastr.options.timeOut = 2000;
+                    toastr.options.positionClass = 'toast-top-right';
+                    
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+                    if(obj.status=='error'){
+                        toastr.error(obj.message);
+                    }else if(obj.status=='warning'){
+                        toastr.warning(obj.message);
+                    }
+                }        
+            }
+        });
+    };
+
+    Pace.on('start', function() {
+        $('.progress-overlay').show();
+    });
+
+    Pace.on('done', function() {
+        $('.progress-overlay').hide();
+    });
+
+    function addRow() {
+        var row_payment = $('.table-row-item tbody').html();
+        var el = $(row_payment);
+        $('#table-document tbody').append(el);
+        $('#table-document tbody tr:last').find('input[name="amount[]"]').number(true, 2, '.', ',');
+
+        btn_row_delete_item();
+    }
+
+    function btn_row_delete_item() {
+        $('.btn-row-delete-item').click(function () {
+            $(this).parents('tr').remove();
+        });
+    }
+
+    $('.number').number(true, 2, '.', ',');
+
+    $('.select2').select2({
+        // theme: "bootstrap",
+    });
+
+    var selectedBenefit = "<?= isset($_SESSION['leave']['type']) ? $_SESSION['leave']['type'] : ''; ?>";
+
+
+    document.getElementById("attachment").addEventListener("change", function() {
+        var file = this.files[0];
+        var errorMessage = document.getElementById("file-error");
+
+        if (file && file.size > 1048576) { // 1MB = 1048576 bytes
+            errorMessage.style.display = "block"; // Show error message
+            this.value = ""; // Clear the file input
+        } else {
+            errorMessage.style.display = "none"; // Hide error message if valid
+        }
+    });
+
+
+    function showError(inputElement, message) {
+        let formGroup = inputElement.closest(".form-group");
+        
+        if (formGroup) {
+            formGroup.classList.add("has-error"); // Highlight the field
+            let errorMessage = document.createElement("span");
+            errorMessage.className = "text-danger error-message";
+            errorMessage.innerText = message;
+            formGroup.appendChild(errorMessage);
+        }
+    }
+
+
+
+    function popup(mylink, windowname){
+        var height = window.innerHeight;
+        var widht;
+        var href;
+
+        if (screen.availWidth > 768){
+            width = 769;
+        } else {
+            width = screen.availWidth;
+        }
+
+        var left = (screen.availWidth / 2) - (width / 2);
+        var top = 0;
+        // var top = (screen.availHeight / 2) - (height / 2);
+
+        if (typeof(mylink) == 'string') href = mylink;
+        else href = mylink.href;
+
+        window.open(href, windowname, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width='+width+', height='+height+', top='+top+', left='+left);
+
+        if (! window.focus) return true;
+        else return false;
+    }
+
+    (function($) {
+        $.fn.reset = function() {
+            this.find('input:text, input[type="email"], input:password, select, textarea').val('');
+            this.find('input:radio, input:checkbox').prop('checked', false);
+            return this;
+        }
+
+        $.fn.redirect = function(target) {
+            var url = $(this).data('href');
+
+            if (target == '_blank') {
+                window.open(url, target);
+            } else {
+                window.document.location = url;
+            }
+        }
+
+        $.fn.popup = function() {
+            var popup = $(this).data('target');
+            var source = $(this).data('source');
+
+            $.get(source, function(data) {
+                var obj = $.parseJSON(data);
+
+                if (obj.type == 'denied') {
+                    toastr.options.timeOut = 10000;
+                    toastr.options.positionClass = 'toast-top-right';
+                    toastr.error(obj.info, 'ACCESS DENIED!');
+                } else {
+                    $(popup)
+                        .find('.modal-body')
+                        .empty()
+                        .append(obj.info);
+
+                    $(popup).modal('show');
+
+                    $(popup).on('click', '.modal-header:not(a)', function() {
+                        $(popup).modal('hide');
+                    });
+
+                    $(popup).on('click', '.modal-footer:not(a)', function() {
+                        $(popup).modal('hide');
+                    });
+                }
+            })
+        }
+    }(jQuery));
+
+    function submit_post_via_hidden_form(url, params) {
+        var f = $("<form target='_blank' method='POST' style='display:none;'></form>").attr('action', url).appendTo(document.body);
+
+        $.each(params, function(key, value) {
+            var hidden = $('<input type="hidden" />').attr({
+                name: key,
+                value: JSON.stringify(value)
+            });
+
+            hidden.appendTo(f);
+        });
+
+        f.submit();
+        f.remove();
+    }
+
+    function numberFormat(nStr) {
+        nStr += '';
+        x = nStr.split('.');
+        x1 = x[0];
+        x2 = x.length > 1 ? '.' + x[1] : '';
+        var rgx = /(\d+)(\d{3})/;
+        while (rgx.test(x1)) {
+            x1 = x1.replace(rgx, '$1' + ',' + '$2');
+        }
+        return x1 + x2;
+    }
+
+    $(document).on('keydown', function(event) {
+        if ((event.metaKey || event.ctrlKey) && (
+            String.fromCharCode(event.which).toLowerCase() === '0' ||
+            String.fromCharCode(event.which).toLowerCase() === 'a' ||
+            String.fromCharCode(event.which).toLowerCase() === 'd' ||
+            String.fromCharCode(event.which).toLowerCase() === 'e' ||
+            String.fromCharCode(event.which).toLowerCase() === 'i' ||
+            String.fromCharCode(event.which).toLowerCase() === 'o' ||
+            String.fromCharCode(event.which).toLowerCase() === 's' ||
+            String.fromCharCode(event.which).toLowerCase() === 'x')) 
+        {
+            event.preventDefault();
+        }
+    });
+
+
+</script>
+
+<?= html_script('themes/material/assets/js/core/source/App.min.js') ?>
+<?php endblock() ?>

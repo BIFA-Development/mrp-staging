@@ -3460,6 +3460,21 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+  if ( ! function_exists('findDepartmentByEmployeeNumber')) {
+    function findDepartmentByEmployeeNumber($employee_number)
+    {
+      $CI =& get_instance();
+
+      $CI->db->select('tb_master_employees.*');
+      $CI->db->where('tb_master_employees.employee_number',$employee_number);
+
+      $query  = $CI->db->get('tb_master_employees');
+      $result = $query->unbuffered_row('array');
+
+      return $result;
+    }
+  }
+
   if ( ! function_exists('findPositionByEmployeeNumber')) {
     function findPositionByEmployeeNumber($employee_number)
     {
@@ -3532,6 +3547,30 @@ if (!function_exists('currency_for_vendor_list')) {
       $result = $query->unbuffered_row('array');
 
       return $result;
+    }
+  }
+  
+  if ( ! function_exists('getHolidays')) {
+    function getHolidays()
+    {
+      $CI =& get_instance();
+      $CI->db->select('*');
+      $CI->db->from('tb_holidays');  
+      $query = $CI->db->get();
+      return $query->result_array(); 
+    }
+  }
+
+  if ( ! function_exists('getLeaveType')) {
+    function getLeaveType($gender)
+    {
+      $CI =& get_instance();
+      $CI->db->select('*');
+      $CI->db->where('gender',  $gender);
+      $CI->db->or_where('gender IS NULL', null, false); // Prevent escaping IS NULL
+      $CI->db->from('tb_leave_type');  
+      $query = $CI->db->get();
+      return $query->result_array(); 
     }
   }
 
@@ -3696,6 +3735,20 @@ if (!function_exists('currency_for_vendor_list')) {
       $CI->db->select('*');
       $CI->db->from('tb_master_employees');  
       $CI->db->where('employee_number', $employee_number);  
+      $query = $CI->db->get();
+  
+      return $query->unbuffered_row('array');
+    }
+  }
+
+  if ( ! function_exists('getLeaveCodeById')) {
+    function getLeaveCodeById($id)
+    {
+      $CI =& get_instance();
+  
+      $CI->db->select('*');
+      $CI->db->from('tb_leave_type');  
+      $CI->db->where('id', $id);  
       $query = $CI->db->get();
   
       return $query->unbuffered_row('array');
@@ -4419,6 +4472,43 @@ if (!function_exists('currency_for_vendor_list')) {
   
       $CI->db->select_max('document_number', 'last_number');
       $CI->db->from('tb_sppd');
+      $CI->db->like('document_number', $format, 'both');
+  
+      $query  = $CI->db->get();
+      $row    = $query->unbuffered_row();
+      $last   = $row->last_number;
+      $number = substr($last, 0, 6);
+      $next   = $number + 1;
+      $return = sprintf('%06s', $next);
+  
+      return $return;
+    }
+  }
+
+  if ( ! function_exists('leave_format_number')) {
+    function leave_format_number()
+    {
+      $div  = config_item('document_format_divider');
+      $base = (config_item('include_base_on_document') === TRUE) ? $div . config_item('auth_warehouse') : NULL;
+      $mod  = config_item('module');
+      $year = date('Y');
+      $month = date('m');
+  
+      $return = $div . 'LEAVE' . $div . 'BWD-BIFA' . $div .$month .$div .$year;
+  
+      return $return;
+    }
+  }
+
+  if ( ! function_exists('leave_last_number')) {
+    function leave_last_number()
+    {
+      $CI =& get_instance();
+  
+      $format = leave_format_number();
+  
+      $CI->db->select_max('document_number', 'last_number');
+      $CI->db->from('tb_leave_requests');
       $CI->db->like('document_number', $format, 'both');
   
       $query  = $CI->db->get();
