@@ -58,6 +58,9 @@ $config['parent']['perjalanan_dinas']['icon']   = 'fa fa-road';
 $config['parent']['reimbursment']['label']  = 'Reimbursement';
 $config['parent']['reimbursment']['icon']   = 'fa fa-ticket';
 
+$config['parent']['leave']['label']  = 'Leave';
+$config['parent']['leave']['icon']   = 'fa fa-ticket';
+
 
 
 $config['module'] = array();
@@ -97,10 +100,15 @@ require('modules/deliver.php');
 require('modules/bill.php');
 require('modules/daftar_pajak.php');
 
+
+require('modules/leave.php');
+
 //business trip
 require('modules/business_trip_request.php');
 require('modules/sppd.php');
 require('modules/reimbursement.php');
+
+
 
 
 //aircraft
