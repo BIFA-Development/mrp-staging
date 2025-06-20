@@ -12,7 +12,7 @@ class Leave_Model extends MY_Model
         parent::__construct();
         
         $this->budget_year  = find_budget_setting('Active Year');
-        $this->module = config_item('module')['reimbursement'];
+        $this->module = config_item('module')['leave'];
         $this->connection   = $this->load->database('budgetcontrol', TRUE);
         $this->budget_year  = find_budget_setting('Active Year');
         $this->budget_month = find_budget_setting('Active Month');
@@ -211,7 +211,6 @@ class Leave_Model extends MY_Model
             }
         }
 
-        $status = "WAITING APPROVAL BY HR MANAGER";
 
         
 
@@ -234,6 +233,23 @@ class Leave_Model extends MY_Model
         $get_leave_code             = $get_leave['leave_code'];
         $leave_type_name            = $get_leave['name_leave'];
 
+        $status = "WAITING APPROVAL BY HEAD DEPT";
+
+        if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
+            $status = "WAITING APPROVAL BY HEAD DEPT";
+        } else if($get_leave_code == "L04"){
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        }
+
+
 
 
 
@@ -253,6 +269,21 @@ class Leave_Model extends MY_Model
         $this->db->set('request_by', config_item('auth_person_name'));
         $this->db->insert('tb_leave_requests');
         $document_id = $this->db->insert_id();
+
+        if(!empty($_SESSION['leave']['attachment'])){
+            foreach ($_SESSION['leave']['attachment'] as $key) {
+                $this->db->set('id_poe', $document_id);
+                $this->db->set('id_po', $document_id);
+                $this->db->set('file', $key);
+                $this->db->set('tipe', 'LEAVE');
+                $this->db->set('tipe_att', 'other');
+                $this->db->insert('tb_attachment_poe');
+            }
+
+                    
+            log_message('debug', 'Query Attachment: ' . $this->db->last_query());
+            log_message('debug', 'Affected rows attachment: ' . $this->db->affected_rows());
+        }
 
         $total = array();
 
@@ -283,6 +314,60 @@ class Leave_Model extends MY_Model
 
         return $row;
     }
+
+    public function listAttachment($id)
+    {
+        $this->db->where('id_poe', $id);
+        $this->db->where('tipe', 'LEAVE');
+        $this->db->where(array('deleted_at' => NULL));
+        return $this->db->get('tb_attachment_poe')->result_array();
+    }
+
+    public function checkAttachment($id)
+    {
+        $this->db->where('id_poe', $id);
+        $this->db->where('tipe', 'LEAVE');
+        $this->db->where(array('deleted_at' => NULL));
+		$this->db->from('tb_attachment_poe');
+        $num_rows = $this->db->count_all_results();
+
+		return $num_rows;
+    }
+
+    function add_attachment_to_db($id_poe, $url,$tipe_att='other')
+    {
+        $this->db->trans_begin();
+
+        $this->db->set('id_poe', $id_poe);
+        $this->db->set('id_po', $id_poe);
+        $this->db->set('file', $url);
+        $this->db->set('tipe', 'LEAVE');
+        $this->db->set('tipe_att', $tipe_att);
+        $this->db->insert('tb_attachment_poe');
+
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
+    function delete_attachment_in_db($id_att)
+    {
+        $this->db->trans_begin();
+
+        $this->db->set('deleted_at',date('Y-m-d'));
+        $this->db->set('deleted_by', config_item('auth_person_name'));
+        $this->db->where('id', $id_att);
+        $this->db->update('tb_attachment_poe');
+
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
     
 
 

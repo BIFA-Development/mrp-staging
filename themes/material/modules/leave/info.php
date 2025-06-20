@@ -20,20 +20,12 @@
             <div class="pull-right"><?=print_string($entity['document_number']);?></div>
           </div>
           <div class="clearfix">
-            <div class="pull-left">REIMBURSEMENT TYPE: </div>
-            <div class="pull-right"><?=print_string(strtoupper($entity['type']));?></div>
-          </div>
-          <div class="clearfix">
-            <div class="pull-left">DATE: </div>
-            <div class="pull-right"><?=print_date($entity['date']);?></div>
+            <div class="pull-left">REQUEST DATE: </div>
+            <div class="pull-right"><?=print_date($entity['request_date']);?></div>
           </div>
           <div class="clearfix">
             <div class="pull-left">BASE: </div>
             <div class="pull-right"><?=print_string($entity['warehouse']);?></div>
-          </div>
-          <div class="clearfix">
-            <div class="pull-left">COST CENTER: </div>
-            <div class="pull-right"><?=print_string($entity['cost_center_name']);?></div>
           </div>
         </div>
       </div>
@@ -52,32 +44,36 @@
 
               <dt>HR Approved By</dt>
               <dd><?=($entity['hr_approved_by']==null)? 'N/A':print_string($entity['hr_approved_by']);?></dd>
-
-              <dt>Finance Approved By</dt>
-              <dd><?=($entity['finance_approved_by']==null)? 'N/A':print_string($entity['finance_approved_by']);?></dd>
             <?php endif;?>
            
 
             <dt>Employee Number</dt>
-            <dd><?=$entity['employee_number'];?></dd>
+            <dd><?=($entity['employee_number']==null)? 'N/A':print_string($entity['employee_number']);?></dd>
 
             <dt>Name/Nama</dt>
-            <dd><?=$entity['person_name'];?></dd>
+            <dd><?=($entity['person_name']==null)? 'N/A':print_string($entity['person_name']);?></dd>
 
             <dt>Occupation/Jabatan</dt>
-            <dd><?=$entity['occupation'];?></dd>
+            <dd><?=($entity['occupation']==null)? 'N/A':print_string($entity['occupation']);?></dd>
+            
+            <dt>Leave Start Date</dt>
+            <dd><?=($entity['leave_start_date']==null)? 'N/A':print_date($entity['leave_start_date']);?></dd>
 
-            <dt>Notes</dt>
-            <dd><?=$entity['notes'];?></dd>
+            <dt>Leave End Date</dt>
+            <dd><?=($entity['leave_end_date']==null)? 'N/A':print_date($entity['leave_end_date']);?></dd>
+            
+            <dt>Total Days</dt>
+            <dd><?=($entity['total_leave_days']==null)? 'N/A':print_string($entity['total_leave_days']);?></dd>
+
+            <dt>Reason</dt>
+            <dd><?=($entity['reason']==null)? 'N/A':print_string($entity['reason']);?></dd>
 
             <dt>Requested By</dt>
-            <dd><?=strtoupper($entity['request_by']);?></dd>
+            <dd><?=($entity['reason']==null)? 'N/A':strtoupper($entity['request_by']);?></dd>
 
-            <dt>Plafond</dt>
-            <dd><?=strtoupper($entity['type']);?></dd>
+            <dt>Leave Type</dt>
+            <dd><?=($entity['leave_type']==null)? 'N/A':print_string($entity['leave_type']);?></dd>
 
-            <dt>Plafond Tyoe</dt>
-            <dd><?=strtoupper($entity['benefit_name_type']);?></dd>
 
 
             
@@ -85,80 +81,7 @@
       </div>
     </div>
 
-    <div class="row" id="document_details">
-      <div class="col-sm-12">
-        <div class="table-responsive">
-          <table class="table table-striped table-nowrap">
-            <thead id="table_header">
-              <tr>
-                <th></th>
-                <th>Expense Detail</th>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Account Code (COA)</th>
-                <th>Amount</th>
-                <th>Paid Amount</th>
-                <th>Attachment</th>
-              </tr>
-            </thead>
-            <tbody id="table_contents">
-              <?php $n = 1;?>
-              <?php $total = array();?>
-              <?php if (!empty($entity['items'])): ?>
-              <?php foreach ($entity['items'] as $i => $detail):?>
-              <tr>
-                <td class="no-space">
-                  <?=print_number($n++);?>
-                </td>
-                <td>
-                  <?=print_string($detail['description']);?>
-                </td>
-                <td>
-                  <?=print_date($detail['transaction_date']);?>
-                </td>
-                <td>
-                  <?=print_string($detail['notes']);?>
-                </td>
-                <td>
-                  <?=print_string($detail['account_code']);?>
-                </td>
-                <td>
-                  <?=print_number($detail['amount'],2);?>
-                </td>
-                <td>
-                  <?=print_number($detail['paid_amount'],2);?>
-                </td>
-                <td>
-                  <?php if (!empty($detail['attachment'])): ?>
-                      <a href="<?= base_url('attachment/reimbursement/' . $detail['attachment']); ?>" target="_blank" title="View Attachment">
-                          <i class="fa fa-eye text-primary"></i>
-                      </a>
-                  <?php else: ?>
-                      <span class="text-muted">No Attachment</span>
-                  <?php endif; ?>
-              </td>
-                <?php $total[] = $detail['amount'];?>
-              </tr>
-              <?php endforeach; ?>
-              <?php else: ?>
-                  <tr>
-                      <td colspan="5" class="text-center">No items available</td>
-                  </tr>
-              <?php endif; ?>
-            </tbody>
-            <tfoot>
-              <tr>
-                <th></th>
-                <th>Total</th>
-                <th></th>
-                <th></th>
-                <th><?=print_number(array_sum($total), 2);?></th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    </div>
+   
   </div>
 
     <div class="card-foot">
@@ -180,10 +103,10 @@
         </a> -->
         <?=form_close();?>
         <?php endif;?>
-        <!-- <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
+        <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
             <i class="md md-attach-file"></i>
             <small class="top right">Manage Attachment</small>
-        </a> -->
+        </a>
 
         <div class="pull-right">
             <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED' && $entity['status'] != 'EXPENSE REQUEST'): ?>

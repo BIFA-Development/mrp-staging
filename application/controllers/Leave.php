@@ -262,6 +262,8 @@ class Leave extends MY_Controller
             $_SESSION['leave']['warehouse']                 = NULL;
             $_SESSION['leave']['employee_has_leave_id']     = NULL;
             $_SESSION['leave']['is_reserved']               = NULL;
+
+            $_SESSION['leave']['attachment']                    = array();
         }
     
         if (!isset($_SESSION['leave'])) {
@@ -315,56 +317,26 @@ class Leave extends MY_Controller
         redirect($this->module['route'] .'/create');
     }
 
+    public function info($id)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
 
-    // public function edit($id)
-    // {
-    //     $this->authorized($this->module, 'create');
-    
-    //     $entity = $this->model->findById($id);
+        if (is_granted($this->module, 'info') === FALSE){
+            $return['type'] = 'denied';
+            $return['info'] = "You don't have permission to access this data. You may need to login again.";
+        } else {
+            $entity = $this->model->findById($id);
 
-    //     $document_number    = sprintf('%06s', substr($entity['document_number'], 0, 6));
-    //     $format_number      = substr($entity['document_number'], 9, 25);
+            $this->data['entity'] = $entity;
 
-    //     if (preg_match('/-R(\d+)/', $entity['document_number'], $matches)) {
-    //         $current_revision = intval($matches[1]); // Ambil angka revisi terakhir
-    //         $revisi = $current_revision + 1; // Tambah revisi berikutnya
-    //         $document_number = str_replace('-R' . $current_revision, '', $document_number); // Hapus revisi sebelumnya
-    //     } else {
-    //         $revisi = 1; // Jika belum ada revisi, mulai dari 1
-    //     }
-    
-    //     // Pastikan tidak ada revisi duplikat
-    //     $new_document_number = $document_number . '-R' . $revisi;
-    
-    //     if ($entity) {
-    //         $_SESSION['leave'] = array();
-    //         $_SESSION['leave']['id']                   = $id;
-    //         $_SESSION['leave']['document_number']        = $new_document_number;
-    //         $_SESSION['leave']['format_number']        = $format_number;
-    //         $_SESSION['leave']['employee_number']      = $entity['employee_number'];
-    //         $_SESSION['leave']['contract_number']      = $entity['contract_number'];
-    //         $_SESSION['leave']['start_contract']       = print_date($entity['start_date'], 'd M Y');
-    //         $_SESSION['leave']['end_contract']         = print_date($entity['end_date'], 'd M Y');
-    //         $_SESSION['leave']['department_name']      = $entity['department_name'];
-    //         $_SESSION['leave']['department_id']        = $entity['department_id'];
-    //         $_SESSION['leave']['holidays']             = getHolidays();
-    
-    //         $_SESSION['leave']['request_date']         = isset($entity['request_date']) ? $entity['request_date'] : NULL;
-    //         $_SESSION['leave']['leave_start_date']     = isset($entity['leave_start_date']) ? $entity['leave_start_date'] : NULL;
-    //         $_SESSION['leave']['leave_end_date']       = isset($entity['leave_end_date']) ? $entity['leave_end_date'] : NULL;
-    //         $_SESSION['leave']['total_leave_days']     = isset($entity['total_leave_days']) ? $entity['total_leave_days'] : NULL;
-    //         $_SESSION['leave']['reason']               = isset($entity['reason']) ? $entity['reason'] : NULL;
-    //         $_SESSION['leave']['leave_type']           = isset($entity['leave_type']) ? $entity['leave_type'] : NULL;
-    //         $_SESSION['leave']['type_leave']           = isset($entity['type_leave']) ? $entity['type_leave'] : NULL;
-    //         $_SESSION['leave']['leave_type_name']      = isset($entity['leave_type_name']) ? $entity['leave_type_name'] : NULL;
-    //         $_SESSION['leave']['warehouse']            = isset($entity['warehouse']) ? $entity['warehouse'] : NULL;
-    //         $_SESSION['leave']['employee_has_leave_id']= isset($entity['employee_has_leave_id']) ? $entity['employee_has_leave_id'] : NULL;
-    //         $_SESSION['leave']['is_reserved']          = isset($entity['is_reserved']) ? $entity['is_reserved'] : NULL;
-    //     }
-    
-    //     redirect($this->module['route'] . '/create');
-    // }
-    
+            $return['type'] = 'success';
+            $return['info'] = $this->load->view($this->module['view'] .'/info', $this->data, TRUE);
+        }
+
+        echo json_encode($return);
+    }
+
 
     public function get_annual_leave()
     {
@@ -430,6 +402,75 @@ class Leave extends MY_Controller
         }
 
         echo json_encode($data);
+    }
+
+    public function attachment()
+    {
+        $this->authorized($this->module, 'create');
+
+        $this->render_view($this->module['view'] . '/attachment');
+    }
+
+    public function add_attachment()
+    {
+        $result["status"] = 0;
+        $date = new DateTime();
+        $config['upload_path'] = 'attachment/leaves/';
+        $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
+        $config['max_size']  = 2000;
+
+        $this->upload->initialize($config);
+
+        if (!$this->upload->do_upload('attachment')) {
+            $error = array('error' => $this->upload->display_errors());
+        } else {
+
+            $data = array('upload_data' => $this->upload->data());
+            $url = $config['upload_path'] . $data['upload_data']['file_name'];
+            array_push($_SESSION["leave"]["attachment"], $url);
+            $result["status"] = 1;
+        }
+        echo json_encode($result);
+    }
+
+    public function manage_attachment($id)
+    {
+        $this->authorized($this->module, 'info');
+
+        $this->data['manage_attachment'] = $this->model->listAttachment($id);
+        $this->data['id'] = $id;
+        $this->render_view($this->module['view'] . '/manage_attachment');
+    }
+
+    public function add_attachment_to_db($id)
+    {
+        $result["status"] = 0;
+        $date = new DateTime();
+        $config['upload_path'] = 'attachment/leaves/';
+        $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
+        $config['max_size']  = 2000;
+
+        $this->upload->initialize($config);
+
+        if (!$this->upload->do_upload('attachment')) {
+            $error = array('error' => $this->upload->display_errors());
+            $result["status"] = $error;
+        } else {
+            $data = array('upload_data' => $this->upload->data());
+            $url = $config['upload_path'] . $data['upload_data']['file_name'];
+            // array_push($_SESSION["poe"]["attachment"], $url);
+            $this->model->add_attachment_to_db($id, $url);
+            $result["status"] = 1;
+        }
+        echo json_encode($result);
+    }
+
+    public function delete_attachment_in_db($id_att, $id_poe)
+    {
+        $this->model->delete_attachment_in_db($id_att);
+
+        redirect($this->module['route'] . "/manage_attachment/" . $id_poe, 'refresh');
+        // echo json_encode($result);
     }
     
 }

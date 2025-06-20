@@ -11,7 +11,6 @@
                     <input type="file" name="attachment" id="attachment" accept=".png,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.pdf">
                     <p style="font-size: 8pt">Allowing file format <i>doc, docx, xls, xlsx, pdf, jpg, png</i></p>
                     <p style="color: red; display: none;" id="typeError">The file type is not allowed to attach</p>
-                    <input type="hidden" name="tipe" id="tipe" value="<?=$tipe?>">
                 </div>
             </div>
             <div class="clearfix">
@@ -40,7 +39,7 @@
                     <td><?=$n?></td>
                     <td><a href="<?=site_url('dashboard/open_attachment/' . $detail['id'].'/mrp')?>" target="_blank"><?=$detail['file'];?></a></td>
                     <td>                    
-                        <a href="<?=site_url($module['route'] .'/delete_attachment_in_db/'. $detail['id'].'/'.$id.'/'.$tipe);?>" style="color: red" class="btn-delete-att">
+                        <a href="<?=site_url($module['route'] .'/delete_attachment_in_db/'. $detail['id'].'/'.$id);?>" style="color: red" class="btn-delete-att">
                             <i class="fa fa-trash"></i>
                         </a>
                     </td>

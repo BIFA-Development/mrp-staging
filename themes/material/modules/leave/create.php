@@ -112,6 +112,7 @@
                             <label for="reason">Reason</label>
                         </div>
 
+
                         <div class="form-group">
                             <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
                             <label for="leave_type">leave type</label>
@@ -139,6 +140,26 @@
 
                     
                 </div>
+
+                <div class="card-actionbar">
+                    <div class="card-actionbar-row">
+                        <div class="pull-left">
+                            <button type="button" href="" onClick="addRow()" class="btn btn-primary ink-reaction pull-left hide">
+                            Add
+                            </button>
+
+                            <a style="margin-left: 15px;" href="<?= site_url($module['route'] . '/attachment'); ?>" onClick="return popup(this, 'attachment')" class="btn btn-primary ink-reaction">
+                                Attachment
+                            </a>
+                        </div>
+
+                        <a href="<?= site_url($module['route'] . '/discard'); ?>" class="btn btn-flat btn-danger ink-reaction">
+                            Discard
+                        </a>
+                    </div>
+                </div>
+
+                
             </div>
 
         </div>

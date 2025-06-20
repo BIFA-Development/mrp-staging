@@ -2,7 +2,7 @@
 <?php startblock('body') ?>
 <div class="container">
 
-    <h4 class="page-header">Attachment Reimbursement</h4>
+    <h4 class="page-header">Attachment Leave</h4>
     
     <form id="form_add_vendor" id="inputForm" class="form" role="form" method="post" enctype="multipart/form-data" action="<?=site_url($module['route'] .'/add_attachment');?>">
         <div class="row">
@@ -35,9 +35,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                <?php if(sizeof($_SESSION['reimbursement']["attachment"])>0):?>
+                <?php if(sizeof($_SESSION['leave']["attachment"])>0):?>
                 <?php $x=1;$y=0;?>
-                <?php foreach ($_SESSION['reimbursement']["attachment"] as $key) :?>
+                <?php foreach ($_SESSION['leave']["attachment"] as $key) :?>
                     <?php $y++;?>
                     <tr>
                         <td><?=$x++?></td>
