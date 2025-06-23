@@ -234,7 +234,7 @@ class Reimbursement_Model extends MY_Model
             );
             $this->db->select($selected);
             $this->db->where_in('tb_reimbursements.annual_cost_center_id', $annualcost_ids);
-            $this->db->where_in('tb_reimbursements.employee_number', $employee_numbers);
+            // $this->db->where_in('tb_reimbursements.employee_number', $employee_numbers);
             $this->db->from('tb_reimbursements');
 
         } else {
