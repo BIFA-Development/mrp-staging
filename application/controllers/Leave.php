@@ -59,7 +59,28 @@ class Leave extends MY_Controller
                 $no++;
                 $col = array();
                 
-                $col[] = print_number($no);
+                
+                if (is_granted($this->module, 'approval')){
+                    if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number'] ){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='REVISED'){
+                        $col[] = print_number($no);
+                    } else {
+                        $col[] = print_number($no);
+                    }
+                }else{
+                    $col[] = print_number($no);
+                } 
                 $col[] = print_date($row['request_date'], 'd F Y');    
                 $col[] = print_string($row['document_number']);
                 $col[] = print_string($row['person_name']);
@@ -70,12 +91,31 @@ class Leave extends MY_Controller
                 } else {
                     $col[] = print_string('-');
                 }
-                if($row['is_reserved'] == TRUE){
-                    $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
-                } else {
-                    $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
-                    // $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary" disabled>Edit</a>';
+
+                if($row['status']=='approved' || $row['status']=='closed'){
+                    $col[] = print_string($row['notes_approval']);
+                }else{
+                    if($row['notes_approval'] != ''){
+                        if (is_granted($this->module, 'approval') === TRUE) {
+                            $col[] = '<input type="text" id="note_' . $row['id'] . '" value="' . $row['notes_approval'] . '" autocomplete="off"/>';
+                        } else {
+                            $col[] = print_string($row['notes_approval']);
+                        }
+                    } else {
+                        if (is_granted($this->module, 'approval') === TRUE) {
+                            $col[] = '<input type="text" id="note_' . $row['id'] . '" autocomplete="off"/>';
+                        } else {
+                            $col[] = print_string($row['notes_approval']);
+                        }
+                    }
+                    
                 }
+                // if($row['is_reserved'] == TRUE){
+                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
+                // } else {
+                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
+                //     // $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary" disabled>Edit</a>';
+                // }
                 
 
                 
@@ -141,6 +181,11 @@ class Leave extends MY_Controller
 
         $_SESSION['leave']['leave_type'] = $_GET['data'];
 
+        $get_leave                  = getLeaveCodeById($_GET['data']);
+        $get_leave_code             = $get_leave['leave_code'];
+
+        $_SESSION['leave']['leave_code'] = $get_leave_code;
+
     }
 
     public function set_leave_start_date()
@@ -171,6 +216,15 @@ class Leave extends MY_Controller
 
         $_SESSION['leave']['total_leave_days'] = $_GET['data'];
 
+    }
+
+
+    public function set_head_dept()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        $_SESSION['leave']['head_dept'] = $_GET['data'];
     }
 
 
@@ -209,8 +263,7 @@ class Leave extends MY_Controller
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
 
-
-        $_SESSION['leave']['set_warehouse'] = $_GET['data'];
+        $_SESSION['leave']['warehouse'] = $_GET['data'];
 
     }
 
@@ -262,7 +315,7 @@ class Leave extends MY_Controller
             $_SESSION['leave']['warehouse']                 = NULL;
             $_SESSION['leave']['employee_has_leave_id']     = NULL;
             $_SESSION['leave']['is_reserved']               = NULL;
-
+            $_SESSION['leave']['head_dept']                 = NULL;
             $_SESSION['leave']['attachment']                    = array();
         }
     
@@ -368,12 +421,23 @@ class Leave extends MY_Controller
             $document_number = $_SESSION['leave']['document_number'] . $_SESSION['leave']['format_number'];
 
             if ($_SESSION['leave']['employee_has_leave_id']==NULL || $_SESSION['leave']['employee_has_leave_id']=='') {
-                $errors[] = 'Attention!! Please Fill Employee Has!!';
+                if($_SESSION['leave']['leave_code'] == "L01"){
+                    $errors[] = 'Attention!! Please Fill Employee Has!!';
+                }
+            }
+
+
+            if ($_SESSION['leave']['head_dept']==NULL || $_SESSION['leave']['head_dept']=='') {
+                $errors[] = 'Attention!! Please Fill Head / Atasan !!';
             }
 
 
             if ($_SESSION['leave']['reason']==NULL || $_SESSION['leave']['reason']=='') {
                 $errors[] = 'Attention!! Please Fill Notes!!';
+            }
+
+            if ($_SESSION['leave']['warehouse']==NULL || $_SESSION['leave']['warehouse']=='') {
+                $errors[] = 'Attention!! Please Fill Warehouse!!';
             }
 
 
@@ -472,5 +536,109 @@ class Leave extends MY_Controller
         redirect($this->module['route'] . "/manage_attachment/" . $id_poe, 'refresh');
         // echo json_encode($result);
     }
+
+    public function multi_approve()
+    {
+        $document_id = $this->input->post('document_id');
+        $document_id = str_replace("|", "", $document_id);
+        $document_id = substr($document_id, 0, -1);
+        $document_id = explode(",", $document_id);
+
+        $str_notes = $this->input->post('notes');
+        $notes = str_replace("|", "", $str_notes);
+        $notes = substr($notes, 0, -3);
+        $notes = explode("##,", $notes);
+
+        $total = 0;
+        $success = 0;
+        $failed = sizeof($document_id);
+        $x = 0;
+
+        
+        $save_approval = $this->model->approve($document_id, $notes);
+        if ($save_approval['status']) {
+                if(!empty($save_approval['approved_ids'])){
+                    $this->session->set_flashdata('alert', array(
+                        'type' => 'success',
+                        'info' => $save_approval['success'] . " leave has been approve!"
+                    ));
+                } else {
+                    $this->session->set_flashdata('alert', array(
+                        'type' => 'success',
+                        // 'info' => $save_approval['success'] . " data has been update!"
+                        'info' => "Data has been update!"
+
+                    ));
+                }
+        }else{
+            $this->session->set_flashdata('alert', array(
+                'type' => 'danger',
+                'info' => "There are " . $save_approval['failed'] . " rejected"
+            ));
+        }
+        
+        if ($save_approval['status']) {
+            $result['status'] = 'success';
+        } else {
+            $result['status'] = 'failed';
+        }
+        echo json_encode($result);
+    }
+
+    public function multi_reject()
+    {
+        $document_id = $this->input->post('document_id');
+        $document_id = str_replace("|", "", $document_id);
+        $document_id = substr($document_id, 0, -1);
+        $document_id = explode(",", $document_id);
+
+        $str_notes = $this->input->post('notes');
+        $notes = str_replace("|", "", $str_notes);
+        $notes = substr($notes, 0, -3);
+        $notes = explode("##,", $notes);
+
+        $total = 0;
+        $success = 0;
+        $failed = sizeof($document_id);
+        $x = 0;
+
+        $save_approval = $this->model->reject($document_id, $notes);
+        if ($save_approval['status']) {
+            $this->session->set_flashdata('alert', array(
+                'type' => 'success',
+                'info' => "Data has been update!"
+            ));
+        }else{
+            $this->session->set_flashdata('alert', array(
+                'type' => 'danger',
+                'info' => "There are " . $save_approval['failed'] . " rejected"
+            ));
+        }
+        
+
+        if ($success > 0) {
+            // $this->model->send_mail_approval($id_expense_request, 'approve', config_item('auth_person_name'),$notes);
+            $this->session->set_flashdata('alert', array(
+                'type' => 'success',
+                'info' => $success . " data has been update!"
+            ));
+        }
+        if ($failed > 0) {
+            $this->session->set_flashdata('alert', array(
+                // 'type' => 'danger',
+                'type' => 'success',
+                'info' => $success . " data has been update!"
+                // 'info' => "There are " . $failed . " errors"
+            ));
+        }
+        
+        if ($save_approval['total'] == 0) {
+            $result['status'] = 'failed';
+        } else {
+            $result['status'] = 'success';
+        }
+        echo json_encode($result);
+    }
+
     
 }

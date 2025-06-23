@@ -28,10 +28,9 @@ class Leave_Model extends MY_Model
             'Person Name',
             'Leave Type Name',
             'Status',
-
             'Is Reserved',
+            'Notes Approval',
 
-            'Action',
         );
         return $return;
     }
@@ -108,14 +107,22 @@ class Leave_Model extends MY_Model
     function getIndex($return = 'array')
     {
         
-        $selected_person            = getEmployeeById(config_item('auth_user_id'));
-        $person_number              = $selected_person['employee_number'];
+        $selected_person = getEmployeeById(config_item('auth_user_id'));
+        $person_number   = $selected_person['employee_number'];
+
         $selected = array(
             'tb_leave_requests.*',
         );
+
         $this->db->select($selected);
-        $this->db->where('tb_leave_requests.employee_number', $person_number);
         $this->db->from('tb_leave_requests');
+
+        $this->db->group_start();
+        $this->db->where('tb_leave_requests.employee_number', $person_number);
+        $this->db->or_where('tb_leave_requests.head_dept', $person_number);
+        $this->db->group_end();
+
+    
         
         $this->searchIndex();
 
@@ -226,8 +233,8 @@ class Leave_Model extends MY_Model
         $person_name                = $selected_person['name'];
         $warehouse                  = $_SESSION['leave']['warehouse'];
         $is_reserved                = $_SESSION['leave']['is_reserved'];
-
-
+        $head_data                  = getEmployeeById($_SESSION['leave']['head_dept']);
+        $head_dept                  = $head_data['employee_number'];
         $employee_has_leave_id      = $_SESSION['leave']['employee_has_leave_id'];
         $get_leave                  = getLeaveCodeById($leave_type);
         $get_leave_code             = $get_leave['leave_code'];
@@ -237,7 +244,12 @@ class Leave_Model extends MY_Model
 
         if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
             $status = "WAITING APPROVAL BY HEAD DEPT";
-        } else if($get_leave_code == "L04"){
+        } else if($get_leave_code == "L07"){
+            $getLevel = getUserById($selected_person['user_id']);
+            if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
+                $status = "WAITING APPROVAL BY BOD";
+            }
+            $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
 
         } else if($get_leave_code == "L02"){
 
@@ -264,8 +276,12 @@ class Leave_Model extends MY_Model
         $this->db->set('person_name', $person_name);
         $this->db->set('warehouse', $warehouse);
         $this->db->set('status', $status);
+        $this->db->set('head_dept', $head_dept);
         $this->db->set('is_reserved', $is_reserved);
         $this->db->set('document_number', $document_number);
+        $this->db->set('employee_has_leave_id', $employee_has_leave_id);
+
+        
         $this->db->set('request_by', config_item('auth_person_name'));
         $this->db->insert('tb_leave_requests');
         $document_id = $this->db->insert_id();
@@ -366,6 +382,152 @@ class Leave_Model extends MY_Model
 
         $this->db->trans_commit();
         return TRUE;
+    }
+
+
+    public function approve($document_id, $approval_notes)
+    {
+        $this->db->trans_begin();
+
+        $total      = 0;
+        $success    = 0;
+        $failed     = sizeof($document_id);
+        $x          = 0;
+        $send_email_to = NULL;
+
+        foreach ($document_id as $id) {
+            $selected = array(
+                'tb_leave_requests.*',
+            );
+            $this->db->select($selected);
+            $this->db->where('tb_leave_requests.id', $id);
+        
+            $query      = $this->db->get('tb_leave_requests');
+            $leave        = $query->unbuffered_row('array');
+
+            $findDataPosition = findPositionByEmployeeNumber($leave['employee_number']);
+
+            $this->db->set('status','APPROVED');
+            $this->db->set('notes_approval', $approval_notes[$x]);
+            $this->db->set('head_dept_approved_by',config_item('auth_person_name'));
+            $this->db->where('id', $id);
+            $this->db->update('tb_leave_requests');
+
+            $this->db->set('document_type','LEAVE');
+            $this->db->set('document_number',$leave['document_number']);
+            $this->db->set('document_id', $id);
+            $this->db->set('action','validated by');
+            $this->db->set('date', date('Y-m-d'));
+            $this->db->set('username', config_item('auth_username'));
+            $this->db->set('person_name', config_item('auth_person_name'));
+            $this->db->set('roles', config_item('auth_role'));
+            $this->db->set('notes', $approval_notes[$x]);
+            $this->db->set('sign', get_ttd(config_item('auth_person_name')));
+            $this->db->set('created_at', date('Y-m-d H:i:s'));
+            $this->db->insert('tb_signers');
+            $send_email_to = NULL;
+
+            $approved_ids[] = $id;  // Add ID to the approved list
+
+            $total++;
+            $success++;
+            $failed--;
+            $x++;
+            
+        }
+
+        
+
+        if ($this->db->trans_status() === FALSE)
+            return $return = ['status'=> FALSE,'total'=>$total,'success'=>$success,'failed'=>$failed];
+
+        // if($send_email_to!=NULL){
+        //     $this->send_mail($document_id, $send_email_to);
+        // }
+
+        
+
+        $this->db->trans_commit();
+        return $return = ['status'=> TRUE,'total'=>$total,'success'=>$success,'failed'=>$failed, 'approved_ids' => $approved_ids];
+        
+        
+
+        
+    }
+
+
+    public function reject($document_id,$approval_notes)
+    {
+        $this->db->trans_begin();
+
+        $total      = 0;
+        $success    = 0;
+        $failed     = sizeof($document_id);
+        $x          = 0;
+        $send_email_to = NULL;
+
+        foreach ($document_id as $id) {
+            $selected = array(
+                'tb_leave_requests.*',
+                
+            );
+            $this->db->select($selected);
+            $this->db->where('tb_leave_requests.id', $id);
+            
+            $query      = $this->db->get('tb_leave_requests');
+            $leave        = $query->unbuffered_row('array');
+
+            $findDataPosition = findPositionByEmployeeNumber($leave['employee_number']);
+            $get_leave                  = getLeaveCodeById($leave['leave_type']);
+            $get_leave_code             = $get_leave['leave_code'];
+            
+
+            $this->db->set('status','REJECT');
+            $this->db->set('rejected_by',config_item('auth_person_name'));
+            $this->db->set('notes_approval', $approval_notes[$x]);
+            $this->db->where('id', $id);
+            $this->db->update('tb_leave_requests');
+
+            $this->db->set('document_type','LEAVE');
+            $this->db->set('document_number',$leave['document_number']);
+            $this->db->set('document_id', $id);
+            $this->db->set('action','validated by');
+            $this->db->set('date', date('Y-m-d'));
+            $this->db->set('username', config_item('auth_username'));
+            $this->db->set('person_name', config_item('auth_person_name'));
+            $this->db->set('roles', config_item('auth_role'));
+            $this->db->set('notes', $approval_notes[$x]);
+            $this->db->set('sign', get_ttd(config_item('auth_person_name')));
+            $this->db->set('created_at', date('Y-m-d H:i:s'));
+            $this->db->insert('tb_signers');
+
+
+            if($get_leave_code == 'L01'){
+                $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
+                $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
+                $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);
+                $this->db->update('tb_employee_has_leave');
+            }
+            // $send_email_to = 'hr_manager';
+
+            $total++;
+            $success++;
+            $failed--;
+            $x++;
+        }
+
+        
+
+        if ($this->db->trans_status() === FALSE)
+            return $return = ['status'=> FALSE,'total'=>$total,'success'=>$success,'failed'=>$failed];
+
+        // if($send_email_to!=NULL){
+        //     $this->send_mail($document_id, $send_email_to);
+        // }
+        
+
+        $this->db->trans_commit();
+        return $return = ['status'=> TRUE,'total'=>$total,'success'=>$success,'failed'=>$failed];
     }
 
     

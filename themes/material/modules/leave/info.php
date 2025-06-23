@@ -54,7 +54,7 @@
             <dd><?=($entity['person_name']==null)? 'N/A':print_string($entity['person_name']);?></dd>
 
             <dt>Occupation/Jabatan</dt>
-            <dd><?=($entity['occupation']==null)? 'N/A':print_string($entity['occupation']);?></dd>
+            <dd><?= print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']);?></dd>
             
             <dt>Leave Start Date</dt>
             <dd><?=($entity['leave_start_date']==null)? 'N/A':print_date($entity['leave_start_date']);?></dd>
@@ -65,16 +65,14 @@
             <dt>Total Days</dt>
             <dd><?=($entity['total_leave_days']==null)? 'N/A':print_string($entity['total_leave_days']);?></dd>
 
-            <dt>Reason</dt>
-            <dd><?=($entity['reason']==null)? 'N/A':print_string($entity['reason']);?></dd>
-
             <dt>Requested By</dt>
             <dd><?=($entity['reason']==null)? 'N/A':strtoupper($entity['request_by']);?></dd>
 
             <dt>Leave Type</dt>
-            <dd><?=($entity['leave_type']==null)? 'N/A':print_string($entity['leave_type']);?></dd>
+            <dd><?=($entity['leave_type']==null)? 'N/A':print_string(getLeaveCodeById($entity['leave_type'])['name_leave']);?></dd>
 
-
+            <dt>Reason</dt>
+            <dd><?=($entity['reason']==null)? 'N/A':print_string($entity['reason']);?></dd>
 
             
         </dl>

@@ -28,8 +28,6 @@
                             </div>
                         </div>
 
-                        <label for="type_leave"><?= $_SESSION['leave']['employee_has_leave_id']; ?></label>
-
                         <div class="form-group" style="padding-top: 25px;">
                             <select name="type_leave" id="type_leave" class="form-control select2">
                             <option> -- Pilih Tipe Cuti --</option>
@@ -54,6 +52,16 @@
                         <div class="form-group">
                             <input type="text" name="department_name" id="department_name" class="form-control" value="<?= $_SESSION['leave']['department_name']; ?>" readonly>
                             <label for="department_name">Department</label>
+                        </div>
+
+                        <div class="form-group">
+                            <select name="head_dept" id="head_dept" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" required>
+                                <option></option>
+                                <?php foreach(list_user_in_head_department($_SESSION['leave']['department_id']) as $head):?>
+                                <option value="<?=$head['user_id'];?>" <?= ( getEmployeeById($head['user_id'])['employee_number'] == $_SESSION['leave']['head_dept']) ? 'selected' : ''; ?>><?=$head['person_name'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="head_dept">Atasan</label>
                         </div>
                     </div>
 
@@ -113,19 +121,20 @@
                         </div>
 
 
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
                             <label for="leave_type">leave type</label>
                         </div> 
 
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <input type="text" name="employee_has_leave_id" id="employee_has_leave_id" class="form-control" value="<?= $_SESSION['leave']['employee_has_leave_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_has_leave_id'); ?>" readonly>
                             <label for="employee_has_leave_id">employee_has_leave_id</label>
                         </div> 
+
                         <div class="form-group">
-                            <textarea name="warehouse" id="warehouse" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>"><?= $_SESSION['leave']['warehouse']; ?></textarea>
+                            <input type="text" name="warehouse" id="warehouse" class="form-control" value="<?= $_SESSION['leave']['warehouse']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>" readonly>
                             <label for="warehouse">Warehouse</label>
-                        </div>
+                        </div> 
                     </div>
 
                     <div class="col-sm-12 col-lg-4">
@@ -572,9 +581,19 @@ window.onload = async function(){
 
     $('#employee_number').change(function () {
         var type = $('#type_leave').val();
+
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
-        $('#warehouse').val(warehouse).trigger('change');  
+        $('#warehouse').val(warehouse).trigger('change');;  
+        var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');
+        console.log('Init Employee2');
+        console.log(warehouse);
+        console.log(warehouse2);
+
+
+
+        
+
         var leave_code = $('#type_leave option:selected').data('leave-code');  
         if (leave_code === 'L01') {
             console.log('Init L01');
@@ -612,6 +631,14 @@ window.onload = async function(){
                     //harus update type_leave nya
                     var leave_type_data = $('#type_leave').val();
                     $('#leave_type').val(leave_type_data).trigger('change');
+
+                    var warehouse_data = $('#warehouse').val();
+                    $('#warehouse').val(warehouse_data).trigger('change');
+
+                    var head_data = $('#head_dept').val();
+                    $('#head_dept').val(head_data).trigger('change');
+
+
                     var employee_has_leave_id = $('#employee_has_leave_id').val();
                     $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
 

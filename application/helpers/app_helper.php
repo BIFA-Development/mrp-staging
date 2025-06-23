@@ -1452,7 +1452,7 @@ if (!function_exists('currency_for_vendor_list')) {
       $CI =& get_instance();
 
       if(config_item('auth_level')=='23'){
-        $CI->db->select('tb_auth_users.username,tb_auth_users.person_name');
+        $CI->db->select('tb_auth_users.username,tb_auth_users.person_name,tb_auth_users.user_id');
         $CI->db->from('tb_auth_users');
         $CI->db->where('tb_auth_users.auth_level', '24');
         $CI->db->order_by('tb_auth_users.username', 'ASC');
@@ -1460,7 +1460,7 @@ if (!function_exists('currency_for_vendor_list')) {
         $query  = $CI->db->get();
         $result = $query->result_array();
       }else{
-        $CI->db->select('tb_head_department.username,tb_auth_users.person_name');
+        $CI->db->select('tb_head_department.username,tb_auth_users.person_name,,tb_auth_users.user_id');
         $CI->db->from('tb_head_department');
         $CI->db->join('tb_auth_users','tb_auth_users.username=tb_head_department.username');
         $CI->db->where('tb_head_department.department_id', $department_id);
