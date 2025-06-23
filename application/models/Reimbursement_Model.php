@@ -220,17 +220,20 @@ class Reimbursement_Model extends MY_Model
         
         if(config_item('auth_role') == 'PIC STAFF') {
             $annualcost = config_item('auth_annual_cost_centers');
-            $selected_person            = getEmployeeById(config_item('auth_user_id'));
+            $idUser = config_item('auth_user_id');
+            $selected_person            = getEmployeeById($idUser);
             $person_number              = $selected_person['employee_number'];
             $department_id              = $selected_person['department_id'];
             $employee_numbers           = getListEmployeeByDepartment($department_id);
+
+            $annualcost_ids     = array_column($annualcost, 'id');
 
 
             $selected = array(
                 'tb_reimbursements.*',
             );
             $this->db->select($selected);
-            // $this->db->where_in('tb_reimbursements.annual_cost_center_id', $annualcost['id']);
+            $this->db->where_in('tb_reimbursements.annual_cost_center_id', $annualcost_ids);
             $this->db->where_in('tb_reimbursements.employee_number', $employee_numbers);
             $this->db->from('tb_reimbursements');
 
