@@ -116,7 +116,7 @@
                         </div>
 
                         <div class="form-group">
-                            <textarea name="reason" id="reason" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_reason'); ?>"><?= $_SESSION['leave']['reason']; ?></textarea>
+                            <textarea name="reason" id="reason" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_reason'); ?>" required ><?= $_SESSION['leave']['reason']; ?></textarea>
                             <label for="reason">Reason</label>
                         </div>
 
@@ -138,11 +138,21 @@
                     </div>
 
                     <div class="col-sm-12 col-lg-4">
-                    
+
                     <div class="form-group" id="holiday_list_group" style="display:none;">
                         <label>Hari Libur Nasional</label>
                         <ul id="holiday_list" class="form-control-static" style="margin-top: 10px; padding-left: 20px;"></ul>
                     </div>
+
+                    <!-- <div class="form-group">
+                        <label>Last Contract Date</label>
+                        <p class="form-control-static" style="margin-top: 10px;">
+                            <?= $_SESSION['leave']['contract_number']; ?>
+                            <?= $_SESSION['leave']['start_contract']; ?>
+                            -
+                            <?= $_SESSION['leave']['end_contract']; ?>
+                        </p>
+                    </div> -->
 
                     </div>
 
@@ -385,6 +395,7 @@ window.onload = async function(){
         $(buttonSubmitDocument).on('click', function (e) {
             e.preventDefault();
             var button = $(this);
+            button.attr('disabled', true); 
             var url = button.attr('href');
             var type_leave = $('#type_leave').val(); // Default to 0 if invalid.
             var leave_type = $('#leave_type').val(); // Default to 0 if invalid.
@@ -402,7 +413,14 @@ window.onload = async function(){
             console.log("Url:", url);
             console.log('Data', formDocument.serialize());
 
+
+
+
+            
+
             submitForm(url,button);
+            button.attr('disabled', false); 
+
         });
 
         $(autosetInputData).on('change', function() {

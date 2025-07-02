@@ -113,7 +113,6 @@
                 <small class="top right">edit</small>
             </a>
             <?php endif;?>
-        
 
             <?php if (is_granted($module, 'print')):?>
             <a href="<?=site_url($module['route'] .'/print_pdf/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" target="_blank" id="modal-print-data-button">
@@ -125,11 +124,13 @@
                 'class' => 'form-xhr-create-expense pull-left',
             ));?>
             <input type="hidden" name="id" id="id" value="<?=$entity['id'];?>">
-<!-- 
-            <a href="<?=site_url($module['route'] .'/create_expense_ajax/');?>" class="btn btn-floating-action btn-primary btn-xhr-create-expense btn-tooltip ink-reaction" id="btn-xhr-create-expense">
-                <i class="fa fa-money"></i>
-                <small class="top left">Create Expense</small>
-            </a> -->
+            <?php if (is_granted($module, 'create')  && $entity['status'] == 'DRAFT'): ?>
+            <a href="<?=site_url($module['route'] .'/sendLeavePlan/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-xhr-create-expense btn-tooltip ink-reaction" id="btn-xhr-create-expense">
+                <i class="fa fa-send"></i>
+                <small class="top left">Send Leave Plan</small>
+            </a>
+            <?php endif;?>
+
             <?=form_close();?>
         </div>
     </div>

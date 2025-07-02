@@ -86,7 +86,7 @@ class Leave extends MY_Controller
                 $col[] = print_string($row['person_name']);
                 $col[] = print_string($row['leave_type_name']);
                 $col[] = print_string($row['status']);
-                if($row['is_reserved'] == TRUE){
+                if($row['is_reserved'] == 't'){
                     $col[] = print_string('Rencana Cuti');
                 } else {
                     $col[] = print_string('-');
@@ -343,6 +343,8 @@ class Leave extends MY_Controller
         $employee = findDepartmentByEmployeeNumber($entity['employee_number']);
         $department = getDepartmentById($employee['department_id']);
 
+        $kontrak_active = findContractActive($entity['employee_number']);
+
 
         if (preg_match('/-R(\d+)/', $entity['document_number'], $matches)) {
             $current_revision = intval($matches[1]); // Ambil angka revisi terakhir
@@ -365,6 +367,8 @@ class Leave extends MY_Controller
         $_SESSION['leave']['department_name']           = $department['department_name'];
         $_SESSION['leave']['leave_start_date']           = print_date($entity['leave_start_date'], 'd-m-Y');
         $_SESSION['leave']['leave_end_date']           = print_date($entity['leave_end_date'], 'd-m-Y');
+        $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
+        $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
 
 
         redirect($this->module['route'] .'/create');
@@ -405,6 +409,63 @@ class Leave extends MY_Controller
         echo json_encode($employee_has_leave);
     }
 
+    public function sendLeavePlan()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+        redirect($this->modules['secure']['route'] .'/denied');
+
+        $id = $this->input->post('id');
+
+
+        if (is_granted($this->module, 'create') == FALSE){
+            $alert['success'] = FALSE;
+            $alert['message'] = 'You are not allowed to save this Document!';
+        } else {
+
+            $entity = $this->model->findById($id);
+            $errors = array();
+            $kontrak_active = findContractActive($entity['employee_number']);
+
+            $get_leave                  = getLeaveCodeById($entity['leave_type']);
+            $get_leave_code             = $get_leave['leave_code'];
+
+            if($get_leave_code == 'L01'){
+                $start_contract = new DateTime($kontrak_active['start_date']);
+                $end_contract = new DateTime($kontrak_active['end_date']);
+                $leave_start_date = new DateTime($entity['leave_start_date']);
+                $leave_end_date = new DateTime($entity['leave_end_date']);
+            
+                // Cek apakah tanggal cuti di luar rentang kontrak
+                if ($leave_start_date < $start_contract || $leave_end_date > $end_contract) {
+                    if($entity['is_reserved'] != 'yes'){
+                        $errors[] = "ID Kontrak".$id;
+                        $errors[] = "Start Kontrak {$start_contract->format('Y-m-d')}";
+                        $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
+                    }
+                }
+            }
+
+            if (!empty($errors)){
+                $alert['type'] = 'danger';
+                $alert['info'] = implode('<br />', $errors);
+            } else {
+                $leave = $this->model->sendLeavePlan($id);
+                if ($leave['status']){
+                    $alert['type'] = 'success';
+                    $alert['info'] = 'Leave has been create #'.$leave['document_number'];
+                    $alert['link'] = site_url($this->module['route']);
+                } else {
+                    $alert['type'] = 'danger';
+                    $alert['info'] = 'There are error while creating data. Please try again later.';
+                }
+    
+            }
+            
+           
+            echo json_encode($alert);
+        }
+    }
+
     public function save()
     {
         
@@ -431,10 +492,29 @@ class Leave extends MY_Controller
                 $errors[] = 'Attention!! Please Fill Head / Atasan !!';
             }
 
-
             if ($_SESSION['leave']['reason']==NULL || $_SESSION['leave']['reason']=='') {
-                $errors[] = 'Attention!! Please Fill Notes!!';
+                $errors[] = 'Attention!! Please Fill Notes !!';
             }
+
+
+            
+            $get_leave                  = getLeaveCodeById($_SESSION['leave']['leave_type']);
+            $get_leave_code             = $get_leave['leave_code'];
+
+            if($get_leave_code == 'L01'){
+                $start_contract = new DateTime($_SESSION['leave']['start_contract']);
+                $end_contract = new DateTime($_SESSION['leave']['end_contract']);
+                $leave_start_date = new DateTime($_SESSION['leave']['leave_start_date']);
+                $leave_end_date = new DateTime($_SESSION['leave']['leave_end_date']);
+            
+                // Cek apakah tanggal cuti di luar rentang kontrak
+                if ($leave_start_date < $start_contract || $leave_end_date > $end_contract) {
+                    if($_SESSION['leave']['is_reserved'] != 'yes'){
+                        $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
+                    }
+                }
+            }
+            
 
             if ($_SESSION['leave']['warehouse']==NULL || $_SESSION['leave']['warehouse']=='') {
                 $errors[] = 'Attention!! Please Fill Warehouse!!';

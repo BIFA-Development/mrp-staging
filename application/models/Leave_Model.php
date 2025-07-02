@@ -219,7 +219,7 @@ class Leave_Model extends MY_Model
         }
 
 
-        
+
 
         // CREATE NEW DOCUMENT
         $document_number            = sprintf('%06s', $_SESSION['leave']['document_number']) . $_SESSION['leave']['format_number'];
@@ -242,23 +242,27 @@ class Leave_Model extends MY_Model
 
         $status = "WAITING APPROVAL BY HEAD DEPT";
 
-        if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
-            $status = "WAITING APPROVAL BY HEAD DEPT";
-        } else if($get_leave_code == "L07"){
-            $getLevel = getUserById($selected_person['user_id']);
-            if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
-                $status = "WAITING APPROVAL BY BOD";
+        if($is_reserved == 'yes'){
+            $status = "DRAFT";
+        } else {
+            if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
+                $status = "WAITING APPROVAL BY HEAD DEPT";
+            } else if($get_leave_code == "L07"){
+                $getLevel = getUserById($selected_person['user_id']);
+                if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
+                    $status = "WAITING APPROVAL BY BOD";
+                }
+                $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
+    
+            } else if($get_leave_code == "L02"){
+    
+            } else if($get_leave_code == "L02"){
+    
+            } else if($get_leave_code == "L02"){
+    
+            } else if($get_leave_code == "L02"){
+    
             }
-            $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
         }
 
 
@@ -382,6 +386,66 @@ class Leave_Model extends MY_Model
 
         $this->db->trans_commit();
         return TRUE;
+    }
+
+    public function sendLeavePlan($id)
+    {
+        $this->db->trans_begin();
+
+        $selected = array(
+            'tb_leave_requests.*',
+        );
+        $this->db->select($selected);
+        $this->db->where('tb_leave_requests.id', $id);
+    
+        $query      = $this->db->get('tb_leave_requests')->row_array();
+
+        $selected_person            = getEmployeeByEmployeeNumber($query['employee_number']);
+
+        $get_leave                  = getLeaveCodeById($query['leave_type']);
+        $get_leave_code             = $get_leave['leave_code'];
+        $leave_type_name            = $get_leave['name_leave'];
+
+        $status = "WAITING APPROVAL BY HEAD DEPT";
+
+        if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
+            $status = "WAITING APPROVAL BY HEAD DEPT";
+        } else if($get_leave_code == "L07"){
+            $getLevel = getUserById($selected_person['user_id']);
+            if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
+                $status = "WAITING APPROVAL BY BOD";
+            }
+            $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        } else if($get_leave_code == "L02"){
+
+        }
+
+        $this->db->set('status',$status);
+        $this->db->set('is_reserved','no');
+        $this->db->where('id', $id);
+        $this->db->update('tb_leave_requests');
+
+        // if ($this->db->trans_status() === FALSE)
+        // return FALSE;
+
+        // // $this->send_mail($document_id,'head_dept','request');
+
+        // $this->db->trans_commit();
+        // return TRUE;
+
+        if ($this->db->trans_status() === FALSE)
+        return ['status'=>FALSE,'document_number'=>$query['document_number']];
+
+        $this->db->trans_commit();
+        return ['status'=>TRUE,'document_number'=>$query['document_number']];
+
     }
 
 

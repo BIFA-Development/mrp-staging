@@ -676,7 +676,7 @@
 
       button.attr('disabled', true);
 
-      if (confirm('Are you sure want to create this data to Expense Request? Continue?')) {
+      if (confirm('Are you sure want to create this data to Leave? Continue?')) {
         $.post(action, form.serialize()).done(function(data) {
           var obj = $.parseJSON(data);
           if (obj.type == 'danger') {
