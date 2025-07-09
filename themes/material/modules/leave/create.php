@@ -672,6 +672,7 @@ window.onload = async function(){
                 var obj = $.parseJSON(data);
 
                 if(obj.status=='success'){
+                    $('#left_leave').val('').trigger('change');
                     $('#left_leave').val(obj.left_leave).trigger('change');
                     console.log('Sukses');
                     console.log(obj);
@@ -727,6 +728,7 @@ window.onload = async function(){
                 var obj = $.parseJSON(data);
 
                 if(obj.status=='success'){
+                    $('#left_leave').val('').trigger('change');
                     $('#left_leave').val(obj.left_leave).trigger('change');
                     console.log('Sukses');
                     console.log(obj);
