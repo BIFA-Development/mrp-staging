@@ -395,7 +395,7 @@ window.onload = async function(){
                 $('#left_leave_group').show();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
             } else if(leave_code === 'L02'){
-                $('#left_leave_group').show();
+                $('#left_leave_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', today);
                 $('#is_reserved_group').hide();
             } else {
@@ -624,25 +624,31 @@ window.onload = async function(){
         console.log(warehouse);
         console.log(warehouse2);
         
-
+        var today = new Date();
+        var twoWeeksLater = new Date();
+        twoWeeksLater.setDate(today.getDate() + 14);
         var leave_code = $('#type_leave option:selected').data('leave-code');  
         if (leave_code === 'L01') {
             console.log('Init L01');
             getAnnualLeave();
             $('#left_leave_group').show();
             $('#is_reserved_group').show();
+            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
 
         } else if(leave_code === 'L07'){
             getLongLeave();
             $('#left_leave_group').show();
-        } else if(leave_code === 'L02'){
-            $('#left_leave_group').show();
-            var twoWeeksLater = new Date();
-            twoWeeksLater.setDate(today.getDate());
             $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+
+        } else if(leave_code === 'L02'){
+            $('#left_leave_group').hide();
+            $('#leave_start_date').datepicker('setStartDate', today);
+            $('#is_reserved_group').hide();
         } else {
             $('#left_leave_group').hide();
             $('#is_reserved_group').hide();
+            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+
 
         }
     });
