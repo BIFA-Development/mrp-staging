@@ -92,7 +92,7 @@
     <!-- ACTIONS RIGHT -->
     <?php if (is_granted($module, 'create')):?>
         <div class="section-floating-action-row">
-            <button class="btn btn-floating-action btn-lg btn-danger ink-reaction" id="btn-create-data" onclick="$(this).popup()" data-source="<?=site_url($module['route'] .'/create_benefit/'.$entity['employee_number'])?>" data-target="#data-modal">
+            <button class="btn btn-floating-action btn-lg btn-danger ink-reaction" id="btn-create-data" onclick="$(this).popup()" data-source="<?=site_url($module['route'] .'/create_leave/'.$entity['employee_number'])?>" data-target="#data-modal">
                 <i class="md md-add"></i>
             </button>
         </div>

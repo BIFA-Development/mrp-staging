@@ -727,7 +727,7 @@ class Employee extends MY_Controller
                 $no++;
                 $col = array();
                 $col[] = print_number($no);
-                $col[] = print_number($row['name_leave']);
+                $col[] = print_string($row['name_leave']);
                 $col[] = print_number($row['amount_leave']);
                 $col[] = print_number($row['used_leave']);
                 $col[] = print_number($row['left_leave']);
@@ -875,6 +875,32 @@ class Employee extends MY_Controller
                 "recordsFiltered" => $this->model->countIndexFilteredForBenefit($employee_number),
                 "data"            => $data,
             );
+        }
+
+        echo json_encode($return);
+    }
+
+    public function create_leave($employee_number)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'create') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to create data!";
+        } else {
+            $entity = $this->model->findById($employee_number);          
+            if(isEmployeeContractActiveExist($entity['employee_number'])){  
+                $kontrak_active = $this->model->findContractActive($entity['employee_number']);
+                $this->data['entity'] = $entity;
+                $this->data['kontrak_active'] = $kontrak_active;
+                $return['type'] = 'success';
+                $return['info'] = $this->load->view($this->module['view'] .'/create_leave', $this->data, TRUE);
+            }else{
+                $return['type'] = 'danger';
+                $return['info'] = "Please add Contract For ".$entity['name'];
+            }
+            
         }
 
         echo json_encode($return);
@@ -1052,6 +1078,63 @@ class Employee extends MY_Controller
                             $return['info'] = 'There are error while updating data. Please try again later.';
                         }
                     }
+                }
+                
+            }
+        }
+
+        echo json_encode($return);
+    }
+
+    public function save_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'save') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if ($this->input->post('id') != ''){
+                $form_data = array(
+                    'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                    'employee_number'       => $this->input->post('employee_number'),
+                    'leave_type'   => $this->input->post('leave_type'),
+                    'amount_leave'        => $this->input->post('amount_leave'),
+                    'left_leave'   => $this->input->post('amount_leave'),
+                    'used_leave'   => 0,
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                $criteria = $this->input->post('id');
+
+                if ($this->model->update_leave($form_data, $criteria)){
+                    $return['type'] = 'success';
+                    $return['info'] = 'Benefit Leave updated.';
+                } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
+                }
+                    
+                
+            } else {
+               
+                $form_data = array(
+                    'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                    'employee_number'       => $this->input->post('employee_number'),
+                    'leave_type'   => $this->input->post('leave_type'),
+                    'amount_leave'        => $this->input->post('amount_leave'),
+                    'left_leave'   => $this->input->post('amount_leave'),
+                    'used_leave'   => 0,
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                if ($this->model->insert_leave($form_data)){
+                    $return['type'] = 'success';
+                    $return['info'] = 'Benefit Leave added.';
+                } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
                 }
                 
             }

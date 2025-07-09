@@ -39,7 +39,7 @@
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
-                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>">
+                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>" data-source-get-longleave="<?= site_url($module['route'] . '/get_long_leave'); ?>">
                                 <option></option>
                                 <?php foreach(available_employee($_SESSION['leave']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
                                 <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
@@ -107,7 +107,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <div class="radio">
+                                    <div class="radio" id="is_reserved_group">
                                         <input type="checkbox" name="is_reserved" id="is_reserved" value="no" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_is_reserved'); ?>">
                                         <label for="is_reserved">Rencana Cuti Tahunan</label>
                                     </div>
@@ -341,11 +341,14 @@ window.onload = async function(){
         var formDocument = $('#form-create-document');
         var autosetInputData = $('[data-input-type="autoset"]');
 
-
+        var today = new Date();
+        var twoWeeksLater = new Date();
+        twoWeeksLater.setDate(today.getDate() + 14);
 
         $('#leave_start_date, #leave_end_date').datepicker({
             autoclose: true,
-            format: 'dd-mm-yyyy'
+            format: 'dd-mm-yyyy',
+            startDate: twoWeeksLater,
         }).on('changeDate', function () {
             updateLeaveDays();
         });
@@ -378,14 +381,27 @@ window.onload = async function(){
 
             console.log('Perubahan Code Leave:',leave_code);
             console.log('Perubahan Data Leave:',leave_type_data);
-
-
+            var today = new Date();
+            var twoWeeksLater = new Date();
+            twoWeeksLater.setDate(today.getDate() + 14);
 
             if (leave_code === 'L01') {
-                 getAnnualLeave();
+                getAnnualLeave();
                 $('#left_leave_group').show();
+                $('#is_reserved_group').show();
+                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            } else if(leave_code === 'L07'){
+                getLongLeave();
+                $('#left_leave_group').show();
+                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            } else if(leave_code === 'L02'){
+                $('#left_leave_group').show();
+                $('#leave_start_date').datepicker('setStartDate', today);
+                $('#is_reserved_group').hide();
             } else {
                 $('#left_leave_group').hide();
+                $('#is_reserved_group').hide();
+                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
             }
             
         });
@@ -607,9 +623,6 @@ window.onload = async function(){
         console.log('Init Employee2');
         console.log(warehouse);
         console.log(warehouse2);
-
-
-
         
 
         var leave_code = $('#type_leave option:selected').data('leave-code');  
@@ -617,10 +630,77 @@ window.onload = async function(){
             console.log('Init L01');
             getAnnualLeave();
             $('#left_leave_group').show();
+            $('#is_reserved_group').show();
+
+        } else if(leave_code === 'L07'){
+            getLongLeave();
+            $('#left_leave_group').show();
+        } else if(leave_code === 'L02'){
+            $('#left_leave_group').show();
+            var twoWeeksLater = new Date();
+            twoWeeksLater.setDate(today.getDate());
+            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
         } else {
             $('#left_leave_group').hide();
+            $('#is_reserved_group').hide();
+
         }
     });
+
+    function getLongLeave() {
+        console.log('InitLongLeave');
+        var employee_number = $('#employee_number').val();                        
+        var url = $('#employee_number').data('source-get-longleave');
+        var type = $('#type_leave').val();
+        console.log('URL:' +url);
+        
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: {
+                employee_number   : employee_number,
+                type      : type,
+            },
+            success: function(data) {
+                console.log(data);
+                var obj = $.parseJSON(data);
+
+                if(obj.status=='success'){
+                    $('#left_leave').val(obj.left_leave).trigger('change');
+                    console.log('Sukses');
+                    console.log(obj);
+
+                    $('#employee_has_leave_id').val(obj.employee_has_leave_id).trigger('change');
+                    //harus update type_leave nya
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+
+                    var warehouse_data = $('#warehouse').val();
+                    $('#warehouse').val(warehouse_data).trigger('change');
+
+                    var head_data = $('#head_dept').val();
+                    $('#head_dept').val(head_data).trigger('change');
+
+
+                    var employee_has_leave_id = $('#employee_has_leave_id').val();
+                    $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
+
+                }else{
+                    console.log('gagal');
+                    toastr.options.timeOut = 2000;
+                    toastr.options.positionClass = 'toast-top-right';
+                    
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+                    if(obj.status=='error'){
+                        toastr.error(obj.message);
+                    }else if(obj.status=='warning'){
+                        toastr.warning(obj.message);
+                    }
+                }        
+            }
+        });
+    };
 
     function getAnnualLeave() {
         console.log('InitAnnualLeave');

@@ -63,11 +63,11 @@ class Leave extends MY_Controller
                 if (is_granted($this->module, 'approval')){
                     if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number'] ){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
+                    } else if($row['status']=='WAITING APPROVAL BY HOS' || $row['status']=='WAITING APPROVAL BY HEAD' && config_item('auth_role') == 'HEAD OF SCHOOL'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
+                    } else if($row['status']=='WAITING APPROVAL BY VP' || $row['status']=='WAITING APPROVAL BY HEAD'  && config_item('auth_role') == 'VP FINANCE'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
+                    } else if($row['status']=='WAITING APPROVAL BY HR' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     } else if($row['status']=='WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
@@ -409,6 +409,20 @@ class Leave extends MY_Controller
         echo json_encode($employee_has_leave);
     }
 
+    public function get_long_leave()
+    {
+        // if ($this->input->is_ajax_request() === FALSE)
+        //     redirect($this->modules['secure']['route'] .'/denied');
+        
+
+        $employee_number = $_GET['employee_number'];
+        $type = $_GET['type'];
+
+        $employee_has_leave = $this->model->getEmployeeHasLongLeave($employee_number,$type);
+        
+        echo json_encode($employee_has_leave);
+    }
+
     public function sendLeavePlan()
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -484,6 +498,12 @@ class Leave extends MY_Controller
             if ($_SESSION['leave']['employee_has_leave_id']==NULL || $_SESSION['leave']['employee_has_leave_id']=='') {
                 if($_SESSION['leave']['leave_code'] == "L01"){
                     $errors[] = 'Attention!! Please Fill Employee Has!!';
+                }
+            }
+
+            if($_SESSION['leave']['leave_code'] == "L02" || $_SESSION['leave']['leave_code'] == "L03"){
+                if ($_SESSION['leave']['attachment'] == array()){
+                    $errors[] = 'Attention!! Please Add Attachment!!';
                 }
             }
 

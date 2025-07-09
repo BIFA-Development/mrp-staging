@@ -114,13 +114,20 @@ class Leave_Model extends MY_Model
             'tb_leave_requests.*',
         );
 
-        $this->db->select($selected);
-        $this->db->from('tb_leave_requests');
+        if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') {
 
-        $this->db->group_start();
-        $this->db->where('tb_leave_requests.employee_number', $person_number);
-        $this->db->or_where('tb_leave_requests.head_dept', $person_number);
-        $this->db->group_end();
+            $this->db->select($selected);
+            $this->db->from('tb_leave_requests');
+        } else {
+            $this->db->select($selected);
+            $this->db->from('tb_leave_requests');
+    
+            $this->db->group_start();
+            $this->db->where('tb_leave_requests.employee_number', $person_number);
+            $this->db->or_where('tb_leave_requests.head_dept', $person_number);
+            $this->db->group_end();
+        }
+
 
     
         
@@ -161,6 +168,46 @@ class Leave_Model extends MY_Model
             $this->db->select('tb_employee_has_leave.*');
             $this->db->where('tb_employee_has_leave.employee_number', $employee_number);
             $this->db->where('tb_employee_has_leave.employee_contract_id', $kontrak_active['id']);
+            $this->db->where('tb_employee_has_leave.leave_type', $type_leave);
+            $this->db->from('tb_employee_has_leave');
+            $queryemployee_has_annual_leave = $this->db->get();
+    
+            if ($queryemployee_has_annual_leave->num_rows() > 0) {
+                $row = $queryemployee_has_annual_leave->unbuffered_row('array');
+    
+                $return['status'] = 'success';
+                $return['amount_leave'] = $row['amount_leave'];
+                $return['used_leave'] = $row['used_leave'];
+                $return['left_leave'] = $row['left_leave'];
+                $return['employee_has_leave_id'] = $row['id'];
+            } else {
+                $return['status'] = 'warning';
+                $return['amount_leave'] = 0;
+                $return['used_leave'] = 0;
+                $return['employee_has_leave_id'] = null;
+                $return['kontrak'] = $kontrak_active['id'];
+                $return['message'] = 'Karyawan ini tidak memiliki cuti yang tersisa pada kontrak aktif terakhir';
+            }
+    
+            return $return;
+        } else {
+            $return['status'] = 'warning';
+            $return['amount_leave'] = 0;
+            $return['used_leave'] = 0;
+            $return['employee_has_leave_id'] = null;
+            $return['message'] = 'Karyawan ini tidak memiliki cuti yang tersisa pada kontrak aktif terakhir';
+            return $return;
+        }
+    }
+
+    public function getEmployeeHasLongLeave($employee_number, $type_leave) {
+        if (isEmployeeContractActiveExist($employee_number)) {
+            $kontrak_active = findContractActive($employee_number);
+    
+            $this->db->select('tb_employee_has_leave.*');
+            $this->db->where('tb_employee_has_leave.employee_number', $employee_number);
+            $this->db->where('tb_employee_has_leave.employee_contract_id', $kontrak_active['id']);
+            $this->db->where('tb_employee_has_leave.leave_type', $type_leave);
             $this->db->from('tb_employee_has_leave');
             $queryemployee_has_annual_leave = $this->db->get();
     
@@ -214,6 +261,16 @@ class Leave_Model extends MY_Model
                     $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
                     $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
                     $this->db->update('tb_employee_has_leave');
+                } else if($get_leave_code == 'L07'){
+                    $this->db->set('used_leave', 'used_leave - ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
+                    $this->db->update('tb_employee_has_leave');
+                } else if($get_leave_code == 'L04'){
+                    $this->db->set('used_leave', 'used_leave - ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
+                    $this->db->update('tb_employee_has_leave');
                 }
             }
         }
@@ -240,29 +297,21 @@ class Leave_Model extends MY_Model
         $get_leave_code             = $get_leave['leave_code'];
         $leave_type_name            = $get_leave['name_leave'];
 
-        $status = "WAITING APPROVAL BY HEAD DEPT";
+        $status = "WAITING APPROVAL BY HEAD";
 
         if($is_reserved == 'yes'){
             $status = "DRAFT";
         } else {
             if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
-                $status = "WAITING APPROVAL BY HEAD DEPT";
+                $status = "WAITING APPROVAL BY HEAD";
             } else if($get_leave_code == "L07"){
                 $getLevel = getUserById($selected_person['user_id']);
+                $status = 'WAITING APPROVAL BY HEAD';
                 if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
                     $status = "WAITING APPROVAL BY BOD";
                 }
-                $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
     
-            } else if($get_leave_code == "L02"){
-    
-            } else if($get_leave_code == "L02"){
-    
-            } else if($get_leave_code == "L02"){
-    
-            } else if($get_leave_code == "L02"){
-    
-            }
+            } 
         }
 
 
@@ -308,6 +357,20 @@ class Leave_Model extends MY_Model
         $total = array();
 
         if($get_leave_code == 'L01'){
+            $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
+            $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
+            $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
+            $this->db->update('tb_employee_has_leave');
+        }
+
+        if($get_leave_code == 'L07'){
+            $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
+            $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
+            $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
+            $this->db->update('tb_employee_has_leave');
+        }
+
+        if($get_leave_code == 'L04'){
             $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
             $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
             $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
@@ -398,6 +461,7 @@ class Leave_Model extends MY_Model
         $this->db->select($selected);
         $this->db->where('tb_leave_requests.id', $id);
     
+
         $query      = $this->db->get('tb_leave_requests')->row_array();
 
         $selected_person            = getEmployeeByEmployeeNumber($query['employee_number']);
@@ -406,26 +470,17 @@ class Leave_Model extends MY_Model
         $get_leave_code             = $get_leave['leave_code'];
         $leave_type_name            = $get_leave['name_leave'];
 
-        $status = "WAITING APPROVAL BY HEAD DEPT";
+        $status = "WAITING APPROVAL BY HEAD";
 
         if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
-            $status = "WAITING APPROVAL BY HEAD DEPT";
+            $status = "WAITING APPROVAL BY HEAD";
         } else if($get_leave_code == "L07"){
             $getLevel = getUserById($selected_person['user_id']);
+            $status = 'WAITING APPROVAL BY HEAD';
             if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
                 $status = "WAITING APPROVAL BY BOD";
             }
-            $status = $warehouse == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
-        } else if($get_leave_code == "L02"){
-
-        }
+        } 
 
         $this->db->set('status',$status);
         $this->db->set('is_reserved','no');
@@ -470,8 +525,24 @@ class Leave_Model extends MY_Model
             $leave        = $query->unbuffered_row('array');
 
             $findDataPosition = findPositionByEmployeeNumber($leave['employee_number']);
+            $get_leave                  = getLeaveCodeById($leave['leave_type']);
+            $get_leave_code             = $get_leave['leave_code'];
+            $status = 'APPROVED';
 
-            $this->db->set('status','APPROVED');
+            // Check Flow Cuti Besar
+            if($get_leave_code == 'L07'){
+                if($leave['status'] == 'WAITING APPROVAL BY HEAD'){
+                    $status = $leave['warehouse'] == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
+                } else if($leave['status'] == 'WAITING APPROVAL BY BOD'){
+                    $status = 'WAITING APPROVAL BY HR';
+                } else if($leave['status'] == 'WAITING APPROVAL BY HOS' || $leave['status'] == 'WAITING APPROVAL BY VP'){
+                    $status = 'WAITING APPROVAL BY HR';
+                } else if($leave['status'] == 'WAITING APPROVAL BY HR'){
+                    $status = 'APPROVED';
+                }
+            }
+
+            $this->db->set('status',$status);
             $this->db->set('notes_approval', $approval_notes[$x]);
             $this->db->set('head_dept_approved_by',config_item('auth_person_name'));
             $this->db->where('id', $id);
@@ -567,6 +638,20 @@ class Leave_Model extends MY_Model
 
 
             if($get_leave_code == 'L01'){
+                $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
+                $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
+                $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);
+                $this->db->update('tb_employee_has_leave');
+            }
+
+            if($get_leave_code == 'L07'){
+                $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
+                $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
+                $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);
+                $this->db->update('tb_employee_has_leave');
+            }
+
+            if($get_leave_code == 'L04'){
                 $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
                 $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
                 $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);

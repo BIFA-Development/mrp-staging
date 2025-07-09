@@ -112,8 +112,8 @@
       <option value="WAITING APPROVAL BY VP">
         Waiting Approval By VP
       </option>
-      <option value="WAITING APPROVAL BY HR MANAGER">
-        Waiting Approval By HR Manager
+      <option value="WAITING APPROVAL BY HR">
+        Waiting Approval By HR
       </option>
       <option value="WAITING APPROVAL BY FINANCE MANAGER">
         Waiting Approval By Finance Manager

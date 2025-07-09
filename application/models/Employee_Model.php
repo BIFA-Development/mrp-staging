@@ -644,8 +644,12 @@ class Employee_Model extends MY_Model
             'tb_employee_has_leave.amount_leave',
             'tb_employee_has_leave.used_leave',
             'tb_employee_has_leave.left_leave',
+            'tb_employee_has_leave.leave_type',
+            'tb_leave_type.name_leave',
         ));
         $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_leave.employee_contract_id');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type');
+        $this->db->where('tb_employee_has_leave.employee_number',$employee_number);
         $this->db->from('tb_employee_has_leave');
 
         // $this->searchIndexForBenefit();
@@ -769,6 +773,35 @@ class Employee_Model extends MY_Model
         $this->db->set($user_data);
         $this->db->insert('tb_employee_has_benefit');
 
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
+    public function insert_leave(array $user_data)
+    {
+        $this->db->trans_begin();
+
+        $this->db->set($user_data);
+        $this->db->insert('tb_employee_has_leave');
+
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
+
+    public function update_leave(array $user_data,$id)
+    {
+        $this->db->trans_begin();
+
+        $this->db->set($user_data);
+        $this->db->where('id',$id);
+        $this->db->update('tb_employee_has_leave');
         if ($this->db->trans_status() === FALSE)
             return FALSE;
 

@@ -4120,6 +4120,24 @@ if (!function_exists('currency_for_vendor_list')) {
       return $result;
     }
   }
+
+  if ( ! function_exists('getLeaveType')) {
+    function getLeaveType($gender)
+    {
+      $CI =& get_instance();
+
+      $CI->db->select('tb_leave_type.*');
+      $CI->db->where('tb_leave_type.gender', $gender);
+      $CI->db->from('tb_leave_type');
+      $CI->db->order_by('tb_leave_type.id', 'ASC');
+
+      $query  = $CI->db->get();
+      $result = $query->result_array();
+
+      return $result;
+    }
+  }
+
   if ( ! function_exists('getBenefitsByEmployeeNumber')) {
       function getBenefitsByEmployeeNumber($employee_number,$gender, $year = '2025') {
         $CI =& get_instance();
