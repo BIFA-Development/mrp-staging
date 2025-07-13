@@ -21,28 +21,28 @@
                         <div class="form-group">
                             <div class="input-group">
                                 <div class="input-group-content">
-                                    <input type="text" name="document_number" id="document_number" class="form-control" value="<?= $_SESSION['leave']['document_number']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_doc_number'); ?>" readonly>
+                                    <input type="text" name="document_number" id="document_number" class="form-control" value="<?= $_SESSION['leave_plan']['document_number']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_doc_number'); ?>" readonly>
                                     <label for="document_number">No Form</label>
                                 </div>
-                                <span class="input-group-addon"><?= $_SESSION['leave']['format_number']; ?></span>
+                                <span class="input-group-addon"><?= $_SESSION['leave_plan']['format_number']; ?></span>
                             </div>
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
                             <select name="type_leave" id="type_leave" class="form-control select2">
                             <option> -- Pilih Tipe Cuti --</option>
-                                <?php foreach(getLeaveType($_SESSION['leave']['gender'], $_SESSION['leave']['id_leave_plan']) as $leaveType):?>
-                                <option data-leave-id="<?=$leaveType['id'];?>" data-leave-code="<?=$leaveType['leave_code'];?>" data-leave-name="<?=$leaveType['name_leave'];?>" value="<?=$leaveType['id'];?>" <?= ($leaveType['id'] == $_SESSION['leave']['leave_type']) ? 'selected' : ''; ?>><?=$leaveType['name_leave'];?></option>
+                                <?php foreach(getLeaveType($_SESSION['leave_plan']['gender']) as $leaveType):?>
+                                <option data-leave-id="<?=$leaveType['id'];?>" data-leave-code="<?=$leaveType['leave_code'];?>" data-leave-name="<?=$leaveType['name_leave'];?>" value="<?=$leaveType['id'];?>" <?= ($leaveType['id'] == $_SESSION['leave_plan']['leave_type']) ? 'selected' : ''; ?>><?=$leaveType['name_leave'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="type_leave">Tipe Cuti</label>
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
-                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>" data-source-get-longleave="<?= site_url($module['route'] . '/get_long_leave'); ?>">
+                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>">
                                 <option></option>
-                                <?php foreach(available_employee($_SESSION['leave']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
-                                <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
+                                <?php foreach(available_employee($_SESSION['leave_plan']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
+                                <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave_plan']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="employee_number">Name</label>
@@ -50,15 +50,15 @@
 
                         
                         <div class="form-group">
-                            <input type="text" name="department_name" id="department_name" class="form-control" value="<?= $_SESSION['leave']['department_name']; ?>" readonly>
+                            <input type="text" name="department_name" id="department_name" class="form-control" value="<?= $_SESSION['leave_plan']['department_name']; ?>" readonly>
                             <label for="department_name">Department</label>
                         </div>
 
                         <div class="form-group">
                             <select name="head_dept" id="head_dept" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" required>
                                 <option></option>
-                                <?php foreach(list_user_in_head_department($_SESSION['leave']['department_id']) as $head):?>
-                                <option value="<?=$head['user_id'];?>" <?= ( getEmployeeById($head['user_id'])['employee_number'] == $_SESSION['leave']['head_dept']) ? 'selected' : ''; ?>><?=$head['person_name'];?></option>
+                                <?php foreach(list_user_in_head_department($_SESSION['leave_plan']['department_id']) as $head):?>
+                                <option value="<?=$head['user_id'];?>" <?= ( getEmployeeById($head['user_id'])['employee_number'] == $_SESSION['leave_plan']['head_dept']) ? 'selected' : ''; ?>><?=$head['person_name'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="head_dept">Atasan</label>
@@ -69,13 +69,13 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <input type="text" name="leave_start_date" id="leave_start_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave']['leave_start_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_start_date'); ?>" required>
+                                    <input type="text" name="leave_start_date" id="leave_start_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave_plan']['leave_start_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_start_date'); ?>" required>
                                     <label for="leave_start_date">Leave Start Date</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <input type="text" name="leave_end_date" id="leave_end_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave']['leave_end_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_end_date'); ?>" required>
+                                    <input type="text" name="leave_end_date" id="leave_end_date" data-provide="datepicker" data-date-format="dd-mm-yyyy" class="form-control" value="<?= $_SESSION['leave_plan']['leave_end_date']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_end_date'); ?>" required>
                                     <label for="leave_end_date">Leave End Date</label>
                                 </div>
                             </div>
@@ -84,13 +84,13 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <input type="number" name="total_leave_days" id="total_leave_days" class="form-control number" value="<?= $_SESSION['leave']['total_leave_days']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_total_leave_days'); ?>">
+                                    <input type="number" name="total_leave_days" id="total_leave_days" class="form-control number" value="<?= $_SESSION['leave_plan']['total_leave_days']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_total_leave_days'); ?>">
                                     <label for="total_leave_days">Jumlah Hari Cuti</label>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group" id="left_leave_group">
-                                    <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?= $_SESSION['leave']['left_leave']; ?>" data-input-type="autoset" readonly>
+                                    <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?= $_SESSION['leave_plan']['left_leave']; ?>" data-input-type="autoset" readonly>
                                     <label for="left_leave">Sisa Cuti Tahunan</label>
                                 </div>
                             </div>
@@ -105,34 +105,34 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- <div class="col-md-6">
+                            <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="radio" id="is_reserved_group">
                                         <input type="checkbox" name="is_reserved" id="is_reserved" value="no" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_is_reserved'); ?>">
                                         <label for="is_reserved">Rencana Cuti Tahunan</label>
                                     </div>
                                 </div>
-                            </div> -->
+                            </div>
                         </div>
 
                         <div class="form-group">
-                            <textarea name="reason" id="reason" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_reason'); ?>" required ><?= $_SESSION['leave']['reason']; ?></textarea>
+                            <textarea name="reason" id="reason" class="form-control" rows="4" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_reason'); ?>" required ><?= $_SESSION['leave_plan']['reason']; ?></textarea>
                             <label for="reason">Reason</label>
                         </div>
 
 
                         <div class="form-group hide">
-                            <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
+                            <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave_plan']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
                             <label for="leave_type">leave type</label>
                         </div> 
 
                         <div class="form-group hide">
-                            <input type="text" name="employee_has_leave_id" id="employee_has_leave_id" class="form-control" value="<?= $_SESSION['leave']['employee_has_leave_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_has_leave_id'); ?>" readonly>
+                            <input type="text" name="employee_has_leave_id" id="employee_has_leave_id" class="form-control" value="<?= $_SESSION['leave_plan']['employee_has_leave_id']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_has_leave_id'); ?>" readonly>
                             <label for="employee_has_leave_id">employee_has_leave_id</label>
                         </div> 
 
                         <div class="form-group">
-                            <input type="text" name="warehouse" id="warehouse" class="form-control" value="<?= $_SESSION['leave']['warehouse']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>" readonly>
+                            <input type="text" name="warehouse" id="warehouse" class="form-control" value="<?= $_SESSION['leave_plan']['warehouse']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_warehouse'); ?>" readonly>
                             <label for="warehouse">Warehouse</label>
                         </div> 
                     </div>
@@ -147,10 +147,10 @@
                     <!-- <div class="form-group">
                         <label>Last Contract Date</label>
                         <p class="form-control-static" style="margin-top: 10px;">
-                            <?= $_SESSION['leave']['contract_number']; ?>
-                            <?= $_SESSION['leave']['start_contract']; ?>
+                            <?= $_SESSION['leave_plan']['contract_number']; ?>
+                            <?= $_SESSION['leave_plan']['start_contract']; ?>
                             -
-                            <?= $_SESSION['leave']['end_contract']; ?>
+                            <?= $_SESSION['leave_plan']['end_contract']; ?>
                         </p>
                     </div> -->
 
@@ -167,9 +167,9 @@
                             Add
                             </button>
 
-                            <a style="margin-left: 15px;" href="<?= site_url($module['route'] . '/attachment'); ?>" onClick="return popup(this, 'attachment')" class="btn btn-primary ink-reaction">
+                            <!-- <a style="margin-left: 15px;" href="<?= site_url($module['route'] . '/attachment'); ?>" onClick="return popup(this, 'attachment')" class="btn btn-primary ink-reaction">
                                 Attachment
-                            </a>
+                            </a> -->
                         </div>
 
                         <a href="<?= site_url($module['route'] . '/discard'); ?>" class="btn btn-flat btn-danger ink-reaction">
@@ -220,7 +220,7 @@
 
 <script>
 
-const holidaysData = <?= json_encode($_SESSION['leave']['holidays']); ?>;
+const holidaysData = <?= json_encode($_SESSION['leave_plan']['holidays']); ?>;
 const holidays = holidaysData.map(h => h.holiday_date);
 console.log('Holidays:', holidays);
 
@@ -358,19 +358,19 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        // $('#is_reserved').on('change', function () {
-        //     if ($(this).is(':checked')) {
-        //         $(this).val('yes');
-        //     } else {
-        //         $(this).val('no');
-        //     }
-        //     var val = $(this).val();
-        //     var url = $(this).data('source');
+        $('#is_reserved').on('change', function () {
+            if ($(this).is(':checked')) {
+                $(this).val('yes');
+            } else {
+                $(this).val('no');
+            }
+            var val = $(this).val();
+            var url = $(this).data('source');
 
-        //     $.get(url, {
-        //         data: val
-        //     });
-        // });
+            $.get(url, {
+                data: val
+            });
+        });
 
         $('#type_leave').change(function () {
             const leave_typedata = $(this).val(); 
@@ -384,25 +384,6 @@ window.onload = async function(){
             var today = new Date();
             var twoWeeksLater = new Date();
             twoWeeksLater.setDate(today.getDate() + 14);
-
-            if (leave_code === 'L01') {
-                getAnnualLeave();
-                $('#left_leave_group').show();
-                // $('#is_reserved_group').show();
-                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-            } else if(leave_code === 'L07'){
-                getLongLeave();
-                $('#left_leave_group').show();
-                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-            } else if(leave_code === 'L02'){
-                $('#left_leave_group').hide();
-                $('#leave_start_date').datepicker('setStartDate', today);
-                // $('#is_reserved_group').hide();
-            } else {
-                $('#left_leave_group').hide();
-                // $('#is_reserved_group').hide();
-                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-            }
             
         });
         
@@ -628,142 +609,12 @@ window.onload = async function(){
         var twoWeeksLater = new Date();
         twoWeeksLater.setDate(today.getDate() + 14);
         var leave_code = $('#type_leave option:selected').data('leave-code');  
-        if (leave_code === 'L01') {
-            console.log('Init L01');
-            getAnnualLeave();
-            $('#left_leave_group').show();
-            // $('#is_reserved_group').show();
-            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-
-        } else if(leave_code === 'L07'){
-            getLongLeave();
-            $('#left_leave_group').show();
-            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-
-        } else if(leave_code === 'L02'){
-            $('#left_leave_group').hide();
-            $('#leave_start_date').datepicker('setStartDate', today);
-            // $('#is_reserved_group').hide();
-        } else {
-            $('#left_leave_group').hide();
-            // $('#is_reserved_group').hide();
-            $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-
-
-        }
+        
     });
 
-    function getLongLeave() {
-        console.log('InitLongLeave');
-        var employee_number = $('#employee_number').val();                        
-        var url = $('#employee_number').data('source-get-longleave');
-        var type = $('#type_leave').val();
-        console.log('URL:' +url);
-        
-        $.ajax({
-            url: url,
-            type: 'GET',
-            data: {
-                employee_number   : employee_number,
-                type      : type,
-            },
-            success: function(data) {
-                console.log(data);
-                var obj = $.parseJSON(data);
+    
 
-                if(obj.status=='success'){
-                    $('#left_leave').val('').trigger('change');
-                    $('#left_leave').val(obj.left_leave).trigger('change');
-                    console.log('Sukses');
-                    console.log(obj);
-
-                    $('#employee_has_leave_id').val(obj.employee_has_leave_id).trigger('change');
-                    //harus update type_leave nya
-                    var leave_type_data = $('#type_leave').val();
-                    $('#leave_type').val(leave_type_data).trigger('change');
-
-                    var warehouse_data = $('#warehouse').val();
-                    $('#warehouse').val(warehouse_data).trigger('change');
-
-                    var head_data = $('#head_dept').val();
-                    $('#head_dept').val(head_data).trigger('change');
-
-
-                    var employee_has_leave_id = $('#employee_has_leave_id').val();
-                    $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
-
-                }else{
-                    console.log('gagal');
-                    toastr.options.timeOut = 2000;
-                    toastr.options.positionClass = 'toast-top-right';
-                    
-                    var leave_type_data = $('#type_leave').val();
-                    $('#leave_type').val(leave_type_data).trigger('change');
-                    if(obj.status=='error'){
-                        toastr.error(obj.message);
-                    }else if(obj.status=='warning'){
-                        toastr.warning(obj.message);
-                    }
-                }        
-            }
-        });
-    };
-
-    function getAnnualLeave() {
-        console.log('InitAnnualLeave');
-        var employee_number = $('#employee_number').val();                        
-        var url = $('#employee_number').data('source-get-annual');
-        var type = $('#type_leave').val();
-        console.log('URL:' +url);
-        
-        $.ajax({
-            url: url,
-            type: 'GET',
-            data: {
-                employee_number   : employee_number,
-                type      : type,
-            },
-            success: function(data) {
-                console.log(data);
-                var obj = $.parseJSON(data);
-
-                if(obj.status=='success'){
-                    $('#left_leave').val('').trigger('change');
-                    $('#left_leave').val(obj.left_leave).trigger('change');
-                    console.log('Sukses');
-                    console.log(obj);
-
-                    $('#employee_has_leave_id').val(obj.employee_has_leave_id).trigger('change');
-                    //harus update type_leave nya
-                    var leave_type_data = $('#type_leave').val();
-                    $('#leave_type').val(leave_type_data).trigger('change');
-
-                    var warehouse_data = $('#warehouse').val();
-                    $('#warehouse').val(warehouse_data).trigger('change');
-
-                    var head_data = $('#head_dept').val();
-                    $('#head_dept').val(head_data).trigger('change');
-
-
-                    var employee_has_leave_id = $('#employee_has_leave_id').val();
-                    $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
-
-                }else{
-                    console.log('gagal');
-                    toastr.options.timeOut = 2000;
-                    toastr.options.positionClass = 'toast-top-right';
-                    
-                    var leave_type_data = $('#type_leave').val();
-                    $('#leave_type').val(leave_type_data).trigger('change');
-                    if(obj.status=='error'){
-                        toastr.error(obj.message);
-                    }else if(obj.status=='warning'){
-                        toastr.warning(obj.message);
-                    }
-                }        
-            }
-        });
-    };
+    
 
     Pace.on('start', function() {
         $('.progress-overlay').show();
@@ -794,7 +645,7 @@ window.onload = async function(){
         // theme: "bootstrap",
     });
 
-    var selectedBenefit = "<?= isset($_SESSION['leave']['type']) ? $_SESSION['leave']['type'] : ''; ?>";
+    var selectedBenefit = "<?= isset($_SESSION['leave_plan']['type']) ? $_SESSION['leave_plan']['type'] : ''; ?>";
 
 
     document.getElementById("attachment").addEventListener("change", function() {

@@ -709,6 +709,12 @@ class Profile extends MY_Controller
         }
     }
 
+    public function plan(){
+        $this->authorized($this->module, 'index');
+
+        $this->render_view($this->module['view'] .'/plan');
+    }
+
     public function leave($employee_id){
         $this->authorized($this->module, 'index');
         

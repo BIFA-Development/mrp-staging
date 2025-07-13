@@ -1,6 +1,6 @@
 <?php defined('BASEPATH') OR exit('No direct script access allowed');
 
-class Leave extends MY_Controller
+class Leave_Plan extends MY_Controller
 {
     protected $module;
 
@@ -8,7 +8,7 @@ class Leave extends MY_Controller
     {
         parent::__construct();
 
-        $this->module = $this->modules['leave'];
+        $this->module = $this->modules['leave_plan'];
         $this->load->model($this->module['model'], 'model');
         $this->load->helper($this->module['helper']);
         $this->load->library('upload');
@@ -60,63 +60,13 @@ class Leave extends MY_Controller
                 $col = array();
                 
                 
-                if (is_granted($this->module, 'approval')){
-                    if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number'] ){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY HR' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE'){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
-                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='REVISED'){
-                        $col[] = print_number($no);
-                    } else {
-                        $col[] = print_number($no);
-                    }
-                }else{
-                    $col[] = print_number($no);
-                } 
+                $col[] = print_number($no);
                 $col[] = print_date($row['request_date'], 'd F Y');    
                 $col[] = print_string($row['document_number']);
                 $col[] = print_string($row['person_name']);
                 $col[] = print_string($row['leave_type_name']);
+                $col[] = print_string(print_date($row['leave_start_date'], 'd F Y').' - '.print_date($row['leave_end_date'], 'd F Y').' ('.print_string($row['total_leave_days']).' days)');
                 $col[] = print_string($row['status']);
-                if($row['ref_leave_plan_number']!=''){
-                    $col[] = print_string($row['ref_leave_plan_number']);
-                } else {
-                    $col[] = print_string('- ');
-                }
-                if($row['status']=='approved' || $row['status']=='closed'){
-                    $col[] = print_string($row['notes_approval']);
-                }else{
-                    if($row['notes_approval'] != ''){
-                        if (is_granted($this->module, 'approval') === TRUE) {
-                            $col[] = '<input type="text" id="note_' . $row['id'] . '" value="' . $row['notes_approval'] . '" autocomplete="off"/>';
-                        } else {
-                            $col[] = print_string($row['notes_approval']);
-                        }
-                    } else {
-                        if (is_granted($this->module, 'approval') === TRUE) {
-                            $col[] = '<input type="text" id="note_' . $row['id'] . '" autocomplete="off"/>';
-                        } else {
-                            $col[] = print_string($row['notes_approval']);
-                        }
-                    }
-                    
-                }
-                // if($row['is_reserved'] == TRUE){
-                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
-                // } else {
-                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
-                //     // $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary" disabled>Edit</a>';
-                // }
-                
-
                 
                 
                 $col['DT_RowId'] = 'row_'. $row['id'];
@@ -158,7 +108,7 @@ class Leave extends MY_Controller
         else
             $number = $_GET['data'];
 
-        $_SESSION['leave']['document_number'] = $number;
+        $_SESSION['leave_plan']['document_number'] = $number;
     }
 
     public function set_request_date()
@@ -167,7 +117,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
         
-        $_SESSION['leave']['request_date'] = date('Y-m-d', strtotime($_GET['data']));
+        $_SESSION['leave_plan']['request_date'] = date('Y-m-d', strtotime($_GET['data']));
 
 
     }
@@ -178,12 +128,12 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['leave_type'] = $_GET['data'];
+        $_SESSION['leave_plan']['leave_type'] = $_GET['data'];
 
         $get_leave                  = getLeaveCodeById($_GET['data']);
         $get_leave_code             = $get_leave['leave_code'];
 
-        $_SESSION['leave']['leave_code'] = $get_leave_code;
+        $_SESSION['leave_plan']['leave_code'] = $get_leave_code;
 
     }
 
@@ -193,7 +143,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
         
-        $_SESSION['leave']['leave_start_date'] = date('Y-m-d', strtotime($_GET['data']));
+        $_SESSION['leave_plan']['leave_start_date'] = date('Y-m-d', strtotime($_GET['data']));
 
     }
 
@@ -203,7 +153,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['leave_end_date'] = date('Y-m-d', strtotime($_GET['data']));
+        $_SESSION['leave_plan']['leave_end_date'] = date('Y-m-d', strtotime($_GET['data']));
 
     }
 
@@ -213,7 +163,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['total_leave_days'] = $_GET['data'];
+        $_SESSION['leave_plan']['total_leave_days'] = $_GET['data'];
 
     }
 
@@ -223,7 +173,7 @@ class Leave extends MY_Controller
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
 
-        $_SESSION['leave']['head_dept'] = $_GET['data'];
+        $_SESSION['leave_plan']['head_dept'] = $_GET['data'];
     }
 
 
@@ -233,7 +183,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['is_reserved'] = $_GET['data'];
+        $_SESSION['leave_plan']['is_reserved'] = $_GET['data'];
 
     }
 
@@ -243,7 +193,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['reason'] = $_GET['data'];
+        $_SESSION['leave_plan']['reason'] = $_GET['data'];
 
     }
 
@@ -253,7 +203,7 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
 
-        $_SESSION['leave']['employee_has_leave_id'] = $_GET['data'];
+        $_SESSION['leave_plan']['employee_has_leave_id'] = $_GET['data'];
 
     }
 
@@ -262,7 +212,7 @@ class Leave extends MY_Controller
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
 
-        $_SESSION['leave']['warehouse'] = $_GET['data'];
+        $_SESSION['leave_plan']['warehouse'] = $_GET['data'];
 
     }
 
@@ -271,19 +221,19 @@ class Leave extends MY_Controller
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
 
-        $_SESSION['leave']['employee_number'] = $_GET['data'];
+        $_SESSION['leave_plan']['employee_number'] = $_GET['data'];
     }
 
 
-    public function create($idnya = NULL, $planId = NULL)
+    public function create($idnya = NULL)
     {
         $this->authorized($this->module, 'create');
 
-        $_SESSION['leave']['codenya'] = $idnya;
+        $_SESSION['leave_plan']['codenya'] = $idnya;
         
     
         if ($idnya !== NULL) {
-            $_SESSION['leave'] = array();
+            $_SESSION['leave_plan'] = array();
 
 
             
@@ -293,67 +243,32 @@ class Leave extends MY_Controller
             $department = getDepartmentById($employee['department_id']);
             $holidays = getHolidays();
 
-            $_SESSION['leave']['document_number']           = leave_last_number();
-            $_SESSION['leave']['format_number']             = leave_format_number();
-            $_SESSION['leave']['employee_number']           = $employee['employee_number'];
-            $_SESSION['leave']['contract_number']           = $kontrak_active['contract_number'];
-            $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
-            $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
-            $_SESSION['leave']['department_name']           = $department['department_name'];
-            $_SESSION['leave']['department_id']             = $employee['department_id'];
-            $_SESSION['leave']['holidays']                  = $holidays;
+            $_SESSION['leave_plan']['document_number']           = leave_plan_last_number();
+            $_SESSION['leave_plan']['format_number']             = leave_plan_format_number();
+            $_SESSION['leave_plan']['employee_number']           = $employee['employee_number'];
+            $_SESSION['leave_plan']['contract_number']           = $kontrak_active['contract_number'];
+            $_SESSION['leave_plan']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
+            $_SESSION['leave_plan']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
+            $_SESSION['leave_plan']['department_name']           = $department['department_name'];
+            $_SESSION['leave_plan']['department_id']             = $employee['department_id'];
+            $_SESSION['leave_plan']['holidays']                  = $holidays;
     
-            $_SESSION['leave']['request_date']              = NULL;
-            $_SESSION['leave']['leave_start_date']          = NULL;
-            $_SESSION['leave']['leave_end_date']            = NULL;
-            $_SESSION['leave']['total_leave_days']          = NULL;
-            $_SESSION['leave']['reason']                    = NULL;
-            $_SESSION['leave']['leave_type']                = NULL;
-            $_SESSION['leave']['type_leave']                = NULL;
-            $_SESSION['leave']['leave_type_name']           = NULL;
-            $_SESSION['leave']['warehouse']                 = NULL;
-            $_SESSION['leave']['employee_has_leave_id']     = NULL;
-            $_SESSION['leave']['head_dept']                 = NULL;
-            $_SESSION['leave']['attachment']                    = array();
-        }
-
-        if($idnya !== NULL && $planId !== NULL){
-            $entity = $this->model->findLeavePlanById($planId);
-            $employee_id  = config_item('auth_user_id');
-            $employee = findEmployeeByUserId($employee_id);
-            $kontrak_active = findContractActive($employee['employee_number']);
-            $department = getDepartmentById($employee['department_id']);
-            $holidays = getHolidays();
-           
-
-
-            $_SESSION['leave'] = array();
-            $_SESSION['leave']['document_number']           = leave_last_number();
-            $_SESSION['leave']['format_number']             = leave_format_number();
-            $_SESSION['leave']['employee_number']           = $entity['employee_number'];
-            $_SESSION['leave']['contract_number']           = $kontrak_active['contract_number'];
-            $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
-            $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
-            $_SESSION['leave']['department_name']           = $department['department_name'];
-            $_SESSION['leave']['department_id']             = $employee['department_id'];
-            $_SESSION['leave']['holidays']                  = $holidays;
-    
-            $_SESSION['leave']['request_date']              = $entity['request_date'];
-            $_SESSION['leave']['leave_start_date']          = $entity['leave_start_date'];
-            $_SESSION['leave']['leave_end_date']            = $entity['leave_end_date'];
-            $_SESSION['leave']['total_leave_days']          = $entity['total_leave_days'];
-            $_SESSION['leave']['reason']                    = $entity['reason'];
-            $_SESSION['leave']['leave_type']                = $entity['leave_type'];
-            $_SESSION['leave']['type_leave']                = NULL;
-            $_SESSION['leave']['leave_type_name']           = NULL;
-            $_SESSION['leave']['warehouse']                 = $entity['warehouse'];
-            $_SESSION['leave']['employee_has_leave_id']     = $entity['employee_has_leave_id'];
-            $_SESSION['leave']['head_dept']                 = $entity['head_dept'];
-            $_SESSION['leave']['id_leave_plan']             = $entity['id'];
-            $_SESSION['leave']['attachment']                = array();
+            $_SESSION['leave_plan']['request_date']              = NULL;
+            $_SESSION['leave_plan']['leave_start_date']          = NULL;
+            $_SESSION['leave_plan']['leave_end_date']            = NULL;
+            $_SESSION['leave_plan']['total_leave_days']          = NULL;
+            $_SESSION['leave_plan']['reason']                    = NULL;
+            $_SESSION['leave_plan']['leave_type']                = NULL;
+            $_SESSION['leave_plan']['type_leave']                = NULL;
+            $_SESSION['leave_plan']['leave_type_name']           = NULL;
+            $_SESSION['leave_plan']['warehouse']                 = NULL;
+            $_SESSION['leave_plan']['employee_has_leave_id']     = NULL;
+            $_SESSION['leave_plan']['is_reserved']               = NULL;
+            $_SESSION['leave_plan']['head_dept']                 = NULL;
+            $_SESSION['leave_plan']['attachment']                    = array();
         }
     
-        if (!isset($_SESSION['leave'])) {
+        if (!isset($_SESSION['leave_plan'])) {
             redirect($this->module['route']);
         }
     
@@ -390,19 +305,19 @@ class Leave extends MY_Controller
     
         $new_document_number = $document_number . '-R' . $revisi;
 
-        $_SESSION['leave']                              = $entity;
-        $_SESSION['leave']['id']                        = $id;
-        $_SESSION['leave']['edit']                      = $entity['document_number'];
-        $_SESSION['leave']['document_number']           = $new_document_number;
-        $_SESSION['leave']['format_number']             = $format_number;
-        $_SESSION['leave']['holidays']                  = $holidays;
-        $_SESSION['leave']['employee_number']           = $entity['employee_number'];
-        $_SESSION['leave']['department_id']             = $employee['department_id'];
-        $_SESSION['leave']['department_name']           = $department['department_name'];
-        $_SESSION['leave']['leave_start_date']           = print_date($entity['leave_start_date'], 'd-m-Y');
-        $_SESSION['leave']['leave_end_date']           = print_date($entity['leave_end_date'], 'd-m-Y');
-        $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
-        $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
+        $_SESSION['leave_plan']                              = $entity;
+        $_SESSION['leave_plan']['id']                        = $id;
+        $_SESSION['leave_plan']['edit']                      = $entity['document_number'];
+        $_SESSION['leave_plan']['document_number']           = $new_document_number;
+        $_SESSION['leave_plan']['format_number']             = $format_number;
+        $_SESSION['leave_plan']['holidays']                  = $holidays;
+        $_SESSION['leave_plan']['employee_number']           = $entity['employee_number'];
+        $_SESSION['leave_plan']['department_id']             = $employee['department_id'];
+        $_SESSION['leave_plan']['department_name']           = $department['department_name'];
+        $_SESSION['leave_plan']['leave_start_date']           = print_date($entity['leave_start_date'], 'd-m-Y');
+        $_SESSION['leave_plan']['leave_end_date']           = print_date($entity['leave_end_date'], 'd-m-Y');
+        $_SESSION['leave_plan']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
+        $_SESSION['leave_plan']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
 
 
         redirect($this->module['route'] .'/create');
@@ -485,11 +400,11 @@ class Leave extends MY_Controller
             
                 // Cek apakah tanggal cuti di luar rentang kontrak
                 if ($leave_start_date < $start_contract || $leave_end_date > $end_contract) {
-                    
-                    $errors[] = "ID Kontrak".$id;
-                    $errors[] = "Start Kontrak {$start_contract->format('Y-m-d')}";
-                    $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
-                
+                    if($entity['is_reserved'] != 'yes'){
+                        $errors[] = "ID Kontrak".$id;
+                        $errors[] = "Start Kontrak {$start_contract->format('Y-m-d')}";
+                        $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
+                    }
                 }
             }
 
@@ -527,59 +442,31 @@ class Leave extends MY_Controller
         } else {
             $errors = array();
 
-            $document_number = $_SESSION['leave']['document_number'] . $_SESSION['leave']['format_number'];
+            $document_number = $_SESSION['leave_plan']['document_number'] . $_SESSION['leave_plan']['format_number'];
 
-            if ($_SESSION['leave']['employee_has_leave_id']==NULL || $_SESSION['leave']['employee_has_leave_id']=='') {
-                if($_SESSION['leave']['leave_code'] == "L01"){
-                    $errors[] = 'Attention!! Please Fill Employee Has!!';
-                }
-            }
+            
 
-            if($_SESSION['leave']['leave_code'] == "L02" || $_SESSION['leave']['leave_code'] == "L03"){
-                if ($_SESSION['leave']['attachment'] == array()){
-                    $errors[] = 'Attention!! Please Add Attachment!!';
-                }
-            }
-
-
-            if ($_SESSION['leave']['head_dept']==NULL || $_SESSION['leave']['head_dept']=='') {
-                $errors[] = 'Attention!! Please Fill Head / Atasan !!';
-            }
-
-            if ($_SESSION['leave']['reason']==NULL || $_SESSION['leave']['reason']=='') {
+            if ($_SESSION['leave_plan']['reason']==NULL || $_SESSION['leave_plan']['reason']=='') {
                 $errors[] = 'Attention!! Please Fill Notes !!';
             }
 
 
             
-            $get_leave                  = getLeaveCodeById($_SESSION['leave']['leave_type']);
+            $get_leave                  = getLeaveCodeById($_SESSION['leave_plan']['leave_type']);
             $get_leave_code             = $get_leave['leave_code'];
 
-            if($get_leave_code == 'L01'){
-                $start_contract = new DateTime($_SESSION['leave']['start_contract']);
-                $end_contract = new DateTime($_SESSION['leave']['end_contract']);
-                $leave_start_date = new DateTime($_SESSION['leave']['leave_start_date']);
-                $leave_end_date = new DateTime($_SESSION['leave']['leave_end_date']);
-            
-                // Cek apakah tanggal cuti di luar rentang kontrak
-                if ($leave_start_date < $start_contract || $leave_end_date > $end_contract) {
-                    
-                    $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
-                    
-                }
-            }
-            
+          
 
-            if ($_SESSION['leave']['warehouse']==NULL || $_SESSION['leave']['warehouse']=='') {
+            if ($_SESSION['leave_plan']['warehouse']==NULL || $_SESSION['leave_plan']['warehouse']=='') {
                 $errors[] = 'Attention!! Please Fill Warehouse!!';
             }
 
 
-            if ($_SESSION['leave']['leave_type']==NULL || $_SESSION['leave']['leave_type']=='') {
-                $errors[] = 'Attention!! Please Fill Leave Type!!'. $_SESSION['leave']['leave_type'].'-'.$_SESSION['leave']['type_leave'];
+            if ($_SESSION['leave_plan']['leave_type']==NULL || $_SESSION['leave_plan']['leave_type']=='') {
+                $errors[] = 'Attention!! Please Fill Leave Type!!'. $_SESSION['leave_plan']['leave_type'].'-'.$_SESSION['leave_plan']['type_leave'];
             }
 
-            // $errors[] = 'Attention!! Please Fill Employee Has ID!!'. $_SESSION['leave']['employee_has_leave_id'].'-';
+            // $errors[] = 'Attention!! Please Fill Employee Has ID!!'. $_SESSION['leave_plan']['employee_has_leave_id'].'-';
 
             
 
@@ -588,7 +475,7 @@ class Leave extends MY_Controller
                 $data['message'] = implode('<br />', $errors);
             } else {
                 if ($this->model->save()){
-                    unset($_SESSION['leave']);
+                    unset($_SESSION['leave_plan']);
         
                     $data['success'] = TRUE;
                     $data['message'] = 'Document '. $document_number .' has been saved. You will redirected now.';

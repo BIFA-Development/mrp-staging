@@ -101,30 +101,30 @@
         </a> -->
         <?=form_close();?>
         <?php endif;?>
-        <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
+        <!-- <a href="<?= site_url($module['route'] . '/manage_attachment/' . $entity['id']); ?>" onClick="return popup(this, 'attachment')" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction">
             <i class="md md-attach-file"></i>
             <small class="top right">Manage Attachment</small>
-        </a>
+        </a> -->
 
         <div class="pull-right">
-            <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED' && $entity['status'] != 'EXPENSE REQUEST'): ?>
+            <!-- <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED' && $entity['status'] != 'EXPENSE REQUEST'): ?>
             <a href="<?=site_url($module['route'] .'/edit/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" id="modal-edit-data-button">
                 <i class="md md-edit"></i>
                 <small class="top right">edit</small>
             </a>
-            <?php endif;?>
-
-            <!-- <?php if (is_granted($module, 'print')):?>
-            <a href="<?=site_url($module['route'] .'/print_pdf/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" target="_blank" id="modal-print-data-button">
-                <i class="md md-print"></i>
-                <small class="top right">print</small>
-            </a>
             <?php endif;?> -->
+
+           
             <?=form_open(current_url(), array(
                 'class' => 'form-xhr-create-expense pull-left',
             ));?>
             <input type="hidden" name="id" id="id" value="<?=$entity['id'];?>">
-            
+            <?php if (is_granted($module, 'create')  && $entity['status'] == 'PLAN'): ?>
+              <a href="<?=site_url('leave/create/0/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" target="_blank" id="modal-print-data-button">
+                <i class="fa fa-send"></i>
+                <small class="top right">Create Request Leave</small>
+            </a>
+            <?php endif;?>
 
             <?=form_close();?>
         </div>

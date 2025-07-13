@@ -28,7 +28,7 @@ class Leave_Model extends MY_Model
             'Person Name',
             'Leave Type Name',
             'Status',
-            'Is Reserved',
+            'Ref Leave Plan',
             'Notes Approval',
 
         );
@@ -112,16 +112,24 @@ class Leave_Model extends MY_Model
 
         $selected = array(
             'tb_leave_requests.*',
+            'tb_leave_plan.document_number as ref_leave_plan_number',
+            
+
         );
 
         if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') {
 
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
+            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
         } else {
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
-    
+            
+            // Join with tb_leave_plan
+            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+            
+            // Grouped WHERE conditions
             $this->db->group_start();
             $this->db->where('tb_leave_requests.employee_number', $person_number);
             $this->db->or_where('tb_leave_requests.head_dept', $person_number);
@@ -289,30 +297,27 @@ class Leave_Model extends MY_Model
         $selected_person            = getEmployeeByEmployeeNumber($employee_number);
         $person_name                = $selected_person['name'];
         $warehouse                  = $_SESSION['leave']['warehouse'];
-        $is_reserved                = $_SESSION['leave']['is_reserved'];
         $head_data                  = getEmployeeById($_SESSION['leave']['head_dept']);
         $head_dept                  = $head_data['employee_number'];
         $employee_has_leave_id      = $_SESSION['leave']['employee_has_leave_id'];
         $get_leave                  = getLeaveCodeById($leave_type);
         $get_leave_code             = $get_leave['leave_code'];
         $leave_type_name            = $get_leave['name_leave'];
+        $id_leave_plan              = $_SESSION['leave']['id_leave_plan'];
 
-        $status = "WAITING APPROVAL BY HEAD";
+        $status = "WAITING APPROVAL BY HEAD DEPT";
 
-        if($is_reserved == 'yes'){
-            $status = "DRAFT";
-        } else {
-            if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
-                $status = "WAITING APPROVAL BY HEAD";
-            } else if($get_leave_code == "L07"){
-                $getLevel = getUserById($selected_person['user_id']);
-                $status = 'WAITING APPROVAL BY HEAD';
-                if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
-                    $status = "WAITING APPROVAL BY BOD";
-                }
     
-            } 
-        }
+        if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
+            $status = "WAITING APPROVAL BY HEAD DEPT";
+        } else if($get_leave_code == "L07"){
+            $getLevel = getUserById($selected_person['user_id']);
+            $status = 'WAITING APPROVAL BY HEAD DEPT';
+            if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
+                $status = "WAITING APPROVAL BY BOD";
+            }
+
+        } 
 
 
 
@@ -330,9 +335,10 @@ class Leave_Model extends MY_Model
         $this->db->set('warehouse', $warehouse);
         $this->db->set('status', $status);
         $this->db->set('head_dept', $head_dept);
-        $this->db->set('is_reserved', $is_reserved);
         $this->db->set('document_number', $document_number);
         $this->db->set('employee_has_leave_id', $employee_has_leave_id);
+        $this->db->set('id_leave_plan', $id_leave_plan);
+
 
         
         $this->db->set('request_by', config_item('auth_person_name'));
@@ -398,6 +404,18 @@ class Leave_Model extends MY_Model
         return $row;
     }
 
+    public function findLeavePlanById($id)
+    {
+        $this->db->select('tb_leave_plan.*');
+        $this->db->where('tb_leave_plan.id', $id);
+        $this->db->from('tb_leave_plan');
+        
+        $query      = $this->db->get();
+        $row        = $query->unbuffered_row('array');
+
+        return $row;
+    }
+
     public function listAttachment($id)
     {
         $this->db->where('id_poe', $id);
@@ -451,57 +469,57 @@ class Leave_Model extends MY_Model
         return TRUE;
     }
 
-    public function sendLeavePlan($id)
-    {
-        $this->db->trans_begin();
+    // public function sendLeavePlan($id)
+    // {
+    //     $this->db->trans_begin();
 
-        $selected = array(
-            'tb_leave_requests.*',
-        );
-        $this->db->select($selected);
-        $this->db->where('tb_leave_requests.id', $id);
+    //     $selected = array(
+    //         'tb_leave_requests.*',
+    //     );
+    //     $this->db->select($selected);
+    //     $this->db->where('tb_leave_requests.id', $id);
     
 
-        $query      = $this->db->get('tb_leave_requests')->row_array();
+    //     $query      = $this->db->get('tb_leave_requests')->row_array();
 
-        $selected_person            = getEmployeeByEmployeeNumber($query['employee_number']);
+    //     $selected_person            = getEmployeeByEmployeeNumber($query['employee_number']);
 
-        $get_leave                  = getLeaveCodeById($query['leave_type']);
-        $get_leave_code             = $get_leave['leave_code'];
-        $leave_type_name            = $get_leave['name_leave'];
+    //     $get_leave                  = getLeaveCodeById($query['leave_type']);
+    //     $get_leave_code             = $get_leave['leave_code'];
+    //     $leave_type_name            = $get_leave['name_leave'];
 
-        $status = "WAITING APPROVAL BY HEAD";
+    //     $status = "WAITING APPROVAL BY HEAD";
 
-        if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
-            $status = "WAITING APPROVAL BY HEAD";
-        } else if($get_leave_code == "L07"){
-            $getLevel = getUserById($selected_person['user_id']);
-            $status = 'WAITING APPROVAL BY HEAD';
-            if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
-                $status = "WAITING APPROVAL BY BOD";
-            }
-        } 
+    //     if($get_leave_code == "L01" || $get_leave_code == "L02" || $get_leave_code == "L03" || $get_leave_code == "L04" || $get_leave_code == "L05"){
+    //         $status = "WAITING APPROVAL BY HEAD";
+    //     } else if($get_leave_code == "L07"){
+    //         $getLevel = getUserById($selected_person['user_id']);
+    //         $status = 'WAITING APPROVAL BY HEAD';
+    //         if($getLevel['auth_level'] == '3' || $getLevel['auth_level'] == '10'){
+    //             $status = "WAITING APPROVAL BY BOD";
+    //         }
+    //     } 
 
-        $this->db->set('status',$status);
-        $this->db->set('is_reserved','no');
-        $this->db->where('id', $id);
-        $this->db->update('tb_leave_requests');
+    //     $this->db->set('status',$status);
+    //     $this->db->set('is_reserved','no');
+    //     $this->db->where('id', $id);
+    //     $this->db->update('tb_leave_requests');
 
-        // if ($this->db->trans_status() === FALSE)
-        // return FALSE;
+    //     // if ($this->db->trans_status() === FALSE)
+    //     // return FALSE;
 
-        // // $this->send_mail($document_id,'head_dept','request');
+    //     // // $this->send_mail($document_id,'head_dept','request');
 
-        // $this->db->trans_commit();
-        // return TRUE;
+    //     // $this->db->trans_commit();
+    //     // return TRUE;
 
-        if ($this->db->trans_status() === FALSE)
-        return ['status'=>FALSE,'document_number'=>$query['document_number']];
+    //     if ($this->db->trans_status() === FALSE)
+    //     return ['status'=>FALSE,'document_number'=>$query['document_number']];
 
-        $this->db->trans_commit();
-        return ['status'=>TRUE,'document_number'=>$query['document_number']];
+    //     $this->db->trans_commit();
+    //     return ['status'=>TRUE,'document_number'=>$query['document_number']];
 
-    }
+    // }
 
 
     public function approve($document_id, $approval_notes)
@@ -531,7 +549,7 @@ class Leave_Model extends MY_Model
 
             // Check Flow Cuti Besar
             if($get_leave_code == 'L07'){
-                if($leave['status'] == 'WAITING APPROVAL BY HEAD'){
+                if($leave['status'] == 'WAITING APPROVAL BY HEAD DEPT'){
                     $status = $leave['warehouse'] == 'JAKARTA' ? "WAITING APPROVAL BY VP" : "WAITING APPROVAL BY HOS";
                 } else if($leave['status'] == 'WAITING APPROVAL BY BOD'){
                     $status = 'WAITING APPROVAL BY HR';

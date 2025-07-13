@@ -3562,15 +3562,35 @@ if (!function_exists('currency_for_vendor_list')) {
   }
 
   if ( ! function_exists('getLeaveType')) {
-    function getLeaveType($gender)
+    function getLeaveType($gender, $idLeavePlan)
     {
-      $CI =& get_instance();
-      $CI->db->select('*');
-      $CI->db->where('gender',  $gender);
-      $CI->db->or_where('gender IS NULL', null, false); // Prevent escaping IS NULL
-      $CI->db->from('tb_leave_type');  
-      $query = $CI->db->get();
-      return $query->result_array(); 
+
+      if($idLeavePlan !== NULL){
+
+
+        $CI =& get_instance();
+        $CI->db->select('*');
+        $CI->db->where('gender',  $gender);
+        $CI->db->or_where('gender IS NULL', null, false); // Prevent escaping IS NULL
+        $CI->db->from('tb_leave_type');  
+        $query = $CI->db->get();
+        return $query->result_array(); 
+      } else {
+        $CI =& get_instance();
+        $CI->db->select('*');
+        $CI->db->from('tb_leave_type');
+
+        // Exclude leave_code == 'L01'
+        $CI->db->where('leave_code !=', 'L01');
+
+        // Grouped condition: gender = $gender OR gender IS NULL
+        $CI->db->group_start();
+        $CI->db->where('gender', $gender);
+        $CI->db->or_where('gender IS NULL', null, false); // raw condition, avoid escaping
+        $CI->db->group_end();
+        $query = $CI->db->get();
+        return $query->result_array(); 
+      }
     }
   }
 
@@ -4527,6 +4547,44 @@ if (!function_exists('currency_for_vendor_list')) {
   
       $CI->db->select_max('document_number', 'last_number');
       $CI->db->from('tb_leave_requests');
+      $CI->db->like('document_number', $format, 'both');
+  
+      $query  = $CI->db->get();
+      $row    = $query->unbuffered_row();
+      $last   = $row->last_number;
+      $number = substr($last, 0, 6);
+      $next   = $number + 1;
+      $return = sprintf('%06s', $next);
+  
+      return $return;
+    }
+  }
+
+
+  if ( ! function_exists('leave_plan_format_number')) {
+    function leave_plan_format_number()
+    {
+      $div  = config_item('document_format_divider');
+      $base = (config_item('include_base_on_document') === TRUE) ? $div . config_item('auth_warehouse') : NULL;
+      $mod  = config_item('module');
+      $year = date('Y');
+      $month = date('m');
+  
+      $return = $div . 'LEAVE-PLAN' . $div . 'BWD-BIFA' . $div .$month .$div .$year;
+  
+      return $return;
+    }
+  }
+
+  if ( ! function_exists('leave_plan_last_number')) {
+    function leave_plan_last_number()
+    {
+      $CI =& get_instance();
+  
+      $format = leave_plan_format_number();
+  
+      $CI->db->select_max('document_number', 'last_number');
+      $CI->db->from('tb_leave_plan');
       $CI->db->like('document_number', $format, 'both');
   
       $query  = $CI->db->get();
