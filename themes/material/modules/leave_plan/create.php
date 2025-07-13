@@ -31,7 +31,7 @@
                         <div class="form-group" style="padding-top: 25px;">
                             <select name="type_leave" id="type_leave" class="form-control select2">
                             <option> -- Pilih Tipe Cuti --</option>
-                                <?php foreach(getLeaveType($_SESSION['leave_plan']['gender']) as $leaveType):?>
+                                <?php foreach(getLeaveType($_SESSION['leave_plan']['gender'], NULL, TRUE) as $leaveType):?>
                                 <option data-leave-id="<?=$leaveType['id'];?>" data-leave-code="<?=$leaveType['leave_code'];?>" data-leave-name="<?=$leaveType['name_leave'];?>" value="<?=$leaveType['id'];?>" <?= ($leaveType['id'] == $_SESSION['leave_plan']['leave_type']) ? 'selected' : ''; ?>><?=$leaveType['name_leave'];?></option>
                                 <?php endforeach;?>
                             </select>
@@ -88,12 +88,12 @@
                                     <label for="total_leave_days">Jumlah Hari Cuti</label>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <!-- <div class="col-md-6">
                                 <div class="form-group" id="left_leave_group">
                                     <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?= $_SESSION['leave_plan']['left_leave']; ?>" data-input-type="autoset" readonly>
                                     <label for="left_leave">Sisa Cuti Tahunan</label>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="row">
@@ -105,14 +105,14 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <!-- <div class="col-md-6">
                                 <div class="form-group">
                                     <div class="radio" id="is_reserved_group">
                                         <input type="checkbox" name="is_reserved" id="is_reserved" value="no" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_is_reserved'); ?>">
                                         <label for="is_reserved">Rencana Cuti Tahunan</label>
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
 
                         <div class="form-group">
@@ -358,19 +358,19 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        $('#is_reserved').on('change', function () {
-            if ($(this).is(':checked')) {
-                $(this).val('yes');
-            } else {
-                $(this).val('no');
-            }
-            var val = $(this).val();
-            var url = $(this).data('source');
+        // $('#is_reserved').on('change', function () {
+        //     if ($(this).is(':checked')) {
+        //         $(this).val('yes');
+        //     } else {
+        //         $(this).val('no');
+        //     }
+        //     var val = $(this).val();
+        //     var url = $(this).data('source');
 
-            $.get(url, {
-                data: val
-            });
-        });
+        //     $.get(url, {
+        //         data: val
+        //     });
+        // });
 
         $('#type_leave').change(function () {
             const leave_typedata = $(this).val(); 

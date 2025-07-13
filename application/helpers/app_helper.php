@@ -3562,12 +3562,10 @@ if (!function_exists('currency_for_vendor_list')) {
   }
 
   if ( ! function_exists('getLeaveType')) {
-    function getLeaveType($gender, $idLeavePlan)
+    function getLeaveType($gender, $idLeavePlan, $isLeavePlan)
     {
 
-      if($idLeavePlan !== NULL){
-
-
+      if($isLeavePlan == TRUE || $idLeavePlan !== NULL){
         $CI =& get_instance();
         $CI->db->select('*');
         $CI->db->where('gender',  $gender);
