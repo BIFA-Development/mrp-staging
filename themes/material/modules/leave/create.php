@@ -28,7 +28,7 @@
                             </div>
                         </div>
 
-                        <div class="form-group" style="padding-top: 25px;">
+                        <!-- <div class="form-group" style="padding-top: 25px;">
                             <select name="type_leave" id="type_leave" class="form-control select2">
                             <option> -- Pilih Tipe Cuti --</option>
                                 <?php foreach(getLeaveType($_SESSION['leave']['gender'], $_SESSION['leave']['id_leave_plan']) as $leaveType):?>
@@ -36,6 +36,13 @@
                                 <?php endforeach;?>
                             </select>
                             <label for="type_leave">Tipe Cuti</label>
+                        </div> -->
+
+                        <div class="form-group">
+                            <label for="type_leave">Type Cuti</label>
+                            <select name="type_leave" id="type_leave" class="form-control select2" data-input-type="autoset" data-source-get-type-leave-list="<?= site_url($module['route'] . '/get_leave_type_list'); ?>" required >
+                                <option value="">---Choose Leave----</option>
+                            </select>
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
@@ -91,7 +98,7 @@
                             <div class="col-md-6">
                                 <div class="form-group" id="left_leave_group">
                                     <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?= $_SESSION['leave']['left_leave']; ?>" data-input-type="autoset" readonly>
-                                    <label for="left_leave">Sisa Cuti Tahunan</label>
+                                    <label for="left_leave">Sisa Cuti</label>
                                 </div>
                             </div>
                         </div>
@@ -124,6 +131,11 @@
                         <div class="form-group hide">
                             <input type="text" name="leave_type" id="leave_type" class="form-control" value="<?= $_SESSION['leave']['leave_type']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_leave_type'); ?>" readonly>
                             <label for="leave_type">leave type</label>
+                        </div> 
+
+                        <div class="form-group">
+                            <input type="text" name="id_leave_plan" id="id_leave_plan" class="form-control" value="<?= $_SESSION['leave']['id_leave_plan']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_id_leave_plan'); ?>" readonly>
+                            <label for="id_leave_plan">id_leave_plan</label>
                         </div> 
 
                         <div class="form-group hide">
@@ -223,11 +235,14 @@
 const holidaysData = <?= json_encode($_SESSION['leave']['holidays']); ?>;
 const holidays = holidaysData.map(h => h.holiday_date);
 console.log('Holidays:', holidays);
-
+var selectedLeave = "<?= isset($_SESSION['leave']['leave_type']) ? $_SESSION['leave']['leave_type'] : ''; ?>";
 window.onload = async function(){
         console.log('mulaiinit');
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+        var gender = $('#employee_number option:selected').data('gender');  
         console.log(warehouse);
+        console.log(gender);
+
         $('#employee_number').trigger('change');
         
         // var type = $('#type_leave option:selected').data('leave-code');  
@@ -398,10 +413,14 @@ window.onload = async function(){
                 $('#left_leave_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', today);
                 // $('#is_reserved_group').hide();
-            } else {
+            } else if(leave_code === 'L08') {
                 $('#left_leave_group').hide();
                 // $('#is_reserved_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            } else {
+                $('#left_leave_group').hide();
+                // $('#is_reserved_group').hide();
+                $('#leave_start_date').datepicker('setStartDate', today);
             }
             
         });
@@ -415,10 +434,19 @@ window.onload = async function(){
             var url = button.attr('href');
             var type_leave = $('#type_leave').val(); // Default to 0 if invalid.
             var leave_type = $('#leave_type').val(); // Default to 0 if invalid.
-
-            var total_leave_days = $('#total_leave_days').val(); // Default to 0 if invalid.
-
+            var warehouse = $('#warehouse').val(); // Default to 0 if invalid.
+            var head_dept = $('#head_dept').val(); // Default to 0 if invalid.
             var reason = $('#reason').val(); // Default to 0 if invalid.
+            var total_leave_days = $('#total_leave_days').val(); // Default to 0 if invalid.
+            var employee_has_leave_id = $('#employee_has_leave_id').val();
+
+            $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
+            $('#warehouse').val(warehouse).trigger('change');
+            $('#leave_type').val(leave_type).trigger('change');
+            $('#head_dept').val(head_dept).trigger('change');
+            $('#reason').val(reason).trigger('change');
+
+
 
             console.log("TypeLeave:", type_leave);
             console.log("LeaveType:", leave_type);
@@ -614,19 +642,69 @@ window.onload = async function(){
     });
 
     $('#employee_number').change(function () {
-        var type = $('#type_leave').val();
+        var sourceUrl = $('#type_leave').data('source-get-type-leave-list');
+        // var type = $('#type_leave').val();
+        var id_leave_plan = $('#id_leave_plan').val();
 
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
-        $('#warehouse').val(warehouse).trigger('change');;  
+        var gender = $('#employee_number option:selected').data('gender');
+        $('#warehouse').val(warehouse).trigger('change');
         var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');
         console.log('Init Employee2');
         console.log(warehouse);
         console.log(warehouse2);
+        console.log('Init gender');
+        console.log(gender);
         
         var today = new Date();
         var twoWeeksLater = new Date();
         twoWeeksLater.setDate(today.getDate() + 14);
+        $.ajax({
+            url: sourceUrl,
+            type: 'GET',
+            data: { gender: gender ,id_leave_plan: id_leave_plan},
+            success: function (data) {
+                console.log('hasilfetch');
+                console.log(data);
+                var response = $.parseJSON(data);
+                let $select = $('#type_leave');
+
+                // Clear current options and append the default option
+                $select.empty().append('<option value="">---Choose Leave----</option>');
+                console.log('selectedValue' + selectedLeave);
+
+
+                if (response.length > 0) {
+                    $.each(response, function (index, leave) {
+                        var isSelected = (leave.id == selectedLeave) ? 'selected' : '';
+                        var option = `<option value="${leave.id}" 
+                                        data-account-ben-type="${leave.benefit_type}" 
+                                        data-leave-id="${leave.id}" 
+                                        data-leave-code="${leave.leave_code}" 
+                                        data-leave-name="${leave.name_leave}"
+                                        ${isSelected}>
+                                        ${leave.name_leave}
+                                    </option>`;
+                        $select.append(option);
+
+                        // if(isSelected == 'selected'){
+                        //     var benefit_type = $('#type_reimbursement option:selected').data('account-ben-type');
+                        //     $('#type_benefit').val(benefit_type).trigger('change');
+                        // }
+                    });
+                }
+
+                // Trigger change event if needed
+                $select.trigger('change');
+                
+            },
+            error: function () {
+                toastr.error('Failed to update benefits. Please try again.');
+            }
+        });
+
+
         var leave_code = $('#type_leave option:selected').data('leave-code');  
         if (leave_code === 'L01') {
             console.log('Init L01');
@@ -648,8 +726,6 @@ window.onload = async function(){
             $('#left_leave_group').hide();
             // $('#is_reserved_group').hide();
             $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
-
-
         }
     });
 

@@ -826,6 +826,47 @@ class Employee_Model extends MY_Model
         return ( $query->num_rows() > 0 ) ? true : false;
     }
 
+    public function findEmployeeLeaveById($id)
+    {
+        $this->db->select(array(
+            'tb_employee_contracts.start_date',
+            'tb_employee_contracts.end_date',
+            'tb_employee_contracts.contract_number',
+            'tb_employee_has_benefit.id',
+            'tb_employee_has_benefit.amount_plafond',
+            'tb_employee_has_benefit.used_amount_plafond',
+            'tb_employee_has_benefit.left_amount_plafond',
+            'tb_master_employee_benefits.employee_benefit',
+            'tb_master_employees.name',
+            'tb_master_employees.gender',
+            'tb_master_employees.position',
+            'tb_employee_has_benefit.employee_number',
+            'tb_employee_has_benefit.employee_benefit_id',
+            'tb_employee_has_benefit.employee_contract_id',
+            'tb_employee_has_benefit.created_at',
+            'tb_employee_has_benefit.updated_at',
+            'tb_employee_has_benefit.updated_by',
+            'tb_master_benefit_type.notes as name_type',
+        ));
+        $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_benefit.employee_contract_id');
+        $this->db->join('tb_master_employee_benefits', 'tb_master_employee_benefits.id = tb_employee_has_benefit.employee_benefit_id');
+        $this->db->join('tb_master_benefit_type','tb_master_employee_benefits.benefit_type = tb_master_benefit_type.benefit_type','left');
+        $this->db->join('tb_master_employees', 'tb_master_employees.employee_number = tb_employee_has_benefit.employee_number');
+        $this->db->where('tb_employee_has_benefit.id', $id);
+        $query      = $this->db->get('tb_employee_has_benefit');
+        $row        = $query->unbuffered_row('array');
+        
+        $this->db->select('tb_reimbursements.*');
+        $this->db->where('tb_reimbursements.employee_has_benefit_id', $id);
+        $queryUsed      = $this->db->get('tb_reimbursements');
+
+        foreach ($queryUsed->result_array() as $key => $value){
+            $row['itemUseds'][$key] = $value;
+        }
+
+        return $row;
+    }
+
     public function findEmployeeBenefitById($id)
     {
         $this->db->select(array(

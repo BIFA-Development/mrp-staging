@@ -734,7 +734,7 @@ class Employee extends MY_Controller
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];
                 $col['DT_RowAttr']['data-target'] = '#data-modal';
-                $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info_benefit/'. $row['id']);
+                // $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info_leave/'. $row['id']);
                 $col['DT_RowAttr']['onClick']     = '';
 
                 $data[] = $col;
@@ -931,6 +931,29 @@ class Employee extends MY_Controller
 
         echo json_encode($return);
     }
+
+    public function info_leave($id)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'edit') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to edit this data!";
+        } else {
+            $entity = $this->model->findEmployeeBenefitById($id);
+            $employee_has_benefit = $this->model->checkHistoryClaim($entity['employee_number'],$entity['employee_benefit_id']);
+
+            $this->data['entity'] = $entity;
+            $this->data['entity']['last_claim'] = $employee_has_benefit['created_at'];
+
+            $return['type'] = 'success';
+            $return['info'] = $this->load->view($this->module['view'] .'/info_leave', $this->data, TRUE);
+        }
+
+        echo json_encode($return);
+    }
+
     public function info_benefit($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -952,6 +975,7 @@ class Employee extends MY_Controller
 
         echo json_encode($return);
     }
+
 
     public function edit_benefit($id)
     {

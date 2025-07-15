@@ -221,7 +221,23 @@ class Leave_Plan extends MY_Controller
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
 
-        $_SESSION['leave_plan']['employee_number'] = $_GET['data'];
+        $_SESSION['leave']['employee_number'] = $_GET['data'];
+        $entityEmployee = $this->model->findEmployeeBy(array('tb_master_employees.employee_number' => $_GET['data']));
+        $_SESSION['leave']['gender'] = $entityEmployee['gender'];
+    }
+
+    public function get_leave_type_list()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+        
+        $gender = $_GET['gender'];
+        $id_leave_plan = $_GET['id_leave_plan'];
+
+
+        $list = getLeaveType($gender,$id_leave_plan, FALSE);
+        
+        echo json_encode($list);
     }
 
 

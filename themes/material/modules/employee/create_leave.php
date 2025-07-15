@@ -38,7 +38,7 @@
                         <div class="form-group" style="padding-top: 25px;">
                             <select name="leave_type" id="leave_type" class="form-control select2" style="width: 100%" data-placeholder="Select Benefit Leave" required>
                                 <option value="">Select Benefit Leave</option>
-                                <?php foreach(getLeaveType($entity['gender']) as $leave):?>
+                                <?php foreach(getLeaveType($entity['gender'],NULL, TRUE) as $leave):?>
                                 <option data-id="<?=$leave['id'];?>" data-leave-name="<?=$leave['name_leave'];?>" value="<?=$leave['id'];?>"><?=$leave['name_leave'];?></option>
                                 <?php endforeach;?>
                             </select>

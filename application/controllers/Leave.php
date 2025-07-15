@@ -226,6 +226,14 @@ class Leave extends MY_Controller
         $_SESSION['leave']['head_dept'] = $_GET['data'];
     }
 
+    public function set_id_leave_plan()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        $_SESSION['leave']['id_leave_plan'] = $_GET['data'];
+    }
+
 
     public function set_is_reserved()
     {
@@ -272,6 +280,22 @@ class Leave extends MY_Controller
             redirect($this->modules['secure']['route'] .'/denied');
 
         $_SESSION['leave']['employee_number'] = $_GET['data'];
+        $entityEmployee = $this->model->findEmployeeBy(array('tb_master_employees.employee_number' => $_GET['data']));
+        $_SESSION['leave']['gender'] = $entityEmployee['gender'];
+    }
+
+    public function get_leave_type_list()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+        
+        $gender = $_GET['gender'];
+        $id_leave_plan = $_GET['id_leave_plan'];
+
+
+        $list = getLeaveType($gender,$id_leave_plan, FALSE);
+        
+        echo json_encode($list);
     }
 
 
@@ -297,6 +321,7 @@ class Leave extends MY_Controller
             $_SESSION['leave']['format_number']             = leave_format_number();
             $_SESSION['leave']['employee_number']           = $employee['employee_number'];
             $_SESSION['leave']['contract_number']           = $kontrak_active['contract_number'];
+            $_SESSION['leave']['employee_contract_id']      = $kontrak_active['id'];
             $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
             $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
             $_SESSION['leave']['department_name']           = $department['department_name'];
@@ -331,6 +356,7 @@ class Leave extends MY_Controller
             $_SESSION['leave']['document_number']           = leave_last_number();
             $_SESSION['leave']['format_number']             = leave_format_number();
             $_SESSION['leave']['employee_number']           = $entity['employee_number'];
+            $_SESSION['leave']['employee_contract_id']      = $kontrak_active['id'];
             $_SESSION['leave']['contract_number']           = $kontrak_active['contract_number'];
             $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
             $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
@@ -399,8 +425,9 @@ class Leave extends MY_Controller
         $_SESSION['leave']['employee_number']           = $entity['employee_number'];
         $_SESSION['leave']['department_id']             = $employee['department_id'];
         $_SESSION['leave']['department_name']           = $department['department_name'];
-        $_SESSION['leave']['leave_start_date']           = print_date($entity['leave_start_date'], 'd-m-Y');
-        $_SESSION['leave']['leave_end_date']           = print_date($entity['leave_end_date'], 'd-m-Y');
+        $_SESSION['leave']['leave_start_date']          = print_date($entity['leave_start_date'], 'd-m-Y');
+        $_SESSION['leave']['employee_contract_id']      = $kontrak_active['id'];
+        $_SESSION['leave']['leave_end_date']            = print_date($entity['leave_end_date'], 'd-m-Y');
         $_SESSION['leave']['start_contract']            = print_date($kontrak_active['start_date'], 'd M Y');
         $_SESSION['leave']['end_contract']              = print_date($kontrak_active['end_date'], 'd M Y');
 

@@ -102,6 +102,29 @@ class Leave_Plan_Model extends MY_Model
         }
     }
 
+    public function findEmployeeBy($conditions)
+    {
+
+        $this->db->select(array(
+            'tb_master_levels.level AS level_name',
+            'tb_master_levels.id AS level_id',
+            'tb_master_employees.*'
+        ));
+        $this->db->from('tb_master_employees');
+        $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+        $this->db->where($conditions); // Dynamic conditions
+
+        $query = $this->db->get();
+        $row = $query->unbuffered_row('array');
+
+        if ($row) {
+            $department = getDepartmentById($row['department_id']);
+            $row['department_name'] = $department['department_name'];
+        }
+
+        return $row;
+    }
+
 
     function getIndex($return = 'array')
     {

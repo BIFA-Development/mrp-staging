@@ -3565,10 +3565,10 @@ if (!function_exists('currency_for_vendor_list')) {
     function getLeaveType($gender, $idLeavePlan, $isLeavePlan)
     {
 
-      if($isLeavePlan == TRUE || $idLeavePlan !== NULL){
+      if($isLeavePlan == TRUE || $idLeavePlan !== ''){
         $CI =& get_instance();
         $CI->db->select('*');
-        $CI->db->where('gender',  $gender);
+        $CI->db->where('gender', $gender);
         $CI->db->or_where('gender IS NULL', null, false); // Prevent escaping IS NULL
         $CI->db->from('tb_leave_type');  
         $query = $CI->db->get();
@@ -4131,23 +4131,6 @@ if (!function_exists('currency_for_vendor_list')) {
       $CI->db->where('reimbursement', 't');
       $CI->db->from('tb_master_employee_benefits');
       $CI->db->order_by('tb_master_employee_benefits.employee_benefit', 'ASC');
-
-      $query  = $CI->db->get();
-      $result = $query->result_array();
-
-      return $result;
-    }
-  }
-
-  if ( ! function_exists('getLeaveType')) {
-    function getLeaveType($gender)
-    {
-      $CI =& get_instance();
-
-      $CI->db->select('tb_leave_type.*');
-      $CI->db->where('tb_leave_type.gender', $gender);
-      $CI->db->from('tb_leave_type');
-      $CI->db->order_by('tb_leave_type.id', 'ASC');
 
       $query  = $CI->db->get();
       $result = $query->result_array();
