@@ -133,7 +133,7 @@
                             <label for="leave_type">leave type</label>
                         </div> 
 
-                        <div class="form-group">
+                        <div class="form-group hide">
                             <input type="text" name="id_leave_plan" id="id_leave_plan" class="form-control" value="<?= $_SESSION['leave']['id_leave_plan']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_id_leave_plan'); ?>" readonly>
                             <label for="id_leave_plan">id_leave_plan</label>
                         </div> 
