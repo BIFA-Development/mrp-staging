@@ -69,9 +69,9 @@ class Leave extends MY_Controller
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     } else if($row['status']=='WAITING APPROVAL BY HR' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE'){
+                    } else if($row['status']=='WAITING APPROVAL BY BOD' && config_item('auth_role') == 'CHIEF OF FINANCE'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
+                    } else if($row['status']=='WAITING APPROVAL BY BOD' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     } else if($row['status']=='REVISED'){
                         $col[] = print_number($no);

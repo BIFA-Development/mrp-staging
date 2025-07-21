@@ -355,7 +355,7 @@ window.onload = async function(){
         $('#leave_start_date, #leave_end_date').datepicker({
             autoclose: true,
             format: 'dd-mm-yyyy',
-            startDate: twoWeeksLater,
+            startDate: today,
         }).on('changeDate', function () {
             updateLeaveDays();
         });

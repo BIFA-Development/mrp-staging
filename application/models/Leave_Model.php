@@ -118,18 +118,13 @@ class Leave_Model extends MY_Model
         );
 
         if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') {
-
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
             $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
         } else {
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
-            
-            // Join with tb_leave_plan
             $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
-            
-            // Grouped WHERE conditions
             $this->db->group_start();
             $this->db->where('tb_leave_requests.employee_number', $person_number);
             $this->db->or_where('tb_leave_requests.head_dept', $person_number);
@@ -148,7 +143,7 @@ class Leave_Model extends MY_Model
                 $this->db->order_by($column_order[$_POST['order'][$key]['column']], $_POST['order'][$key]['dir']);
             }
         } else {
-            // $this->db->order_by('id', 'desc');
+            $this->db->order_by('id', 'desc');
             // $this->db->order_by('request_date', 'desc');
             // $this->db->order_by('document_number', 'desc');
 
@@ -310,12 +305,7 @@ class Leave_Model extends MY_Model
                     $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
                     $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
                     $this->db->update('tb_employee_has_leave');
-                } else if($get_leave_code == 'L04'){
-                    $this->db->set('used_leave', 'used_leave - ' . $dataOld['total_leave_days'], FALSE);
-                    $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
-                    $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
-                    $this->db->update('tb_employee_has_leave');
-                }
+                } 
             }
         }
 
@@ -367,7 +357,7 @@ class Leave_Model extends MY_Model
                 $status = "WAITING APPROVAL BY BOD";
             }
 
-        }
+        } 
 
 
 
@@ -389,9 +379,6 @@ class Leave_Model extends MY_Model
         $this->db->set('employee_contract_id', $employee_contract_id);
         $this->db->set('employee_has_leave_id', $employee_has_leave_id);
         $this->db->set('id_leave_plan', $id_leave_plan);
-
-
-        
         $this->db->set('request_by', config_item('auth_person_name'));
         $this->db->insert('tb_leave_requests');
         $document_id = $this->db->insert_id();
@@ -421,13 +408,6 @@ class Leave_Model extends MY_Model
         }
 
         if($get_leave_code == 'L07'){
-            $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
-            $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
-            $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
-            $this->db->update('tb_employee_has_leave');
-        }
-
-        if($get_leave_code == 'L04'){
             $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
             $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
             $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
@@ -770,13 +750,6 @@ class Leave_Model extends MY_Model
             }
 
             if($get_leave_code == 'L07'){
-                $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
-                $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
-                $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);
-                $this->db->update('tb_employee_has_leave');
-            }
-
-            if($get_leave_code == 'L04'){
                 $this->db->set('used_leave', 'used_leave - ' . $leave['total_leave_days'], FALSE);
                 $this->db->set('left_leave', 'left_leave + ' . $leave['total_leave_days'], FALSE);
                 $this->db->where('tb_employee_has_leave.id',  $leave['employee_has_leave_id']);

@@ -363,7 +363,7 @@ window.onload = async function(){
         $('#leave_start_date, #leave_end_date').datepicker({
             autoclose: true,
             format: 'dd-mm-yyyy',
-            startDate: twoWeeksLater,
+            startDate: today,
         }).on('changeDate', function () {
             updateLeaveDays();
         });
@@ -405,22 +405,30 @@ window.onload = async function(){
                 $('#left_leave_group').show();
                 // $('#is_reserved_group').show();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+                $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+
             } else if(leave_code === 'L07'){
                 getLongLeave();
                 $('#left_leave_group').show();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+                $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
             } else if(leave_code === 'L02'){
                 $('#left_leave_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', today);
+                $('#leave_end_date').datepicker('setStartDate', today);
                 // $('#is_reserved_group').hide();
             } else if(leave_code === 'L08') {
                 $('#left_leave_group').hide();
                 // $('#is_reserved_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+                $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+
             } else {
                 $('#left_leave_group').hide();
                 // $('#is_reserved_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', today);
+                $('#leave_end_date').datepicker('setStartDate', today);
+
             }
             
         });
@@ -712,20 +720,28 @@ window.onload = async function(){
             $('#left_leave_group').show();
             // $('#is_reserved_group').show();
             $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+
 
         } else if(leave_code === 'L07'){
             getLongLeave();
             $('#left_leave_group').show();
             $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+
 
         } else if(leave_code === 'L02'){
             $('#left_leave_group').hide();
             $('#leave_start_date').datepicker('setStartDate', today);
+            $('#leave_end_date').datepicker('setStartDate', today);
+
             // $('#is_reserved_group').hide();
         } else {
             $('#left_leave_group').hide();
             // $('#is_reserved_group').hide();
             $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+            $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+
         }
     });
 
