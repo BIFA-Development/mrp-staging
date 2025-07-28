@@ -125,6 +125,12 @@ class Profile extends MY_Controller
         echo json_encode($return);
     }
 
+    public function get_index_leave_data(){
+        $entities = $this->model->getAllDataLeave();
+
+        echo json_encode($entities);
+    }
+
     public function edit($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -709,9 +715,18 @@ class Profile extends MY_Controller
         }
     }
 
-    public function plan(){
+    public function plan($employee_id){
         $this->authorized($this->module, 'index');
+        $entity = $this->model->findOneBy(array('employee_id' => $employee_id));
 
+        $dataLeave = $this->model->getAllDataLeave($entity['employee_number']);
+
+        $this->data['page']['content']          = $this->module['view'] .'/create';
+        $this->data['page']['offcanvas']        = $this->module['view'] .'/create_offcanvas_add_item';
+        $this->data['entity']                   = $entity;
+        $this->data['leave_plan']               = $dataLeave;
+        $this->data['page']['title']            = $entity['name'].' '.$entity['employee_number'];
+        $this->data['page']['menu']             = 'plan';
         $this->render_view($this->module['view'] .'/plan');
     }
 

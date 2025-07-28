@@ -24,17 +24,31 @@
                                     <div class="">
                                         <dl class="dl-inline">
                                             <dt>
-                                                Sisa Cuti
+                                                Amount Cuti Tahunan
                                             </dt>
                                             <dd>
-                                                <!-- <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?> -->
-                                                 12
+                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
+                                                 
+                                            </dd>
+                                            <dt>
+                                                Pemakaian Cuti Tahunan
+                                            </dt>
+                                            <dd>
+                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
+                                                 
+                                            </dd>
+                                            <dt>
+                                                Sisa Cuti Tahunan
+                                            </dt>
+                                            <dd>
+                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
+                                                 
                                             </dd>
                                             <dt>
                                                 Cuti Haid
                                             </dt>
                                             <dd>
-                                                <!-- <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?> -->
+                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
                                                  Tidak Berhak
                                             </dd>
                                             <dt>

@@ -181,6 +181,18 @@ class Profile_Model extends MY_Model
         return $row;
     }
 
+    public function getAllDataLeave($employee_id) {
+        $selected = array(
+            'tb_leave_plan.*',
+        );
+        $this->db->select($selected);
+        $this->db->from('tb_leave_plan');  
+        $this->db->where('tb_leave_plan.employee_number', $employee_id);
+        $query = $this->db->get();
+          
+        return json_encode($query->result());
+    }
+
 
     // public function findById($id)
     // {

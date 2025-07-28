@@ -3561,6 +3561,25 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+  if ( ! function_exists('getLeaveDataAll')) {
+    function getLeaveDataAll()
+    {
+      $selected = array(
+        'tb_leave_requests.*',
+        'tb_leave_plan.document_number as ref_leave_plan_number',
+      );
+
+      $CI =& get_instance();
+      $CI->db->select($selected);
+      $CI->db->from('tb_leave_requests');  
+      $CI->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+      $query = $CI->db->get();
+      
+      return json_encode($query->result());
+      // $query->result_array(); 
+    }
+  }
+
   if ( ! function_exists('getLeaveType')) {
     function getLeaveType($gender, $idLeavePlan, $isLeavePlan)
     {
@@ -3589,6 +3608,32 @@ if (!function_exists('currency_for_vendor_list')) {
         $query = $CI->db->get();
         return $query->result_array(); 
       }
+    }
+  }
+
+
+  if ( ! function_exists('getLeaveTypeData')) {
+    function getLeaveTypeData($gender, $haveAmount)
+    {
+      $CI =& get_instance();
+      $CI->db->select('*');
+      $CI->db->from('tb_leave_type');
+      
+      // Group gender condition
+      $CI->db->group_start();
+      $CI->db->where('gender', $gender);
+      $CI->db->or_where('gender IS NULL', null, false);
+      $CI->db->group_end();
+      
+      // Group is_have_amount condition
+      $CI->db->group_start();
+      $CI->db->where('is_have_amount', $haveAmount);
+      $CI->db->or_where('is_have_amount IS NULL', null, false);
+      $CI->db->group_end();
+      
+      $query = $CI->db->get();
+      return $query->result_array();
+      
     }
   }
 

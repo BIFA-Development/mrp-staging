@@ -60,13 +60,21 @@ class Leave_Plan extends MY_Controller
                 $col = array();
                 
                 
-                $col[] = print_number($no);
-                $col[] = print_date($row['request_date'], 'd F Y');    
-                $col[] = print_string($row['document_number']);
-                $col[] = print_string($row['person_name']);
-                $col[] = print_string($row['leave_type_name']);
-                $col[] = print_string(print_date($row['leave_start_date'], 'd F Y').' - '.print_date($row['leave_end_date'], 'd F Y').' ('.print_string($row['total_leave_days']).' days)');
-                $col[] = print_string($row['status']);
+                $col[] = print_number($no);  
+                $col[] = print_string($row['nama']);
+                $col[] = print_string($row['employee_number']);
+                $col[] = print_string($row['januari']);
+                $col[] = print_string($row['februari']);
+                $col[] = print_string($row['maret']);
+                $col[] = print_string($row['april']);
+                $col[] = print_string($row['mei']);
+                $col[] = print_string($row['juni']);
+                $col[] = print_string($row['juli']);
+                $col[] = print_string($row['agustus']);
+                $col[] = print_string($row['september']);
+                $col[] = print_string($row['oktober']);
+                $col[] = print_string($row['november']);
+                $col[] = print_string($row['desember']);
                 
                 
                 $col['DT_RowId'] = 'row_'. $row['id'];
@@ -75,8 +83,8 @@ class Leave_Plan extends MY_Controller
                 if ($this->has_role($this->module, 'info')){
                     $col['DT_RowAttr']['onClick']     = '';
                     $col['DT_RowAttr']['data-id']     = $row['id'];
-                    $col['DT_RowAttr']['data-target'] = '#data-modal';
-                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info/'. $row['id']);
+                    $col['DT_RowAttr']['onclick'] = "window.location.href='".site_url('profile/plan/'.$row['employee_id'])."'";
+                    $col['DT_RowAttr']['style'] = 'cursor: pointer;';
                 }
 
                 $data[] = $col;
@@ -87,9 +95,7 @@ class Leave_Plan extends MY_Controller
                 "recordsTotal"    => $this->model->countIndex(),
                 "recordsFiltered" => $this->model->countIndexFiltered(),
                 "data"            => $data,
-                "total"           => array(
-                   
-                )
+                "total"           => array()
             );
         }
 

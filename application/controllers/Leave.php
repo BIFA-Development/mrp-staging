@@ -138,7 +138,6 @@ class Leave extends MY_Controller
                 "recordsFiltered" => $this->model->countIndexFiltered(),
                 "data"            => $data,
                 "total"           => array(
-                   
                 )
             );
         }

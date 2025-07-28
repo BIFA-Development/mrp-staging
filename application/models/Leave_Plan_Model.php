@@ -23,13 +23,20 @@ class Leave_Plan_Model extends MY_Model
         $return = array(
 
             'No',
-            'Request Date',
-            'Document Number',
-            'Person Name',
-            'Leave Type Name',
-            'Leave Date',
-            'Status',
-
+            'Name',
+            'Employee Number',
+            'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember',
         );
         return $return;
     }
@@ -37,14 +44,14 @@ class Leave_Plan_Model extends MY_Model
     public function getSearchableColumns()
     {
         return array(
-            'document_number',
-            'request_date',
+            'nama',
+            'employee_number',
         );
     }
 
     function countIndexFiltered()
     {
-        $this->db->from('tb_leave_plan');
+        $this->db->from('tb_master_employees');
 
         $this->searchIndex();
 
@@ -58,14 +65,14 @@ class Leave_Plan_Model extends MY_Model
     {
         return array(
             null,
-            'request_date',
-            'document_number',
+            'nama',
+            'employee_number',
         );
     }
 
     public function countIndex()
     {
-        $this->db->from('tb_leave_plan');
+        $this->db->from('tb_master_employees');
 
         $query = $this->db->get();
 
@@ -131,36 +138,44 @@ class Leave_Plan_Model extends MY_Model
         
         $selected_person = getEmployeeById(config_item('auth_user_id'));
         $person_number   = $selected_person['employee_number'];
+        $department_id   = $selected_person['department_id'];
+        $dataEmployee    = getListEmployeeByDepartment($department_id);
 
-        $selected = array(
-            'tb_leave_plan.*',
+        $this->db->select("
+            tb_master_employees.name AS nama,
+            tb_master_employees.employee_number AS employee_number,
+            tb_master_employees.employee_id AS employee_id,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 1 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Januari,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 2 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Februari,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 3 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Maret,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 4 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS April,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 5 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Mei,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 6 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Juni,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 7 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Juli,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 8 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Agustus,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 9 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS September,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 10 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Oktober,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 11 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS November,
+            STRING_AGG(CASE WHEN EXTRACT(MONTH FROM lp.leave_start_date) = 12 THEN TO_CHAR(lp.leave_start_date, 'DD') END, ', ') AS Desember
+        ", false);
+
+        $this->db->from('tb_master_employees'); // alias 'me' harus di sini
+        $this->db->join(
+            'tb_leave_plan AS lp',
+            'lp.employee_number = tb_master_employees.employee_number AND EXTRACT(YEAR FROM lp.leave_start_date) = 2025',
+            'left'
         );
 
+        $this->db->group_by('tb_master_employees.name, tb_master_employees.employee_number');
+
         if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') {
+        //ALL
 
-            $this->db->select($selected);
-            $this->db->from('tb_leave_plan');
         } elseif(config_item('as_head_department')=='yes'){
-            $annualcost = config_item('auth_annual_cost_centers');
-            $idUser = config_item('auth_user_id');
-            $selected_person            = getEmployeeById($idUser);
-            $department_id              = $selected_person['department_id'];
-            $employee_numbers           = getListEmployeeByDepartment($department_id);
-
-            $this->db->select($selected);
-            $this->db->from('tb_leave_plan');
-            $this->db->group_start();
-            $this->db->where_in('tb_leave_plan.employee_number', $employee_numbers);
-            $this->db->group_end();
+            $this->db->where_in('tb_master_employees.employee_number', $dataEmployee);
 
         } else {
-            $this->db->select($selected);
-            $this->db->from('tb_leave_plan');
-    
-            $this->db->group_start();
-            $this->db->where('tb_leave_plan.employee_number', $person_number);
-            $this->db->or_where('tb_leave_plan.head_dept', $person_number);
-            $this->db->group_end();
+            $this->db->where('tb_master_employees.employee_number', $person_number);
         }
 
 

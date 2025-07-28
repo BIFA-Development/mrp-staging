@@ -1,7 +1,7 @@
 <?php include 'themes/material/page.php' ?>
 
 <?php startblock('page_head_tools') ?>
-<?php $this->load->view('material/templates/datatable_tools_reimbursement') ?>
+<?php $this->load->view('material/templates/datatable_tools') ?>
 <?php endblock() ?>
 
 <?php startblock('page_body') ?>
