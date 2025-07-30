@@ -724,7 +724,7 @@ class Employee extends MY_Controller
             $data = array();
             $no   = $_POST['start'];
              
-
+  
             foreach ($entities as $row){
                 $no++;
                 $col = array();
