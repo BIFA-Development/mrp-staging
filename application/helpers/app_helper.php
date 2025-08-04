@@ -3790,6 +3790,147 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+  
+  if ( ! function_exists('getAnnualLeaveEmployee')) {
+      function getAnnualLeaveEmployee($employee_number, $type_leave)
+      {
+          $CI =& get_instance();
+          
+          if (isEmployeeContractActiveExist($employee_number)) {
+              $kontrak_active = findContractActive($employee_number);
+      
+              $CI->db->select('tb_employee_has_leave.*');
+              $CI->db->where('tb_employee_has_leave.employee_number', $employee_number);
+              $CI->db->where('tb_employee_has_leave.employee_contract_id', $kontrak_active['id']);
+              $CI->db->where('tb_employee_has_leave.leave_type', $type_leave);
+              $CI->db->from('tb_employee_has_leave');
+              $queryemployee_has_annual_leave = $CI->db->get();
+      
+              if ($queryemployee_has_annual_leave->num_rows() > 0) {
+                 return $queryemployee_has_annual_leave->row_array();
+              } else {
+                  return $queryemployee_has_annual_leave->unbuffered_row('array');
+              }
+          } else {
+              $return['status'] = 'warning';
+              $return['amount_leave'] = 0;
+              $return['used_leave'] = 0;
+              $return['employee_has_leave_id'] = null;
+              $return['message'] = 'Karyawan ini tidak memiliki cuti yang tersisa pada kontrak aktif terakhir';
+              return $return;
+          }
+      }
+  }
+
+
+  //Cuti Besar
+  if ( ! function_exists('checkSabbaticalLeaveEligibility')) {
+      function checkSabbaticalLeaveEligibility($employee_number)
+      {
+          $CI =& get_instance();
+          
+          // Main query to check sabbatical leave eligibility
+          $CI->db->select("
+              e.employee_number,
+              e.tanggal_bergabung,
+              CASE 
+                  WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years') 
+                  THEN true 
+                  ELSE false 
+              END AS worked_5_years,
+              (
+                  SELECT COUNT(*) 
+                  FROM tb_leave_requests lr 
+                  WHERE lr.employee_number = e.employee_number 
+                    AND lr.leave_type = 7
+              ) AS sabbatical_count,
+              CASE 
+                  WHEN e.tanggal_bergabung IS NOT NULL 
+                      AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years')
+                      AND NOT EXISTS (
+                        SELECT 1 FROM tb_leave_requests lr2 
+                        WHERE lr2.employee_number = e.employee_number 
+                          AND lr2.leave_type = 7
+                      )
+                  THEN true
+                  ELSE false
+              END AS eligible_for_sabbatical
+          ", FALSE); // FALSE prevents escaping
+          
+          $CI->db->from('tb_master_employees e');
+          $CI->db->where('e.employee_number', $employee_number);
+          
+          $query = $CI->db->get();
+          
+          if ($query->num_rows() > 0) {
+              return $query->row_array();
+          } else {
+              return array(
+                  'employee_number' => $employee_number,
+                  'tanggal_bergabung' => null,
+                  'worked_5_years' => false,
+                  'sabbatical_count' => 0,
+                  'eligible_for_sabbatical' => false
+              );
+          }
+      }
+  }
+
+  // Cuti Ibadah
+  if ( ! function_exists('checkReligiousLeaveEligibility')) {
+      function checkReligiousLeaveEligibility($employee_number)
+      {
+          $CI =& get_instance();
+          
+          // Main query to check religious leave eligibility
+          $CI->db->select("
+              e.employee_number,
+              e.tanggal_bergabung,
+              CASE 
+                  WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year') 
+                  THEN true 
+                  ELSE false 
+              END AS worked_1_year,
+              (
+                  SELECT COUNT(*) 
+                  FROM tb_leave_requests lr 
+                  WHERE lr.employee_number = e.employee_number 
+                    AND lr.leave_type = 8
+              ) AS religious_leave_count,
+              CASE 
+                  WHEN e.tanggal_bergabung IS NOT NULL 
+                      AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year')
+                      AND NOT EXISTS (
+                        SELECT 1 FROM tb_leave_requests lr2 
+                        WHERE lr2.employee_number = e.employee_number 
+                          AND lr2.leave_type = 8
+                      )
+                  THEN true
+                  ELSE false
+              END AS eligible_for_religious_leave
+          ", FALSE); // FALSE prevents escaping
+          
+          $CI->db->from('tb_master_employees e');
+          $CI->db->where('e.employee_number', $employee_number);
+          
+          $query = $CI->db->get();
+          
+          if ($query->num_rows() > 0) {
+              return $query->row_array();
+          } else {
+              return array(
+                  'employee_number' => $employee_number,
+                  'tanggal_bergabung' => null,
+                  'worked_1_year' => false,
+                  'religious_leave_count' => 0,
+                  'eligible_for_religious_leave' => false
+              );
+          }
+      }
+  }
+
+
+
   if ( ! function_exists('getEmployeeByEmployeeNumber')) {
     function getEmployeeByEmployeeNumber($employee_number)
     {

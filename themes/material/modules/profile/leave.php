@@ -27,36 +27,70 @@
                                                 Amount Cuti Tahunan
                                             </dt>
                                             <dd>
-                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
-                                                 
+                                                <?=$annual_leave['amount_leave'] == 0 ? print_string('-') : print_string($annual_leave['amount_leave']);?>
+                                                
                                             </dd>
                                             <dt>
                                                 Pemakaian Cuti Tahunan
                                             </dt>
                                             <dd>
-                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
+                                                <?=$annual_leave['used_leave'] == 0 ? print_string('-') : print_string($annual_leave['used_leave']);?>
                                                  
                                             </dd>
                                             <dt>
                                                 Sisa Cuti Tahunan
                                             </dt>
                                             <dd>
-                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
+                                                <?=$annual_leave['left_leave'] == 0 ? print_string('-') : print_string($annual_leave['left_leave']);?>
                                                  
                                             </dd>
                                             <dt>
                                                 Cuti Haid
                                             </dt>
                                             <dd>
-                                                <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?>
-                                                 Tidak Berhak
+                                                <?=$entity['gender'] == 'female' ? print_string('Berhak') : print_string('Tidak Berhak');?>
+                                            </dd>
+                                            <dt>
+                                                Cuti Melahirkan
+                                            </dt>
+                                            <dd>
+                                                <?=$entity['gender'] == 'female' ? print_string('Berhak') : print_string('Tidak Berhak');?>
                                             </dd>
                                             <dt>
                                                 Cuti Besar
                                             </dt>
                                             <dd>
-                                                <!-- <?=$entity['employee_number'] == null ? print_string('Not set yet') : print_string($entity['employee_number']);?> -->
-                                                 Belum Berhak
+                                                <?=$sabbatical_leave['eligible_for_sabbatical'] == 'f' ? print_string('Tidak Berhak') : print_string('Berhak');?>
+                                            </dd>
+                                            <dt>
+                                                Cuti Ibadah
+                                            </dt>
+                                            <dd>
+                                                <?=$religios_leave['eligible_for_religious_leave'] == 'f' ? print_string('Tidak Berhak') : print_string('Berhak');?>
+                                            </dd>
+                                            <dt>
+                                                Cuti Tanpa Upah
+                                            </dt>
+                                            <dd>
+                                                Berhak
+                                            </dd>
+                                            <dt>
+                                                Cuti Sakit Panjang
+                                            </dt>
+                                            <dd>
+                                                Berhak
+                                            </dd>
+                                            <dt>
+                                                Cuti Libur Pengganti
+                                            </dt>
+                                            <dd>
+                                                Berhak
+                                            </dd>
+                                            <dt>
+                                                Cuti Sakit
+                                            </dt>
+                                            <dd>
+                                                Berhak
                                             </dd>
                                         </dl>
                                     </div>

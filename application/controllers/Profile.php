@@ -745,11 +745,19 @@ class Profile extends MY_Controller
             $periodeContractActive = '-';
             $kontrak_active = array();
         }
+
+        $dataAnnual = getAnnualLeaveEmployee($entity['employee_number'], 1);
+        $sabbaticalLeave = checkSabbaticalLeaveEligibility($entity['employee_number']);
+        $religiosLeave = checkReligiousLeaveEligibility($entity['employee_number']);
+
         
 
         $this->data['page']['content']          = $this->module['view'] .'/create';
         $this->data['page']['offcanvas']        = $this->module['view'] .'/create_offcanvas_add_item';
         $this->data['entity']                   = $entity;
+        $this->data['annual_leave']             = $dataAnnual;
+        $this->data['sabbatical_leave']         = $sabbaticalLeave;
+        $this->data['religious_leave']          = $religiosLeave;
         $this->data['kontrak_active']           = $kontrak_active;
         $this->data['periodeContractActive']    = $periodeContractActive;
         $this->data['page']['title']            = $entity['name'].' '.$entity['employee_number'];
