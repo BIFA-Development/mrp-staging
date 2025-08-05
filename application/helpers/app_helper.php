@@ -3612,9 +3612,40 @@ if (!function_exists('currency_for_vendor_list')) {
   }
 
 
+  // if ( ! function_exists('getLeaveTypeData')) {
+  //   function getLeaveTypeData($gender, $haveAmount, $employee_number)
+  //   {
+
+  //     $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
+
+  //     $CI =& get_instance();
+  //     $CI->db->select('*');
+  //     $CI->db->from('tb_leave_type');
+      
+  //     // Group gender condition
+  //     $CI->db->group_start();
+  //     $CI->db->where('gender', $gender);
+  //     $CI->db->or_where('gender IS NULL', null, false);
+  //     $CI->db->group_end();
+      
+  //     // Group is_have_amount condition
+  //     $CI->db->group_start();
+  //     $CI->db->where('is_have_amount', $haveAmount);
+  //     $CI->db->or_where('is_have_amount IS NULL', null, false);
+  //     $CI->db->group_end();
+      
+  //     $query = $CI->db->get();
+  //     return $query->result_array();
+      
+  //   }
+  // }
+    
   if ( ! function_exists('getLeaveTypeData')) {
-    function getLeaveTypeData($gender, $haveAmount)
+    function getLeaveTypeData($gender, $haveAmount, $employee_number)
     {
+  
+      $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
+      
       $CI =& get_instance();
       $CI->db->select('*');
       $CI->db->from('tb_leave_type');
@@ -3630,6 +3661,10 @@ if (!function_exists('currency_for_vendor_list')) {
       $CI->db->where('is_have_amount', $haveAmount);
       $CI->db->or_where('is_have_amount IS NULL', null, false);
       $CI->db->group_end();
+      // Check sabbatical leave eligibility - exclude L07 if not eligible
+      if ($sabbaticalLeave['eligible_for_sabbatical'] == 'f') {
+        $CI->db->where('leave_code !=', 'L07');
+      }
       
       $query = $CI->db->get();
       return $query->result_array();
