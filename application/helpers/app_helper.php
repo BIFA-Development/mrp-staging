@@ -4336,6 +4336,19 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+    if ( ! function_exists('getLeaveAll')) {
+    function getLeaveAll()
+    {
+      $CI =& get_instance();
+
+      $CI->db->select('*');
+      $CI->db->from('tb_leave_type');
+      $query  = $CI->db->get();
+      $result = $query->result_array();
+      return $result;
+    }
+  }
+
   
 
   if ( ! function_exists('getDepartmentByName')) {
