@@ -19,17 +19,35 @@
                     <div class="col-sm-12 col-lg-4">
                         <input type="hidden" name="id" id="id" value="<?= $_SESSION['amount_leave']['id']; ?>">
                         <div class="form-group">
-                            <input type="text" value="<?= $_SESSION['amount_leave']['leave_id']; ?>" name="leave_id" id="leave_id" class="form-control" data-validation-rule="unique" data-validation-url="<?= site_url('ajax/expense_duty_name_validation'); ?>" data-validation-exception="" required>
-                            <label for="leave_id">Leave Id</label>
+                            <select name="leave_id" id="leave_id" data-placeholder="Pilih Type Cuti" class="form-control select2" required>
+                                <option></option>
+                                <?php foreach(getLeaveAll() as $leave):?>
+                                <option value="<?= $leave['id']; ?>" data-leave-id="<?= $leave['id']; ?>" <?= ($leave['id'] == $_SESSION['amount_leave']['leave_id']) ? 'selected' : ''; ?>>
+                                    <?= $leave['name_leave']; ?>
+                                </option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="leave_id">Plafond Leave</label>
                         </div>
+
                         <div class="form-group">
                             <input type="text" value="<?= $_SESSION['amount_leave']['amount_leave']; ?>" name="amount_leave" id="amount_leave" class="form-control" data-validation-rule="unique" data-validation-url="<?= site_url('ajax/expense_duty_name_validation'); ?>" data-validation-exception="" required>
                             <label for="amount_leave">Amount Leave</label>
                         </div>
+
                         <div class="form-group">
+                            <select name="position" id="position" class="form-control select2" data-placeholder="Select Occupation" required>
+                                <option></option>
+                                <?php foreach(occupation_list() as $occupation):?>
+                                <option value="<?=$occupation['position'];?>"<?= ($occupation['position'] == $_SESSION['amount_leave']['position']) ? 'selected' : ''; ?>><?=$occupation['position'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="position">Posisi</label>
+                        </div>
+                        <!-- <div class="form-group">
                             <input type="text" value="<?= $_SESSION['amount_leave']['position']; ?>" name="position" id="position" class="form-control" data-validation-rule="unique" data-validation-url="<?= site_url('ajax/expense_duty_name_validation'); ?>" data-validation-exception="" required>
                             <label for="position">Position</label>
-                        </div>
+                        </div> -->
                         <!-- <div class="form-group">
                             <select name="status" id="status" class="form-control" required>
                                 <option value="AVAILABLE" <?= ("AVAILABLE" == $_SESSION['amount_leave']['status']) ? 'selected' : ''; ?>>AVAILABLE</option>
