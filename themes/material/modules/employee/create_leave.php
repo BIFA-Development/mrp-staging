@@ -39,7 +39,7 @@
                             <select name="leave_type" id="leave_type" class="form-control select2" style="width: 100%" data-placeholder="Select Benefit Leave" required>
                                 <option value="">Select Benefit Leave</option>
                                 <?php foreach(getLeaveTypeData($entity['gender'], TRUE, $entity['employee_number']) as $leave):?>
-                                <option data-id="<?=$leave['id'];?>" data-leave-code="<?=$leave['leave_code'];?>" data-leave-name="<?=$leave['name_leave'];?>" value="<?=$leave['id'];?>"><?=$leave['name_leave'];?></option>
+                                <option data-id="<?=$leave['id'];?>" data-leave-code="<?=$leave['leave_code'];?>" data-amount-leave="<?=$leave['amount_leave'];?>" data-leave-name="<?=$leave['name_leave'];?>" value="<?=$leave['id'];?>"><?=$leave['name_leave'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="leave_type">Leave Name</label>
@@ -82,40 +82,46 @@
         var leaveTypeId = selectedOption.data('id');
         var position = $('#jabatan').val().toLowerCase();
         var leave_code = $('#leave_type option:selected').data('leave-code');
+        var amount_leave = $('#leave_type option:selected').data('amount-leave');
 
-        if (leave_code == 'L01') {
-            var amountLeave = 0;
+        var amountLeave = 0;
+        amountLeave = amount_leave;
+        $('#amount_leave').val(amountLeave);
+
+
+        // if (leave_code == 'L01') {
+        //     var amountLeave = 0;
             
-            // Staff dan Supervisor 12 hari
-            // if (position.includes('staff') || position.includes('supervisor')) {
-            //     amountLeave = 12;
-            // }
-            // Manager, GM, dan VP Marketing 14 hari
-            if (position.includes('manager') || position.includes('gm') || 
-                     (position.includes('vp') && position.includes('marketing'))) {
-                amountLeave = 14;
-            }
-            // VP Finance, Flight Instructor, HOS 18 hari
-            else if ((position.includes('vp') && position.includes('finance')) || 
-                     position.includes('flight instructor') || 
-                     position.includes('hos')) {
-                amountLeave = 18;
-            }
-            // BOD 20 hari
-            else if (position.includes('bod') || position.includes('board of director') || 
-                     position.includes('cfo') || position.includes('coo')) {
-                amountLeave = 20;
-            } else {
-                // Reset to 0 for other positions
-                amountLeave = 12;
-            }
+        //     // Staff dan Supervisor 12 hari
+        //     // if (position.includes('staff') || position.includes('supervisor')) {
+        //     //     amountLeave = 12;
+        //     // }
+        //     // Manager, GM, dan VP Marketing 14 hari
+        //     if (position.includes('manager') || position.includes('gm') || 
+        //              (position.includes('vp') && position.includes('marketing'))) {
+        //         amountLeave = 14;
+        //     }
+        //     // VP Finance, Flight Instructor, HOS 18 hari
+        //     else if ((position.includes('vp') && position.includes('finance')) || 
+        //              position.includes('flight instructor') || 
+        //              position.includes('hos')) {
+        //         amountLeave = 18;
+        //     }
+        //     // BOD 20 hari
+        //     else if (position.includes('bod') || position.includes('board of director') || 
+        //              position.includes('cfo') || position.includes('coo')) {
+        //         amountLeave = 20;
+        //     } else {
+        //         // Reset to 0 for other positions
+        //         amountLeave = 12;
+        //     }
             
-            $('#amount_leave').val(amountLeave);
-        } else if (leave_code == 'L04') { 
-            $('#amount_leave').val(90);
-        } else {
-            // Reset to 0 for other leave types
-            $('#amount_leave').val(0);
-        }
+        //     $('#amount_leave').val(amountLeave);
+        // } else if (leave_code == 'L04') { 
+        //     $('#amount_leave').val(90);
+        // } else {
+        //     // Reset to 0 for other leave types
+        //     $('#amount_leave').val(0);
+        // }
     });
 </script>

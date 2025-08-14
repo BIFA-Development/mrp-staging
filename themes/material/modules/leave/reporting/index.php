@@ -1,4 +1,4 @@
-<?php include 'themes/material/page_reimbursement_approval.php' ?>
+<?php include 'themes/material/page.php' ?>
 
 <?php startblock('page_head_tools') ?>
 <?php $this->load->view('material/templates/datatable_tools_reimbursement') ?>
@@ -14,21 +14,9 @@
 
 <?php startblock('actions_right') ?>
 <div class="section-floating-action-row">
-  <?php if (is_granted($module, 'approval')) : ?>
-  <div class="btn-group dropup">
-    <button type="button" data-source="<?= site_url($module['route'] . '/multi_reject/'); ?>" class="btn btn-floating-action btn-md btn-danger btn-tooltip ink-reaction" id="modal-reject-data-button-multi">
-      <i class="md md-clear"></i>
-      <small class="top right">reject</small>
-    </button>
-  </div>
-  <div class="btn-group dropup">
-    <button type="button" data-source="<?= site_url($module['route'] . '/multi_approve/'); ?>" class="btn btn-floating-action btn-lg btn-primary btn-tooltip ink-reaction" id="modal-approve-data-button-multi">
-      <i class="md md-spellcheck"></i>
-      <small class="top right">approve</small>
-    </button>
-  </div>
-  <?php endif ?>
-  <?php if (is_granted($module, 'create')) : ?>
+
+
+  <!-- <?php if (is_granted($module, 'create')) : ?>
   <div class="btn-group dropup">
     <button type="button" class="btn btn-floating-action btn-lg btn-danger btn-tooltip ink-reaction" id="btn-create-document" data-toggle="dropdown">
       <i class="md md-add"></i>
@@ -43,7 +31,7 @@
       <?php endforeach; ?>
     </ul>
   </div>    
-  <?php endif ?>
+  <?php endif ?> -->
 </div>
 <?php endblock() ?>
 
@@ -72,7 +60,7 @@
       <option value="all">
         All Status
       </option>
-      <option value="WAITING APPROVAL BY COO" <?php if (config_item('auth_role') == 'CHIEF OPERATION OFFICER'):echo 'selected'; endif;?>>
+      <!-- <option value="WAITING APPROVAL BY COO" <?php if (config_item('auth_role') == 'CHIEF OPERATION OFFICER'):echo 'selected'; endif;?>>
         Waiting Approval By COO
       </option>
       <option value="WAITING APPROVAL BY CFO" <?php if (config_item('auth_role') == 'CHIEF OF FINANCE'):echo 'selected'; endif;?>>
@@ -86,9 +74,15 @@
       </option>
       <option value="WAITING APPROVAL BY HR MANAGER" <?php if (in_array(config_item('auth_username'),list_username_in_head_department(11))):echo 'selected'; endif;?>>
         Waiting Approval By HR Manager
+      </option> -->
+      <!-- <option value="WAITING APPROVAL BY FINANCE MANAGER" <?php if (config_item('auth_role')=='FINANCE MANAGER'):echo 'selected'; endif;?>>
+        Waiting Approval By Finance Manager
+      </option> -->
+      <option value="WAITING APPROVAL BY CFO">
+        Waiting Approval By CFO
       </option>
-      <!-- <option value="WAITING APPROVAL BY COO OR CFO">
-        Waiting Approval By COO or CFO
+      <option value="WAITING APPROVAL BY COO">
+        Waiting Approval By COO
       </option>
       <option value="WAITING APPROVAL BY HOS">
         Waiting Approval By HOS
@@ -96,12 +90,12 @@
       <option value="WAITING APPROVAL BY VP">
         Waiting Approval By VP
       </option>
-      <option value="WAITING APPROVAL BY HR MANAGER">
-        Waiting Approval By HR Manager
+      <option value="WAITING APPROVAL BY HR">
+        Waiting Approval By HR
       </option>
       <option value="WAITING APPROVAL BY FINANCE MANAGER">
         Waiting Approval By Finance Manager
-      </option> -->
+      </option>
       <option value="APPROVED">
         Approved
       </option>
@@ -660,7 +654,7 @@
 
       button.attr('disabled', true);
 
-      if (confirm('Are you sure want to create this data to Expense Request? Continue?')) {
+      if (confirm('Are you sure want to create this data to Leave? Continue?')) {
         $.post(action, form.serialize()).done(function(data) {
           var obj = $.parseJSON(data);
           if (obj.type == 'danger') {

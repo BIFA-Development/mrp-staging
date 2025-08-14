@@ -84,6 +84,36 @@ class Leave_Model extends MY_Model
             $this->db->where('tb_leave_requests.request_date <= ', $range_date[1]);
         }
 
+        if (!empty($_POST['columns'][3]['search']['value'])){
+            $search_status = $_POST['columns'][3]['search']['value'];
+
+            if($search_status!='all'){
+                $this->db->where('tb_leave_requests.status', $search_status);         
+            }            
+        }else{    
+            // if (config_item('as_head_department')=='yes' && !in_array(config_item('auth_username'),config_item('hr_manager'))){
+            // if (config_item('auth_role')=='VP FINANCE' ){                
+
+            // $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL VP');
+            //     // $this->db->where('tb_reimbursements.head_dept ', config_item('auth_username'));
+            // }
+            // elseif (config_item('auth_role')=='HEAD OF SCHOOL' ){                
+            //     $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY HOS');
+            // }
+            // elseif (config_item('auth_role')=='CHIEF OF FINANCE' ){                
+            //     $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY CFO');
+            // }
+            // elseif (config_item('auth_role')=='CHIEF OPERATION OFFICER' ){                
+            //     $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY COO');
+            // }
+            // elseif (in_array(config_item('auth_username'),config_item('hr_manager'))){                
+            //     $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY HR MANAGER');
+            // }
+            // elseif (config_item('auth_role')=='FINANCE MANAGER'){                
+            //     $this->db->where('tb_reimbursements.status ', 'WAITING APPROVAL BY FINANCE MANAGER');
+            // }
+        }
+
         $i = 0;
 
         foreach ($this->getSearchableColumns() as $item){
@@ -113,24 +143,96 @@ class Leave_Model extends MY_Model
         $selected = array(
             'tb_leave_requests.*',
             'tb_leave_plan.document_number as ref_leave_plan_number',
-            
-
         );
 
-        if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER') {
+        if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER' || config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'HEAD OF SCHOOL' || config_item('auth_role') == 'CHIEF OF FINANCE' || config_item('auth_role') == 'CHIEF OPERATION OFFICER') {
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
             $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+        // } else if(config_item('auth_role') == 'VP FINANCE'){
+        //     $selected = array(
+        //         'tb_leave_requests.*',
+        //     );
+        //     $this->db->select($selected);
+        //     $this->db->where_in('tb_leave_requests.status', ['WAITING APPROVAL BY VP', 'WAITING APPROVAL BY HEAD DEPT']);
+        //     $this->db->where('tb_reimbursements.status', 'WAITING APPROVAL BY HOS');
+        //     $this->db->from('tb_leave_requests');
+        // } else if(config_item('auth_role') == 'HEAD OF SCHOOL') {
+        //     $selected = array(
+        //         'tb_leave_requests.*',
+        //     );
+        //     $this->db->select($selected);
+        //     $this->db->where_in('tb_leave_requests.status', ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY HEAD DEPT']);
+        //     $this->db->from('tb_leave_requests');
         } else {
+            // $this->db->select($selected);
+            // $this->db->from('tb_leave_requests');
+            // $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+            // $this->db->group_start();
+            // $this->db->where('tb_leave_requests.employee_number', $person_number);
+            // $this->db->or_where('tb_leave_requests.head_dept', $person_number);
+            // $this->db->group_end();
+            $selected_person            = getEmployeeById(config_item('auth_user_id'));
+            $person_number              = $selected_person['employee_number'];
+            $selected = array(
+                'tb_leave_requests.*',
+            );
             $this->db->select($selected);
-            $this->db->from('tb_leave_requests');
-            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
-            $this->db->group_start();
             $this->db->where('tb_leave_requests.employee_number', $person_number);
-            $this->db->or_where('tb_leave_requests.head_dept', $person_number);
-            $this->db->group_end();
+            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+            $this->db->from('tb_leave_requests');
+            
+        }
+        
+        $this->searchIndex();
+
+        $column_order = $this->getOrderableColumns();
+
+        if (isset($_POST['order'])){
+            foreach ($_POST['order'] as $key => $order){
+                $this->db->order_by($column_order[$_POST['order'][$key]['column']], $_POST['order'][$key]['dir']);
+            }
+        } else {
+            $this->db->order_by('id', 'desc');
+            // $this->db->order_by('request_date', 'desc');
+            // $this->db->order_by('document_number', 'desc');
+
         }
 
+        if ($_POST['length'] != -1)
+            $this->db->limit($_POST['length'], $_POST['start']);
+
+        $query = $this->db->get();
+
+        if ($return === 'object'){
+            return $query->result();
+        } elseif ($return === 'json'){
+            return json_encode($query->result());
+        } else {
+            return $query->result_array();
+        }
+    }
+
+
+
+    function getIndexReporting($return = 'array')
+    {
+        
+
+        $selected = array(
+            'tb_leave_requests.*',
+            'tb_leave_type.leave_code',
+            'tb_leave_plan.document_number as ref_leave_plan_number',
+        );
+
+       
+        $this->db->select($selected);
+        $this->db->from('tb_leave_requests');
+        $this->db->where_in('tb_leave_type.leave_code', ['L06','L07','L08','L09']);
+        $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_leave_requests.leave_type', 'left');
+
+    
 
     
         
@@ -165,6 +267,46 @@ class Leave_Model extends MY_Model
 
 
     public function getEmployeeHasAnnualLeave($employee_number, $type_leave) {
+        if (isEmployeeContractActiveExist($employee_number)) {
+            $kontrak_active = findContractActive($employee_number);
+    
+            $this->db->select('tb_employee_has_leave.*');
+            $this->db->where('tb_employee_has_leave.employee_number', $employee_number);
+            $this->db->where('tb_employee_has_leave.employee_contract_id', $kontrak_active['id']);
+            $this->db->where('tb_employee_has_leave.leave_type', $type_leave);
+            $this->db->from('tb_employee_has_leave');
+            $queryemployee_has_annual_leave = $this->db->get();
+    
+            if ($queryemployee_has_annual_leave->num_rows() > 0) {
+                $row = $queryemployee_has_annual_leave->unbuffered_row('array');
+    
+                $return['status'] = 'success';
+                $return['amount_leave'] = $row['amount_leave'];
+                $return['used_leave'] = $row['used_leave'];
+                $return['left_leave'] = $row['left_leave'];
+                $return['employee_has_leave_id'] = $row['id'];
+            } else {
+                $return['status'] = 'warning';
+                $return['amount_leave'] = 0;
+                $return['used_leave'] = 0;
+                $return['employee_has_leave_id'] = null;
+                $return['kontrak'] = $kontrak_active['id'];
+                $return['message'] = 'Karyawan ini tidak memiliki cuti yang tersisa pada kontrak aktif terakhir';
+            }
+    
+            return $return;
+        } else {
+            $return['status'] = 'warning';
+            $return['amount_leave'] = 0;
+            $return['used_leave'] = 0;
+            $return['employee_has_leave_id'] = null;
+            $return['message'] = 'Karyawan ini tidak memiliki cuti yang tersisa pada kontrak aktif terakhir';
+            return $return;
+        }
+    }
+
+
+    public function getEmployeeMaternityLeave($employee_number, $type_leave) {
         if (isEmployeeContractActiveExist($employee_number)) {
             $kontrak_active = findContractActive($employee_number);
     
@@ -305,6 +447,11 @@ class Leave_Model extends MY_Model
                     $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
                     $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
                     $this->db->update('tb_employee_has_leave');
+                }  else if($get_leave_code == 'L04'){
+                    $this->db->set('used_leave', 'used_leave - ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->set('left_leave', 'left_leave + ' . $dataOld['total_leave_days'], FALSE);
+                    $this->db->where('tb_employee_has_leave.id',  $_SESSION['leave']['employee_has_leave_id']);
+                    $this->db->update('tb_employee_has_leave');
                 } 
             }
         }
@@ -408,6 +555,13 @@ class Leave_Model extends MY_Model
         }
 
         if($get_leave_code == 'L07'){
+            $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
+            $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
+            $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);
+            $this->db->update('tb_employee_has_leave');
+        }
+
+        if($get_leave_code == 'L04'){
             $this->db->set('used_leave', 'used_leave + ' . $total_leave_days, FALSE);
             $this->db->set('left_leave', 'left_leave - ' . $total_leave_days, FALSE);
             $this->db->where('tb_employee_has_leave.id', $employee_has_leave_id);

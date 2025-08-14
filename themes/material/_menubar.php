@@ -39,12 +39,25 @@
 
         $roles = explode(',', $childMenu['permission']['index_approval']);
         $roles = array_map('trim', $roles); // Trim spaces to avoid mismatch issues
+
+        $rolesReporting = explode(',', $childMenu['permission']['index_reporting']);
+        $rolesReporting = array_map('trim', $rolesReporting); // Trim spaces to avoid mismatch issues
         if ($childMenu['route'] === 'reimbursement' && in_array(config_item('auth_role'), $roles) != '' ) {
           $childMenuApp = ('reimbursement/approval' === ($module['route'].'/approval')) ? 'active' : '';
           echo '<li class="'.$childMenuApp.'">';
           echo '<a href="'.site_url('reimbursement/approval').'">';
           echo '<span class="title">';
           echo 'Reimbursement Approval';
+          echo '</span>';
+          echo '</a>';
+          echo '</li>';
+        }
+        if ($childMenu['route'] === 'leave' && in_array(config_item('auth_role'), $rolesReporting) != '' ) {
+          $childMenuApp = ('leave/reporting' === ($module['route'].'/reporting')) ? 'active' : '';
+          echo '<li class="'.$childMenuApp.'">';
+          echo '<a href="'.site_url('leave/reporting').'">';
+          echo '<span class="title">';
+          echo 'Leave Reporting';
           echo '</span>';
           echo '</a>';
           echo '</li>';

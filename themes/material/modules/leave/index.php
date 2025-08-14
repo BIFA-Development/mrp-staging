@@ -64,7 +64,7 @@
     <input class="form-control input-sm filter_daterange" data-column="1" id="filter_received_date" readonly>
   </div>
 
-  <div class="form-group">
+  <!-- <div class="form-group">
     <label for="filter_cost_centers">Cost Center</label>
     <select class="form-control input-sm filter_cost_centers" data-column="2" id="filter_cost_centers">
       <?php foreach (config_item('auth_annual_cost_centers') as $annual_cost_center) : ?>
@@ -74,7 +74,7 @@
       <?php endforeach; ?>
       
     </select>
-  </div>
+  </div> -->
 
   <div class="form-group">
     <label for="filter_status">Status</label>
@@ -108,6 +108,9 @@
       </option>
       <option value="WAITING APPROVAL BY HOS">
         Waiting Approval By HOS
+      </option>
+      <option value="WAITING APPROVAL BY HEAD DEPT">
+        Waiting Approval By HEAD DEPT
       </option>
       <option value="WAITING APPROVAL BY VP">
         Waiting Approval By VP

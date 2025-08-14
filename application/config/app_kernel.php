@@ -58,14 +58,11 @@ $config['parent']['perjalanan_dinas']['icon']   = 'fa fa-road';
 $config['parent']['reimbursment']['label']  = 'Reimbursement';
 $config['parent']['reimbursment']['icon']   = 'fa fa-ticket';
 
-$config['parent']['leave_plan']['label']  = 'Leave Plan New';
-$config['parent']['leave_plan']['icon']   = 'fa fa-ticket';
-
 $config['parent']['leave']['label']  = 'Leave';
 $config['parent']['leave']['icon']   = 'fa fa-ticket';
 
-
-
+$config['parent']['amount_leave']['label']  = 'Amount Leave';
+$config['parent']['amount_leave']['icon']   = 'fa fa-ticket';
 
 $config['module'] = array();
 
@@ -80,6 +77,7 @@ require('modules/master_expense_duty.php');
 require('modules/master_expense_reimbursement.php');
 require('modules/master_benefit_category.php');
 require('modules/master_benefit_type.php');
+require('modules/master_amount_leave.php');
 require('modules/tujuan_perjalanan_dinas.php');
 require('modules/master_transportation.php');
 

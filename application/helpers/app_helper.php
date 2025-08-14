@@ -3581,7 +3581,7 @@ if (!function_exists('currency_for_vendor_list')) {
   }
 
   if ( ! function_exists('getLeaveType')) {
-    function getLeaveType($gender, $idLeavePlan, $isLeavePlan)
+    function getLeaveType($gender, $idLeavePlan, $isLeavePlan, $employee_number = '')
     {
 
       if($isLeavePlan == TRUE || $idLeavePlan !== ''){
@@ -3589,27 +3589,54 @@ if (!function_exists('currency_for_vendor_list')) {
         $CI->db->select('*');
         $CI->db->where('gender', $gender);
         $CI->db->or_where('gender IS NULL', null, false); // Prevent escaping IS NULL
+        $CI->db->where_not_in('leave_code', ['L02', 'L09']);
         $CI->db->from('tb_leave_type');  
         $query = $CI->db->get();
         return $query->result_array(); 
       } else {
+        $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
+        $religiousLeave = checkReligiousLeaveEligibility($employee_number);
+        $checkMaternityLeave = checkMaternityLeaveEligible($employee_number);
+
         $CI =& get_instance();
         $CI->db->select('*');
         $CI->db->from('tb_leave_type');
 
         // Exclude leave_code == 'L01'
-        $CI->db->where('leave_code !=', 'L01');
-
+        
         // Grouped condition: gender = $gender OR gender IS NULL
         $CI->db->group_start();
         $CI->db->where('gender', $gender);
         $CI->db->or_where('gender IS NULL', null, false); // raw condition, avoid escaping
         $CI->db->group_end();
+
+        log_message('debug', 'Sabbatical Leave Eligibility: ' . $sabbaticalLeave['eligible_for_sabbatical']);
+
+        $isEligible = ($sabbaticalLeave['eligible_for_sabbatical'] === 't');
+        if (!$isEligible) {
+            $CI->db->where('leave_code !=', 'L07');
+        }
+        
+        // // // Check maternity leave eligibility
+        $isEligibleMaternity = ($checkMaternityLeave === TRUE);
+        log_message('debug', 'Maternity Leave Eligibility: ' . $checkMaternityLeave);
+        if (!$isEligibleMaternity) {
+            $CI->db->where('leave_code !=', 'L04');
+        }
+
+        // // // Check religious leave eligibility
+        $isEligibleReligious = ($religiousLeave['eligible_for_religious_leave'] === 't');
+        if (!$isEligibleReligious) {
+            $CI->db->where('leave_code !=', 'L08');
+        }
+        $CI->db->where('leave_code !=', 'L01');
+
         $query = $CI->db->get();
         return $query->result_array(); 
       }
     }
   }
+
 
 
   // if ( ! function_exists('getLeaveTypeData')) {
@@ -3640,35 +3667,60 @@ if (!function_exists('currency_for_vendor_list')) {
   //   }
   // }
     
-  if ( ! function_exists('getLeaveTypeData')) {
-    function getLeaveTypeData($gender, $haveAmount, $employee_number)
+
+  if (!function_exists('getLeaveTypeData')) {
+      function getLeaveTypeData($gender, $haveAmount, $employee_number)
+      {
+          $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
+          $employee = getEmployeeByEmployeeNumber($employee_number);
+
+          $CI =& get_instance();
+          $CI->db->select('
+              tb_leave_type.*,
+              tb_amount_leave_items.amount_leave,
+              tb_amount_leave_items.position AS amount_position
+          ');
+          $CI->db->from('tb_leave_type');
+
+          $CI->db->join(
+              'tb_amount_leave_items',
+              'tb_leave_type.id = tb_amount_leave_items.leave_id AND tb_amount_leave_items.position = ' . $CI->db->escape($employee['position']),
+              'left'
+          );
+
+          // Group gender condition
+          $CI->db->group_start();
+          $CI->db->where('gender', $gender);
+          $CI->db->or_where('gender IS NULL', null, false);
+          $CI->db->group_end();
+
+          // Group is_have_amount condition
+          $CI->db->group_start();
+          $CI->db->where('is_have_amount', $haveAmount);
+          $CI->db->or_where('is_have_amount IS NULL', null, false);
+          $CI->db->group_end();
+
+          // Check sabbatical leave eligibility - exclude L07 if not eligible
+          if ($sabbaticalLeave['eligible_for_sabbatical'] == 'f') {
+              $CI->db->where('leave_code !=', 'L07');
+          }
+
+          $query = $CI->db->get();
+          return $query->result_array();
+      }
+  }
+
+  if ( ! function_exists('getAnnualLeaveAmountLevel')) {
+    function getAnnualLeaveAmountLevel($leave_type, $position)
     {
-  
-      $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
-      
       $CI =& get_instance();
       $CI->db->select('*');
-      $CI->db->from('tb_leave_type');
-      
-      // Group gender condition
-      $CI->db->group_start();
-      $CI->db->where('gender', $gender);
-      $CI->db->or_where('gender IS NULL', null, false);
-      $CI->db->group_end();
-      
-      // Group is_have_amount condition
-      $CI->db->group_start();
-      $CI->db->where('is_have_amount', $haveAmount);
-      $CI->db->or_where('is_have_amount IS NULL', null, false);
-      $CI->db->group_end();
-      // Check sabbatical leave eligibility - exclude L07 if not eligible
-      if ($sabbaticalLeave['eligible_for_sabbatical'] == 'f') {
-        $CI->db->where('leave_code !=', 'L07');
-      }
-      
+      $CI->db->from('tb_amount_leave_items');
+      $CI->db->where('leave_id', $leave_type);
+      $CI->db->where('position', $position);
       $query = $CI->db->get();
       return $query->result_array();
-      
+
     }
   }
 
@@ -3866,30 +3918,33 @@ if (!function_exists('currency_for_vendor_list')) {
           
           // Main query to check sabbatical leave eligibility
           $CI->db->select("
-              e.employee_number,
-              e.tanggal_bergabung,
-              CASE 
-                  WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years') 
-                  THEN true 
-                  ELSE false 
-              END AS worked_5_years,
-              (
-                  SELECT COUNT(*) 
-                  FROM tb_leave_requests lr 
-                  WHERE lr.employee_number = e.employee_number 
-                    AND lr.leave_type = 7
-              ) AS sabbatical_count,
-              CASE 
-                  WHEN e.tanggal_bergabung IS NOT NULL 
-                      AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years')
-                      AND NOT EXISTS (
-                        SELECT 1 FROM tb_leave_requests lr2 
-                        WHERE lr2.employee_number = e.employee_number 
-                          AND lr2.leave_type = 7
-                      )
-                  THEN true
-                  ELSE false
-              END AS eligible_for_sabbatical
+                e.employee_number,
+                e.tanggal_bergabung,
+                CASE 
+                    WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years') 
+                    THEN true 
+                    ELSE false 
+                END AS worked_5_years,
+                (
+                    SELECT COUNT(*) 
+                    FROM tb_leave_requests lr
+                    JOIN tb_leave_type lt ON lr.leave_type = lt.id
+                    WHERE lr.employee_number = e.employee_number 
+                      AND lt.leave_code = 'L07'
+                ) AS sabbatical_count,
+                CASE 
+                    WHEN e.tanggal_bergabung IS NOT NULL 
+                        AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '5 years')
+                        AND NOT EXISTS (
+                            SELECT 1 
+                            FROM tb_leave_requests lr2
+                            JOIN tb_leave_type lt2 ON lr2.leave_type = lt2.id
+                            WHERE lr2.employee_number = e.employee_number 
+                              AND lt2.leave_code = 'L07'
+                        )
+                    THEN true
+                    ELSE false
+                END AS eligible_for_sabbatical
           ", FALSE); // FALSE prevents escaping
           
           $CI->db->from('tb_master_employees e');
@@ -3911,6 +3966,36 @@ if (!function_exists('currency_for_vendor_list')) {
       }
   }
 
+   if ( ! function_exists('checkMaternityLeaveEligible')) {
+      function checkMaternityLeaveEligible($employee_number, $type_leave = '')
+      {
+        // Cek apakah kontrak aktif ada
+        if (isEmployeeContractActiveExist($employee_number)) {
+            $kontrak_active = findContractActive($employee_number);
+
+            $CI =& get_instance();
+            $selected = array(
+              'tb_employee_has_leave.*',
+              'tb_leave_type.leave_code as leave_code',
+            );
+            $CI->db->select($selected);
+            $CI->db->where('tb_employee_has_leave.employee_number', $employee_number);
+            $CI->db->where('tb_employee_has_leave.employee_contract_id', $kontrak_active['id']);
+            $CI->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type', 'left');
+            $CI->db->where('tb_leave_type.leave_code', 'L04'); // Maternity Leave Code
+            $CI->db->from('tb_employee_has_leave');
+            $queryemployee_has_maternity_leave = $CI->db->get();
+
+            if ($queryemployee_has_maternity_leave->num_rows() > 0) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+      }
+    }
   // Cuti Ibadah
   if ( ! function_exists('checkReligiousLeaveEligibility')) {
       function checkReligiousLeaveEligibility($employee_number)
@@ -3919,30 +4004,33 @@ if (!function_exists('currency_for_vendor_list')) {
           
           // Main query to check religious leave eligibility
           $CI->db->select("
-              e.employee_number,
-              e.tanggal_bergabung,
-              CASE 
-                  WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year') 
-                  THEN true 
-                  ELSE false 
-              END AS worked_1_year,
-              (
-                  SELECT COUNT(*) 
-                  FROM tb_leave_requests lr 
-                  WHERE lr.employee_number = e.employee_number 
-                    AND lr.leave_type = 8
-              ) AS religious_leave_count,
-              CASE 
-                  WHEN e.tanggal_bergabung IS NOT NULL 
-                      AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year')
-                      AND NOT EXISTS (
-                        SELECT 1 FROM tb_leave_requests lr2 
-                        WHERE lr2.employee_number = e.employee_number 
-                          AND lr2.leave_type = 8
-                      )
-                  THEN true
-                  ELSE false
-              END AS eligible_for_religious_leave
+                  e.employee_number,
+                  e.tanggal_bergabung,
+                  CASE 
+                      WHEN e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year') 
+                      THEN true 
+                      ELSE false 
+                  END AS worked_1_year,
+                  (
+                      SELECT COUNT(*) 
+                      FROM tb_leave_requests lr
+                      JOIN tb_leave_type lt ON lr.leave_type = lt.id
+                      WHERE lr.employee_number = e.employee_number 
+                        AND lt.leave_code = 'L08'
+                  ) AS religious_leave_count,
+                  CASE 
+                      WHEN e.tanggal_bergabung IS NOT NULL 
+                          AND e.tanggal_bergabung <= (CURRENT_DATE - INTERVAL '1 year')
+                          AND NOT EXISTS (
+                              SELECT 1 
+                              FROM tb_leave_requests lr2
+                              JOIN tb_leave_type lt2 ON lr2.leave_type = lt2.id
+                              WHERE lr2.employee_number = e.employee_number 
+                                AND lt2.leave_code = 'L08'
+                          )
+                      THEN true
+                      ELSE false
+                  END AS eligible_for_religious_leave
           ", FALSE); // FALSE prevents escaping
           
           $CI->db->from('tb_master_employees e');
@@ -4362,6 +4450,8 @@ if (!function_exists('currency_for_vendor_list')) {
 
   if ( ! function_exists('getBenefitsByEmployeeNumber')) {
       function getBenefitsByEmployeeNumber($employee_number,$gender, $year = '2025') {
+
+        $getNowYear = date('Y');
         $CI =& get_instance();
         $CI->db->select('
             benefit_items.id AS benefit_item_id,
@@ -4382,7 +4472,7 @@ if (!function_exists('currency_for_vendor_list')) {
         $CI->db->join('tb_master_levels AS levels', 'benefit_items.level = levels.level', 'left');
         $CI->db->join('tb_master_employees AS employees', 'employees.level_id = levels.id', 'right');
         $CI->db->where('employees.employee_number', $employee_number);
-        $CI->db->where('benefit_items.year', $year);
+        $CI->db->where('benefit_items.year', $getNowYear); // Use current year
         $CI->db->where('benefit_items.deleted_by IS NULL', null, false); // Prevent escaping IS NULL
         $CI->db->where('benefits.status', 'AVAILABLE');
         $CI->db->group_start(); // Start grouping OR conditions

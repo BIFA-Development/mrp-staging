@@ -22,6 +22,9 @@ class Employee_Model extends MY_Model
             'Has Benefit',
             'Last Contract',
             'Contract Start - End',
+            'Amount Annual Leave',
+            'Used Annual Leave',
+            'Left Annual Leave',
             'Last Update'
         );
     }
@@ -69,8 +72,45 @@ class Employee_Model extends MY_Model
 
     function getIndex($return = 'array')
     {
-        // $this->db->select('*');
-        // $this->db->from('tb_master_employees');
+
+        // $this->db->select('
+        // emp.employee_number,
+        // emp.name AS name,
+        // emp.position,
+        // emp.department_id,
+        // emp.updated_at,
+        // emp.employee_id,
+        // latest_contract.contract_number,
+        // latest_contract.start_date,
+        // latest_contract.end_date,
+        // latest_contract.status AS contract_status,
+        // COALESCE(STRING_AGG(benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits
+        // ');
+        // $this->db->from('tb_master_employees emp');
+        
+        // $this->db->join('(
+        //     SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status
+        //     FROM tb_employee_contracts
+        //     WHERE status = \'ACTIVE\'
+        //     ORDER BY employee_number, start_date DESC
+        // ) latest_contract', 'emp.employee_number = latest_contract.employee_number', 'left');
+        
+        // $this->db->join('tb_employee_has_benefit emp_benefit', 'emp.employee_number = emp_benefit.employee_number', 'left');
+        // $this->db->join('tb_master_employee_benefits benefit', 'emp_benefit.employee_benefit_id = benefit.id', 'left');
+        
+        // $this->db->group_by([
+        //     'emp.employee_number',
+        //     'emp.name',
+        //     'emp.position',
+        //     'emp.department_id',
+        //     'emp.updated_at',
+        //     'emp.employee_id',
+        //     'latest_contract.contract_number',
+        //     'latest_contract.start_date',
+        //     'latest_contract.end_date',
+        //     'latest_contract.status'
+        // ]);
+        
         $this->db->select('
         emp.employee_number,
         emp.name AS name,
@@ -82,13 +122,15 @@ class Employee_Model extends MY_Model
         latest_contract.start_date,
         latest_contract.end_date,
         latest_contract.status AS contract_status,
-        COALESCE(STRING_AGG(benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits
+        COALESCE(STRING_AGG(DISTINCT benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits,
+        COALESCE(emp_leave.amount_leave, 0) AS total_cuti,
+        COALESCE(emp_leave.used_leave, 0) AS pemakaian_cuti,
+        COALESCE(emp_leave.left_leave, 0) AS sisa_cuti
         ');
         $this->db->from('tb_master_employees emp');
         
-        // Subquery untuk kontrak terbaru dengan alias yang lebih jelas
         $this->db->join('(
-            SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status
+            SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status, id
             FROM tb_employee_contracts
             WHERE status = \'ACTIVE\'
             ORDER BY employee_number, start_date DESC
@@ -96,8 +138,8 @@ class Employee_Model extends MY_Model
         
         $this->db->join('tb_employee_has_benefit emp_benefit', 'emp.employee_number = emp_benefit.employee_number', 'left');
         $this->db->join('tb_master_employee_benefits benefit', 'emp_benefit.employee_benefit_id = benefit.id', 'left');
+        $this->db->join('tb_employee_has_leave emp_leave', 'emp.employee_number = emp_leave.employee_number AND latest_contract.id = emp_leave.employee_contract_id AND emp_leave.leave_type = 1', 'left');
         
-        // Gunakan emp.employee_number untuk menghindari ambigu
         $this->db->group_by([
             'emp.employee_number',
             'emp.name',
@@ -108,7 +150,10 @@ class Employee_Model extends MY_Model
             'latest_contract.contract_number',
             'latest_contract.start_date',
             'latest_contract.end_date',
-            'latest_contract.status'
+            'latest_contract.status',
+            'emp_leave.amount_leave',
+            'emp_leave.used_leave',
+            'emp_leave.left_leave'
         ]);
     
 

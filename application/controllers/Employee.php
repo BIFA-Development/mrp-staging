@@ -67,6 +67,9 @@ class Employee extends MY_Controller
                 } else {
                     $col[] = print_string(print_date($row['start_date']) . ' - '. print_date($row['end_date']));
                 }
+                $col[] = print_number($row['total_cuti']);
+                $col[] = print_number($row['pemakaian_cuti']);
+                $col[] = print_number($row['sisa_cuti']);
                 $col[] = print_date($row['updated_at']);
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];

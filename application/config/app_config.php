@@ -113,6 +113,7 @@ $config['modules_for_head_dept'] = array(
   'reimbursement',
   'leave',
   'leave_plan',
+  'amount_leave'
 );
 
 $config['type_reimbursement'] = array(
@@ -129,7 +130,8 @@ $config['additional_modules_for_hr_depatment'] = array(
   'user_position',
   'employee',
   'expense_reimbursement',
-  'benefit_category'
+  'benefit_category',
+  'amount_leave'
 );
 
 $config['hr_department_name'] = 'Human Resources Dept';

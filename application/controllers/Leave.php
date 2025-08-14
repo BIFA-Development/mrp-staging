@@ -26,6 +26,31 @@ class Leave extends MY_Controller
         $this->data['grid']['summary_columns']  = array(2);
         $this->data['grid']['order_columns']    = array();
 
+        $this->data['grid']['order_columns']    = array(
+
+            0   => array( 0 => 0,  1 => '' ),
+            1   => array( 0 => 1,  1 => '' ),
+            2   => array( 0 => 2,  1 => '' ),
+            3   => array( 0 => 3,  1 => '' ),
+            4   => array( 0 => 4,  1 => '' ),
+            5   => array( 0 => 5,  1 => '' ),
+            6   => array( 0 => 6,  1 => 'desc' ),
+        );
+
+        $this->render_view($this->module['view'] .'/index');
+    }
+
+    public function reporting()
+    {
+        $this->authorized($this->module, 'index_reporting');
+
+        $this->data['page']['title']            = $this->module['label'];
+        $this->data['grid']['column']           = $this->model->getSelectedColumns();
+        $this->data['grid']['data_source']      = site_url($this->module['route'] .'/index_data_source_reporting');
+        $this->data['grid']['fixed_columns']    = 1;
+        $this->data['grid']['summary_columns']  = array(2);
+        $this->data['grid']['order_columns']    = array();
+
         // $this->data['grid']['order_columns']    = array(
 
         //     0   => array( 0 => 0,  1 => '' ),
@@ -37,7 +62,112 @@ class Leave extends MY_Controller
         //     6   => array( 0 => 6,  1 => 'desc' ),
         // );
 
-        $this->render_view($this->module['view'] .'/index');
+        $this->render_view($this->module['view'] .'/reporting/index');
+    }
+
+     public function index_data_source_reporting()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'index') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+
+
+            $entities = $this->model->getIndexReporting();
+            $data     = array();
+            $no       = $_POST['start'];
+
+            foreach ($entities as $row){
+                $no++;
+                $col = array();
+                
+                
+                if (is_granted($this->module, 'approval')){
+                    if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number'] || config_item('auth_role') == 'HEAD OF SCHOOL'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY HR' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY BOD' && config_item('auth_role') == 'CHIEF OF FINANCE'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY BOD' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='REVISED'){
+                        $col[] = print_number($no);
+                    } else {
+                        $col[] = print_number($no);
+                    }
+                }else{
+                    $col[] = print_number($no);
+                } 
+                $col[] = print_date($row['request_date'], 'd F Y');    
+                $col[] = print_string($row['document_number']);
+                $col[] = print_string($row['person_name']);
+                $col[] = print_string($row['leave_type_name']);
+                $col[] = print_string($row['status']);
+                if($row['ref_leave_plan_number']!=''){
+                    $col[] = print_string($row['ref_leave_plan_number']);
+                } else {
+                    $col[] = print_string('- ');
+                }
+                if($row['status']=='approved' || $row['status']=='closed'){
+                    $col[] = print_string($row['notes_approval']);
+                }else{
+                    if($row['notes_approval'] != ''){
+                        if (is_granted($this->module, 'approval') === TRUE) {
+                            $col[] = '<input type="text" id="note_' . $row['id'] . '" value="' . $row['notes_approval'] . '" autocomplete="off"/>';
+                        } else {
+                            $col[] = print_string($row['notes_approval']);
+                        }
+                    } else {
+                        if (is_granted($this->module, 'approval') === TRUE) {
+                            $col[] = '<input type="text" id="note_' . $row['id'] . '" autocomplete="off"/>';
+                        } else {
+                            $col[] = print_string($row['notes_approval']);
+                        }
+                    }
+                    
+                }
+                // if($row['is_reserved'] == TRUE){
+                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
+                // } else {
+                //     $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary">'.$row['id'].'</a>';
+                //     // $col[] = '<a href="' . site_url($this->module['route'] . '/edit/' . $row['id']) . '" class="btn btn-sm btn-primary" disabled>Edit</a>';
+                // }
+                
+
+                
+                
+                $col['DT_RowId'] = 'row_'. $row['id'];
+                $col['DT_RowData']['pkey']  = $row['id'];
+                
+                if ($this->has_role($this->module, 'info')){
+                    $col['DT_RowAttr']['onClick']     = '';
+                    $col['DT_RowAttr']['data-id']     = $row['id'];
+                    $col['DT_RowAttr']['data-target'] = '#data-modal';
+                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info/'. $row['id']);
+                }
+
+                $data[] = $col;
+            }
+
+            $result = array(
+                "draw"            => $_POST['draw'],
+                "recordsTotal"    => $this->model->countIndex(),
+                "recordsFiltered" => $this->model->countIndexFiltered(),
+                "data"            => $data,
+                "total"           => array(
+                )
+            );
+        }
+
+        echo json_encode($result);
     }
 
     public function index_data_source()
@@ -61,7 +191,9 @@ class Leave extends MY_Controller
                 
                 
                 if (is_granted($this->module, 'approval')){
-                    if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number'] ){
+                    if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && $row['head_dept']== getEmployeeById(config_item('auth_user_id'))['employee_number']){
+                        $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
+                    } else if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && config_item('auth_role') == 'HEAD OF SCHOOL'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     } else if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
@@ -290,10 +422,11 @@ class Leave extends MY_Controller
         
         $gender = $_GET['gender'];
         $id_leave_plan = $_GET['id_leave_plan'];
+        $employee_number = $_GET['employee_number'];
 
 
-        $list = getLeaveType($gender,$id_leave_plan, FALSE);
-        
+        $list = getLeaveType($gender,$id_leave_plan, FALSE, $employee_number);
+
         echo json_encode($list);
     }
 
@@ -465,6 +598,21 @@ class Leave extends MY_Controller
         $type = $_GET['type'];
 
         $employee_has_leave = $this->model->getEmployeeHasAnnualLeave($employee_number,$type);
+        
+        echo json_encode($employee_has_leave);
+    }
+
+
+    public function get_maternity_leave()
+    {
+        // if ($this->input->is_ajax_request() === FALSE)
+        //     redirect($this->modules['secure']['route'] .'/denied');
+        
+
+        $employee_number = $_GET['employee_number'];
+        $type = $_GET['type'];
+
+        $employee_has_leave = $this->model->getEmployeeMaternityLeave($employee_number,$type);
         
         echo json_encode($employee_has_leave);
     }

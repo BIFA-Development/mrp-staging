@@ -46,10 +46,10 @@
                         </div>
 
                         <div class="form-group" style="padding-top: 25px;">
-                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>" data-source-get-longleave="<?= site_url($module['route'] . '/get_long_leave'); ?>">
+                            <select name="employee_number" id="employee_number" class="form-control select2" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_employee_number'); ?>" data-source-get-maternity="<?= site_url($module['route'] . '/get_maternity_leave'); ?>" data-source-get-annual="<?= site_url($module['route'] . '/get_annual_leave'); ?>" data-source-get-longleave="<?= site_url($module['route'] . '/get_long_leave'); ?>">
                                 <option></option>
                                 <?php foreach(available_employee($_SESSION['leave']['department_id'], config_item('auth_role'), config_item('auth_user_id')) as $user):?>
-                                <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
+                                <option data-get-warehouse="<?=$user['warehouse'];?>"  data-department-id="<?=$user['department_id'];?>" data-department-name="<?=$user['department_name'];?>" data-gender="<?=$user['gender'];?>" data-employee-number="<?=$user['employee_number'];?>" data-position="<?=$user['position'];?>" value="<?=$user['employee_number'];?>" <?= ($user['employee_number'] == $_SESSION['leave']['employee_number']) ? 'selected' : ''; ?>><?=$user['name'];?></option>
                                 <?php endforeach;?>
                             </select>
                             <label for="employee_number">Name</label>
@@ -412,6 +412,11 @@ window.onload = async function(){
                 $('#left_leave_group').show();
                 $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
                 $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
+            }  else if(leave_code === 'L04'){
+                getMaternityLeave();
+                $('#left_leave_group').show();
+                $('#leave_start_date').datepicker('setStartDate', twoWeeksLater);
+                $('#leave_end_date').datepicker('setStartDate', twoWeeksLater);
             } else if(leave_code === 'L02'){
                 $('#left_leave_group').hide();
                 $('#leave_start_date').datepicker('setStartDate', today);
@@ -656,6 +661,7 @@ window.onload = async function(){
 
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
         var gender = $('#employee_number option:selected').data('gender');
+        var employee_number = $('#employee_number option:selected').data('employee-number');
         $('#warehouse').val(warehouse).trigger('change');
         var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');
@@ -671,7 +677,7 @@ window.onload = async function(){
         $.ajax({
             url: sourceUrl,
             type: 'GET',
-            data: { gender: gender ,id_leave_plan: id_leave_plan},
+            data: { gender: gender ,id_leave_plan: id_leave_plan,employee_number: employee_number },
             success: function (data) {
                 console.log('hasilfetch');
                 console.log(data);
@@ -805,6 +811,62 @@ window.onload = async function(){
         console.log('InitAnnualLeave');
         var employee_number = $('#employee_number').val();                        
         var url = $('#employee_number').data('source-get-annual');
+        var type = $('#type_leave').val();
+        console.log('URL:' +url);
+        
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: {
+                employee_number   : employee_number,
+                type      : type,
+            },
+            success: function(data) {
+                console.log(data);
+                var obj = $.parseJSON(data);
+
+                if(obj.status=='success'){
+                    $('#left_leave').val('').trigger('change');
+                    $('#left_leave').val(obj.left_leave).trigger('change');
+                    console.log('Sukses');
+                    console.log(obj);
+
+                    $('#employee_has_leave_id').val(obj.employee_has_leave_id).trigger('change');
+                    //harus update type_leave nya
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+
+                    var warehouse_data = $('#warehouse').val();
+                    $('#warehouse').val(warehouse_data).trigger('change');
+
+                    var head_data = $('#head_dept').val();
+                    $('#head_dept').val(head_data).trigger('change');
+
+
+                    var employee_has_leave_id = $('#employee_has_leave_id').val();
+                    $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
+
+                }else{
+                    console.log('gagal');
+                    toastr.options.timeOut = 2000;
+                    toastr.options.positionClass = 'toast-top-right';
+                    
+                    var leave_type_data = $('#type_leave').val();
+                    $('#leave_type').val(leave_type_data).trigger('change');
+                    if(obj.status=='error'){
+                        toastr.error(obj.message);
+                    }else if(obj.status=='warning'){
+                        toastr.warning(obj.message);
+                    }
+                }        
+            }
+        });
+    };
+
+    function getMaternityLeave() {
+        console.log('InitAnnualLeave');
+        var employee_number = $('#employee_number').val();                        
+        var url = $('#employee_number').data('source-get-maternity');
         var type = $('#type_leave').val();
         console.log('URL:' +url);
         

@@ -12,8 +12,12 @@
         <div class="card">
           <div class="card-head style-primary">
             <header>Employee Leave Plan Calendar</header>
+           
           </div>
           <div class="card-body no-padding">
+             <?php if (is_granted($module, 'create')) : ?>
+              
+            <?php endif ?>
             <?php
               if ($this->session->flashdata('alert')) {
                 render_alert(
@@ -23,6 +27,12 @@
               }
             ?>
             <div class="p-2" style="padding: 20px;">
+              <button 
+                onclick="window.open('<?= site_url(); ?>leave_plan/create/new/', '_blank')" 
+                class="btn btn-primary position-absolute" 
+                style="bottom: 15px; right: 30px;">
+                Create Leave 
+              </button>
               <div id="calendar"></div>
             </div>
           </div>
