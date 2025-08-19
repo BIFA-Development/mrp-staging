@@ -145,7 +145,7 @@ class Leave_Model extends MY_Model
             'tb_leave_plan.document_number as ref_leave_plan_number',
         );
 
-        if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER' || config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'HEAD OF SCHOOL' || config_item('auth_role') == 'CHIEF OF FINANCE' || config_item('auth_role') == 'CHIEF OPERATION OFFICER') {
+        if(config_item('auth_role') == 'HR STAFF' || config_item('auth_role') == 'HR MANAGER' || config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'CHIEF OF FINANCE' || config_item('auth_role') == 'CHIEF OPERATION OFFICER') {
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
             $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
@@ -165,22 +165,22 @@ class Leave_Model extends MY_Model
         //     $this->db->where_in('tb_leave_requests.status', ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY HEAD DEPT']);
         //     $this->db->from('tb_leave_requests');
         } else {
-            // $this->db->select($selected);
-            // $this->db->from('tb_leave_requests');
-            // $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
-            // $this->db->group_start();
-            // $this->db->where('tb_leave_requests.employee_number', $person_number);
-            // $this->db->or_where('tb_leave_requests.head_dept', $person_number);
-            // $this->db->group_end();
-            $selected_person            = getEmployeeById(config_item('auth_user_id'));
-            $person_number              = $selected_person['employee_number'];
-            $selected = array(
-                'tb_leave_requests.*',
-            );
             $this->db->select($selected);
-            $this->db->where('tb_leave_requests.employee_number', $person_number);
-            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
             $this->db->from('tb_leave_requests');
+            $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+            $this->db->group_start();
+            $this->db->where('tb_leave_requests.employee_number', $person_number);
+            $this->db->or_where('tb_leave_requests.head_dept', $person_number);
+            $this->db->group_end();
+            // $selected_person            = getEmployeeById(config_item('auth_user_id'));
+            // $person_number              = $selected_person['employee_number'];
+            // $selected = array(
+            //     'tb_leave_requests.*',
+            // );
+            // $this->db->select($selected);
+            // $this->db->where('tb_leave_requests.employee_number', $person_number);
+            // $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+            // $this->db->from('tb_leave_requests');
             
         }
         

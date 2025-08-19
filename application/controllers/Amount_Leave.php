@@ -54,7 +54,7 @@ class Amount_Leave extends MY_Controller
                 $col = array();
                 $col[] = print_number($no);
                 $col[] = print_string($row['leave_name']);
-                $col[] = print_string($row['position']);
+                $col[] = print_string($row['name_group']);
                 $col[] = print_number($row['amount_leave']);
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];

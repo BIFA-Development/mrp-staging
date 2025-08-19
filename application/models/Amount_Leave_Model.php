@@ -16,7 +16,7 @@ class Amount_Leave_Model extends MY_Model
         return array(
             'No',
             'Leave Name',
-            'Position',
+            'Group Leave',
             'Amount',
         );
     }
@@ -75,10 +75,13 @@ class Amount_Leave_Model extends MY_Model
         $selected = array(
             'tb_amount_leave_items.*',
             'tb_leave_type.name_leave AS leave_name',
+            'tb_group_leave.name_group AS name_group',
         );
         $this->db->select($selected);
         $this->db->from('tb_amount_leave_items');
         $this->db->join('tb_leave_type', 'tb_amount_leave_items.leave_id = tb_leave_type.id', 'left');
+        $this->db->join('tb_group_leave', 'tb_amount_leave_items.position = tb_group_leave.id', 'left');
+
         $this->searchIndex();
 
         $column_order = $this->getOrderableColumns();

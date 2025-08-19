@@ -3365,6 +3365,23 @@ if (!function_exists('currency_for_vendor_list')) {
     }
   }
 
+
+  if ( ! function_exists('group_leave_list')) {
+    function group_leave_list()
+    {
+      $CI =& get_instance();
+
+      $CI->db->select('tb_group_leave.*');
+      $CI->db->from('tb_group_leave');
+      $CI->db->order_by('tb_group_leave.name_group', 'ASC');
+
+      $query  = $CI->db->get();
+      $result = $query->result_array();
+
+      return $result;
+    }
+  }
+
   if ( ! function_exists('level_list')) {
     function level_list()
     {
@@ -3666,48 +3683,64 @@ if (!function_exists('currency_for_vendor_list')) {
       
   //   }
   // }
+
+
+if (!function_exists('getLeaveHaveAmount')) {
+    function getLeaveHaveAmount()
+    {
+        $CI =& get_instance();
+        $CI->db->select('
+            tb_leave_type.*,
+        ');
+        $CI->db->from('tb_leave_type');
+        $CI->db->where('is_have_amount', TRUE);
+
+        $query = $CI->db->get();
+        return $query->result_array();
+    }
+  }
     
 
-  if (!function_exists('getLeaveTypeData')) {
-      function getLeaveTypeData($gender, $haveAmount, $employee_number)
-      {
-          $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
-          $employee = getEmployeeByEmployeeNumber($employee_number);
+if (!function_exists('getLeaveTypeData')) {
+    function getLeaveTypeData($gender, $haveAmount, $employee_number)
+    {
+        $sabbaticalLeave = checkSabbaticalLeaveEligibility($employee_number);
+        $employee = getEmployeeByEmployeeNumber($employee_number);
+        $CI =& get_instance();
+        $CI->db->select('
+            tb_leave_type.*,
+            tb_amount_leave_items.amount_leave,
+            tb_amount_leave_items.position AS amount_position
+        ');
+        $CI->db->from('tb_leave_type');
 
-          $CI =& get_instance();
-          $CI->db->select('
-              tb_leave_type.*,
-              tb_amount_leave_items.amount_leave,
-              tb_amount_leave_items.position AS amount_position
-          ');
-          $CI->db->from('tb_leave_type');
+        $CI->db->join(
+          'tb_amount_leave_items',
+          'tb_leave_type.id = tb_amount_leave_items.leave_id
+          AND tb_amount_leave_items.position = ' . $CI->db->escape($employee['group_leave']),
+          'left'
+        );
 
-          $CI->db->join(
-              'tb_amount_leave_items',
-              'tb_leave_type.id = tb_amount_leave_items.leave_id AND tb_amount_leave_items.position = ' . $CI->db->escape($employee['position']),
-              'left'
-          );
+        // Group gender condition
+        $CI->db->group_start();
+        $CI->db->where('gender', $gender);
+        $CI->db->or_where('gender IS NULL', null, false);
+        $CI->db->group_end();
 
-          // Group gender condition
-          $CI->db->group_start();
-          $CI->db->where('gender', $gender);
-          $CI->db->or_where('gender IS NULL', null, false);
-          $CI->db->group_end();
+        // Group is_have_amount condition
+        $CI->db->group_start();
+        $CI->db->where('is_have_amount', $haveAmount);
+        $CI->db->or_where('is_have_amount IS NULL', null, false);
+        $CI->db->group_end();
 
-          // Group is_have_amount condition
-          $CI->db->group_start();
-          $CI->db->where('is_have_amount', $haveAmount);
-          $CI->db->or_where('is_have_amount IS NULL', null, false);
-          $CI->db->group_end();
+        // Check sabbatical leave eligibility - exclude L07 if not eligible
+        if ($sabbaticalLeave['eligible_for_sabbatical'] == 'f') {
+            $CI->db->where('leave_code !=', 'L07');
+        }
 
-          // Check sabbatical leave eligibility - exclude L07 if not eligible
-          if ($sabbaticalLeave['eligible_for_sabbatical'] == 'f') {
-              $CI->db->where('leave_code !=', 'L07');
-          }
-
-          $query = $CI->db->get();
-          return $query->result_array();
-      }
+        $query = $CI->db->get();
+        return $query->result_array();
+    }
   }
 
   if ( ! function_exists('getAnnualLeaveAmountLevel')) {

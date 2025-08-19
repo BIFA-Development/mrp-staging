@@ -21,7 +21,7 @@
                         <div class="form-group">
                             <select name="leave_id" id="leave_id" data-placeholder="Pilih Type Cuti" class="form-control select2" required>
                                 <option></option>
-                                <?php foreach(getLeaveAll() as $leave):?>
+                                <?php foreach(getLeaveHaveAmount() as $leave):?>
                                 <option value="<?= $leave['id']; ?>" data-leave-id="<?= $leave['id']; ?>" <?= ($leave['id'] == $_SESSION['amount_leave']['leave_id']) ? 'selected' : ''; ?>>
                                     <?= $leave['name_leave']; ?>
                                 </option>
@@ -38,11 +38,11 @@
                         <div class="form-group">
                             <select name="position" id="position" class="form-control select2" data-placeholder="Select Occupation" required>
                                 <option></option>
-                                <?php foreach(occupation_list() as $occupation):?>
-                                <option value="<?=$occupation['position'];?>"<?= ($occupation['position'] == $_SESSION['amount_leave']['position']) ? 'selected' : ''; ?>><?=$occupation['position'];?></option>
+                                <?php foreach(group_leave_list() as $occupation):?>
+                                <option value="<?=$occupation['id'];?>"<?= ($occupation['id'] == $_SESSION['amount_leave']['position']) ? 'selected' : ''; ?>><?=$occupation['name_group'];?></option>
                                 <?php endforeach;?>
                             </select>
-                            <label for="position">Posisi</label>
+                            <label for="position">Group Leave</label>
                         </div>
                         <!-- <div class="form-group">
                             <input type="text" value="<?= $_SESSION['amount_leave']['position']; ?>" name="position" id="position" class="form-control" data-validation-rule="unique" data-validation-url="<?= site_url('ajax/expense_duty_name_validation'); ?>" data-validation-exception="" required>

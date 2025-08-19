@@ -674,7 +674,9 @@ class Employee extends MY_Controller
                         $file_kontrak = $config['upload_path'] . $data['upload_data']['file_name'];
                         $form_data['file_kontrak'] = $file_kontrak;
                     }
+           
 
+                    log_message('info', 'New contract created with ID: ' . $idcontract);
                     if ($this->model->insert_contract($form_data)){
                         $return['type'] = 'success';
                         $return['info'] = 'Employee ' . $this->input->post('name') .' updated.';
@@ -730,7 +732,9 @@ class Employee extends MY_Controller
   
             foreach ($entities as $row){
                 $no++;
-                $col = array();
+                    $col = array();
+                    // Tambahkan button Info Leave
+                    
                 $col[] = print_number($no);
                 $col[] = print_string($row['name_leave']);
                 $col[] = print_number($row['amount_leave']);
@@ -739,7 +743,7 @@ class Employee extends MY_Controller
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];
                 $col['DT_RowAttr']['data-target'] = '#data-modal';
-                // $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info_leave/'. $row['id']);
+                $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/edit_leave/'. $row['id']);
                 $col['DT_RowAttr']['onClick']     = '';
 
                 $data[] = $col;
@@ -937,7 +941,7 @@ class Employee extends MY_Controller
         echo json_encode($return);
     }
 
-    public function info_leave($id)
+    public function edit_leave($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
             redirect($this->modules['secure']['route'] .'/denied');
@@ -946,14 +950,11 @@ class Employee extends MY_Controller
             $return['type'] = 'danger';
             $return['info'] = "You don't have permission to edit this data!";
         } else {
-            $entity = $this->model->findEmployeeBenefitById($id);
-            $employee_has_benefit = $this->model->checkHistoryClaim($entity['employee_number'],$entity['employee_benefit_id']);
-
-            $this->data['entity'] = $entity;
-            $this->data['entity']['last_claim'] = $employee_has_benefit['created_at'];
+            $entities = $this->model->findLeaveById($id);
+            $this->data['entity'] = $entities;
 
             $return['type'] = 'success';
-            $return['info'] = $this->load->view($this->module['view'] .'/info_leave', $this->data, TRUE);
+            $return['info'] = $this->load->view($this->module['view'] .'/edit_leave', $this->data, TRUE);
         }
 
         echo json_encode($return);
@@ -1108,6 +1109,43 @@ class Employee extends MY_Controller
                         }
                     }
                 }
+                
+            }
+        }
+
+        echo json_encode($return);
+    }
+
+    public function save_edit_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'save') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if ($this->input->post('id') != ''){
+                $form_data = array(
+                    'left_leave'   => $this->input->post('left_leave'),
+                    'used_leave'   => $this->input->post('used_leave'),
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                $criteria = $this->input->post('id');
+
+                if ($this->model->update_leave($form_data, $criteria)){
+                    $return['type'] = 'success';
+                    $return['info'] = 'Benefit Leave updated.';
+                } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
+                }
+                    
+                
+            } else {
+                $return['type'] = 'danger';
+                $return['info'] = 'There are error while updating data. Please try again later.';
                 
             }
         }

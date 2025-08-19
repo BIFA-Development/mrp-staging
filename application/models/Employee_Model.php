@@ -548,6 +548,20 @@ class Employee_Model extends MY_Model
         $this->db->set($user_data);
         $this->db->insert('tb_employee_contracts');
 
+        $insert_id = $this->db->insert_id();
+
+        $form_data = array(
+        'employee_contract_id'  => $insert_id,
+        'employee_number'       => $user_data['employee_number'],
+        'leave_type'   => 1,
+        'amount_leave' => 12,
+        'left_leave'   => 12,
+        'used_leave'   => 0,
+        'updated_by'   => 'SYSTEM',
+        );
+
+        $this->insert_leave($form_data);
+
         if ($this->db->trans_status() === FALSE)
             return FALSE;
 
@@ -676,6 +690,21 @@ class Employee_Model extends MY_Model
 
             $i++;
         }
+    }
+
+        public function findLeaveById($id)
+    {
+        
+        $this->db->select(array(
+            'tb_employee_has_leave.*',
+            'tb_leave_type.name_leave AS name_leave',
+        ));
+        $this->db->where('tb_employee_has_leave.id', $id);
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type');
+        $query      = $this->db->get('tb_employee_has_leave');
+        $row        = $query->unbuffered_row('array');
+
+        return $row;
     }
 
     
