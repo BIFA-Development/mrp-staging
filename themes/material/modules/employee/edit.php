@@ -209,6 +209,17 @@
                             </select>
                             <label for="level_id">Level</label>
                         </div>
+
+                        <div class="form-group">
+                            <select name="group_leave" id="group_leave" class="form-control" style="width: 100%" data-placeholder="Select Group Leave">
+                                <option value="">Select Group Leave</option>
+                                <?php foreach(group_leave_list() as $group):?>
+                                <option data-group-id="<?=$group['id'];?>" value="<?=$group['id'];?>" <?php if ($entity['group_leave']==$group['id']):echo 'selected'; endif;?>><?=$group['name_group'];?></option>
+                                <?php endforeach;?>
+                            </select>
+                            <label for="group_leave">Group Leave</label>
+                        </div>
+
                         
                     </div>
                 </div>

@@ -140,6 +140,13 @@
                                             <dd>
                                                 <?=$entity['level_name'];?>
                                             </dd>
+
+                                            <dt>
+                                                Group Leave
+                                            </dt>
+                                            <dd>
+                                                <?=$entity['name_group'];?>
+                                            </dd>
                                         </dl>
                                     </div>
                                 </div>
