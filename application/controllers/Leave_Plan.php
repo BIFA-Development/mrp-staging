@@ -394,6 +394,81 @@ class Leave_Plan extends MY_Controller
         echo json_encode($employee_has_leave);
     }
 
+    public function get_contract_period()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        $employee_number = $_GET['employee_number'];
+        $leave_type = $_GET['leave_type'];
+
+        $return = array();
+
+        // Check if it's annual leave (L01)
+        $get_leave = getLeaveCodeById($leave_type);
+        $get_leave_code = $get_leave['leave_code'];
+
+        if ($get_leave_code == 'L01') {
+            if (isEmployeeContractActiveExist($employee_number)) {
+                $kontrak_active = findContractActive($employee_number);
+                
+                // Get annual leave usage data
+                $annual_leave_data = $this->model->getAnnualLeaveUsage($employee_number, $kontrak_active['start_date'], $kontrak_active['end_date']);
+                
+                // Get annual leave quota if available
+                $annual_leave_quota = $this->model->getEmployeeHasAnnualLeave($employee_number, 1); // 1 is typically annual leave type
+                
+                $return['status'] = 'success';
+                $return['contract_number'] = $kontrak_active['contract_number'];
+                $return['start_date'] = print_date($kontrak_active['start_date'], 'd M Y');
+                $return['end_date'] = print_date($kontrak_active['end_date'], 'd M Y');
+                $return['contract_period'] = print_date($kontrak_active['start_date'], 'd M Y') . ' s/d ' . print_date($kontrak_active['end_date'], 'd M Y');
+                $return['total_annual_leave_used'] = $annual_leave_data['total_used'];
+                $return['annual_leave_details'] = $annual_leave_data['details'];
+                
+                // Add quota information if available and extended period info
+                $return['extended_period'] = $annual_leave_data['extended_period'];
+                
+                if ($annual_leave_quota['status'] == 'success') {
+                    $return['annual_leave_quota'] = $annual_leave_quota['amount_leave'];
+                    // Calculate real-time remaining leave: quota - actual usage from leave plans
+                    $return['annual_leave_remaining'] = $annual_leave_quota['amount_leave'] - $annual_leave_data['total_used'];
+                    // Ensure it doesn't go below zero
+                    if ($return['annual_leave_remaining'] < 0) {
+                        $return['annual_leave_remaining'] = 0;
+                    }
+                    $return['message'] = 'Contract period: ' . $return['contract_period'];
+                } else {
+                    $return['annual_leave_quota'] = 0;
+                    $return['annual_leave_remaining'] = 0;
+                    $return['message'] = 'Contract period: ' . $return['contract_period'];
+                }
+            } else {
+                $return['status'] = 'error';
+                $return['contract_number'] = '';
+                $return['start_date'] = '';
+                $return['end_date'] = '';
+                $return['contract_period'] = '';
+                $return['total_annual_leave_used'] = 0;
+                $return['annual_leave_details'] = array();
+                $return['annual_leave_quota'] = 0;
+                $return['annual_leave_remaining'] = 0;
+                $return['message'] = 'Karyawan ini tidak memiliki kontrak aktif. Silakan hubungi HR untuk mengaktifkan kontrak terlebih dahulu sebelum membuat rencana cuti tahunan.';
+            }
+        } else {
+            $return['status'] = 'info';
+            $return['contract_number'] = '';
+            $return['start_date'] = '';
+            $return['end_date'] = '';
+            $return['contract_period'] = '';
+            $return['total_annual_leave_used'] = 0;
+            $return['annual_leave_details'] = array();
+            $return['message'] = 'Contract period validation only applies to annual leave';
+        }
+
+        echo json_encode($return);
+    }
+
     public function sendLeavePlan()
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -488,7 +563,42 @@ class Leave_Plan extends MY_Controller
                 $errors[] = 'Attention!! Please Fill Leave Type!!'. $_SESSION['leave_plan']['leave_type'].'-'.$_SESSION['leave_plan']['type_leave'];
             }
 
-            // $errors[] = 'Attention!! Please Fill Employee Has ID!!'. $_SESSION['leave_plan']['employee_has_leave_id'].'-';
+            // Additional validation for annual leave (L01)
+            if ($get_leave_code == 'L01') {
+                $employee_number = $_SESSION['leave_plan']['employee_number'];
+                
+                // Check if employee has active contract
+                if (isEmployeeContractActiveExist($employee_number)) {
+                    $kontrak_active = findContractActive($employee_number);
+                    $leave_start_date = $_SESSION['leave_plan']['leave_start_date'];
+                    $leave_end_date = $_SESSION['leave_plan']['leave_end_date'];
+                    
+                    // Validate date range is within contract period
+                    $contract_start = new DateTime($kontrak_active['start_date']);
+                    $contract_end = new DateTime($kontrak_active['end_date']);
+                    $start_date = new DateTime($leave_start_date);
+                    $end_date = new DateTime($leave_end_date);
+                    
+                    if ($start_date < $contract_start || $end_date > $contract_end) {
+                        $errors[] = 'Tanggal cuti harus berada dalam periode kontrak aktif: ' . 
+                                   print_date($kontrak_active['start_date'], 'd M Y') . ' s/d ' . 
+                                   print_date($kontrak_active['end_date'], 'd M Y');
+                    }
+                    
+                    // Validate total leave days doesn't exceed remaining quota
+                    $employee_has_leave = $this->model->getEmployeeHasAnnualLeave($employee_number, $_SESSION['leave_plan']['leave_type']);
+                    if ($employee_has_leave['status'] == 'success') {
+                        $total_leave_days = intval($_SESSION['leave_plan']['total_leave_days']);
+                        
+                        if ($total_leave_days > $employee_has_leave['left_leave']) {
+                            $errors[] = 'Total hari cuti (' . $total_leave_days . ' hari) melebihi sisa kuota cuti tahunan (' . 
+                                       $employee_has_leave['left_leave'] . ' hari). Silakan kurangi jumlah hari cuti.';
+                        }
+                    }
+                } else {
+                    $errors[] = 'Karyawan tidak memiliki kontrak aktif. Silakan hubungi HR untuk mengaktifkan kontrak terlebih dahulu.';
+                }
+            }
 
             
 

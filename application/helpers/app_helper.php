@@ -4567,7 +4567,8 @@ if (!function_exists('getLeaveTypeData')) {
 
       $CI->db->from('tb_employee_contracts');
       $CI->db->where('employee_number', $employee_number);
-      $CI->db->where('tb_employee_contracts.status', 'ACTIVE');    
+      $CI->db->where('tb_employee_contracts.status', 'ACTIVE');
+      $CI->db->where('tb_employee_contracts.end_date >=', date('Y-m-d'));
 
       $query = $CI->db->get();
 
@@ -5019,4 +5020,34 @@ if (!function_exists('getLeaveTypeData')) {
     }
   }
 
-    
+  // Helper functions for Indonesian date formatting
+  if ( ! function_exists('getDayNameIndonesian')) {
+    function getDayNameIndonesian($date) {
+      $days = array(
+        'Sun' => 'Minggu',
+        'Mon' => 'Senin', 
+        'Tue' => 'Selasa',
+        'Wed' => 'Rabu',
+        'Thu' => 'Kamis',
+        'Fri' => 'Jumat',
+        'Sat' => 'Sabtu'
+      );
+      $dayEng = date('D', strtotime($date));
+      return $days[$dayEng];
+    }
+  }
+  
+  if ( ! function_exists('formatDateIndonesian')) {
+    function formatDateIndonesian($date) {
+      $months = array(
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
+        4 => 'April', 5 => 'Mei', 6 => 'Juni',
+        7 => 'Juli', 8 => 'Agustus', 9 => 'September',
+        10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+      );
+      $day = date('j', strtotime($date));
+      $month = $months[date('n', strtotime($date))];
+      $year = date('Y', strtotime($date));
+      return $day . ' ' . $month . ' ' . $year;
+    }
+  }

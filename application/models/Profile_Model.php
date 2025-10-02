@@ -193,6 +193,29 @@ class Profile_Model extends MY_Model
         return json_encode($query->result());
     }
 
+    public function getAllDataLeaveRequest($employee_number) {
+        $selected = array(
+            'tb_leave_requests.id',
+            'tb_leave_requests.document_number',
+            'tb_leave_requests.leave_start_date',
+            'tb_leave_requests.leave_end_date',
+            'tb_leave_requests.total_leave_days',
+            'tb_leave_requests.reason',
+            'tb_leave_requests.status',
+            'tb_leave_requests.person_name',
+            'tb_leave_type.name_leave as leave_type_name',
+            'tb_leave_type.leave_code'
+        );
+        $this->db->select($selected);
+        $this->db->from('tb_leave_requests');  
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_leave_requests.leave_type', 'left');
+        $this->db->where('tb_leave_requests.employee_number', $employee_number);
+        $this->db->where_not_in('tb_leave_requests.status', ['REVISED', 'REJECT']);
+        $query = $this->db->get();
+          
+        return json_encode($query->result());
+    }
+
 
     // public function findById($id)
     // {

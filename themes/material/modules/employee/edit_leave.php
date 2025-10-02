@@ -31,12 +31,12 @@
                         </div>
 
                         <div class="form-group">
-                            <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?=$entity['left_leave'];?>"  step="1">
+                            <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?=$entity['left_leave'];?>" step="1" <?= ($entity['used_leave'] != 0) ? 'readonly' : ''; ?>>
                             <label for="left_leave">Sisa Cuti</label>
                         </div>
 
                         <div class="form-group">
-                            <input type="number" name="used_leave" id="used_leave" class="form-control number" value="<?=$entity['used_leave'];?>"  step="1">
+                            <input type="number" name="used_leave" id="used_leave" class="form-control number" value="<?=$entity['used_leave'];?>" step="1" <?= ($entity['used_leave'] != 0) ? 'readonly' : ''; ?>>
                             <label for="used_leave">Cuti Digunakan</label>
                         </div>
                     </div>

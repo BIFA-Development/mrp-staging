@@ -21,7 +21,7 @@
           </div>
           <div class="clearfix">
             <div class="pull-left">REQUEST DATE: </div>
-            <div class="pull-right"><?=print_date($entity['request_date']);?></div>
+            <div class="pull-right"><?=formatDateIndonesian($entity['request_date']);?></div>
           </div>
           <div class="clearfix">
             <div class="pull-left">BASE: </div>
@@ -53,23 +53,51 @@
             <dt>Name/Nama</dt>
             <dd><?=($entity['person_name']==null)? 'N/A':print_string($entity['person_name']);?></dd>
 
-            <dt>Occupation/Jabatan</dt>
+          
+
+            <dt>Occupation/Jabatan</dt> 
             <dd><?= print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']);?></dd>
             
             <dt>Leave Start Date</dt>
-            <dd><?=($entity['leave_start_date']==null)? 'N/A':print_date($entity['leave_start_date']);?></dd>
+            <dd><?php 
+                if($entity['leave_start_date']==null) {
+                    echo 'N/A';
+                } else {
+                    echo formatDateIndonesian($entity['leave_start_date']) . ' (' . getDayNameIndonesian($entity['leave_start_date']) . ')';
+                }
+            ?></dd>
 
             <dt>Leave End Date</dt>
-            <dd><?=($entity['leave_end_date']==null)? 'N/A':print_date($entity['leave_end_date']);?></dd>
+            <dd><?php 
+                if($entity['leave_end_date']==null) {
+                    echo 'N/A';
+                } else {
+                    echo formatDateIndonesian($entity['leave_end_date']) . ' (' . getDayNameIndonesian($entity['leave_end_date']) . ')';
+                }
+            ?></dd>
             
             <dt>Total Days</dt>
-            <dd><?=($entity['total_leave_days']==null)? 'N/A':print_string($entity['total_leave_days']);?></dd>
+            <dd><?=($entity['total_leave_days']==null)? 'N/A':print_string($entity['total_leave_days']);?> hari</dd>
 
             <dt>Requested By</dt>
             <dd><?=($entity['reason']==null)? 'N/A':strtoupper($entity['request_by']);?></dd>
 
             <dt>Leave Type</dt>
             <dd><?=($entity['leave_type']==null)? 'N/A':print_string(getLeaveCodeById($entity['leave_type'])['name_leave']);?></dd>
+
+            <?php 
+            // Check if leave type is annual leave (L01) and show remaining leave balance
+            if($entity['leave_type'] != null) {
+                $leave_info = getLeaveCodeById($entity['leave_type']);
+                if($leave_info['leave_code'] == 'L01') {
+                    $annual_leave_data = getAnnualLeaveEmployee($entity['employee_number'], $entity['leave_type']);
+                    if($annual_leave_data && isset($annual_leave_data['left_leave'])) {
+                        echo '<dt>Sisa Cuti Tahunan</dt>';
+                        echo '<dd>' . $annual_leave_data['left_leave'] . ' hari</dd>';
+                    }
+                }
+            }
+            ?>
 
             <dt>Reason</dt>
             <dd><?=($entity['reason']==null)? 'N/A':print_string($entity['reason']);?></dd>
@@ -107,11 +135,13 @@
         </a>
 
         <div class="pull-right">
-            <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED' && $entity['status'] != 'EXPENSE REQUEST'): ?>
-            <a href="<?=site_url($module['route'] .'/edit/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" id="modal-edit-data-button">
+            <?php if (is_granted($module, 'create')  && $entity['status'] != 'REVISED' && $entity['status'] != 'APPROVED'): ?>
+            <?php if (getEmployeeById(config_item('auth_user_id'))['employee_number'] != $entity['head_dept']): ?>
+              <a href="<?=site_url($module['route'] .'/edit/'. $entity['id']);?>" class="btn btn-floating-action btn-primary btn-tooltip ink-reaction" id="modal-edit-data-button">
                 <i class="md md-edit"></i>
                 <small class="top right">edit</small>
             </a>
+            <?php endif;?>
             <?php endif;?>
 
             <!-- <?php if (is_granted($module, 'print')):?>

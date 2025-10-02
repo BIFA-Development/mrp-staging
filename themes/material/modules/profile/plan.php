@@ -11,7 +11,7 @@
       <div class="col-md-8">
         <div class="card">
           <div class="card-head style-primary">
-            <header>Employee Leave Plan Calendar</header>
+            <header>Employee Leave Plan & Request Calendar</header>
            
           </div>
           <div class="card-body no-padding">
@@ -31,7 +31,7 @@
                 onclick="window.open('<?= site_url(); ?>leave_plan/create/new/', '_blank')" 
                 class="btn btn-primary position-absolute" 
                 style="bottom: 15px; right: 30px;">
-                Create Leave 
+                Create Leave Plan
               </button>
               <div id="calendar"></div>
             </div>
@@ -104,9 +104,12 @@
 <!-- ✅ Inject PHP data -->
 <script>
   const rawLeavePlanEvents = <?= isset($leave_plan) ? json_encode($leave_plan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '""'; ?>;
+  const rawLeaveRequestEvents = <?= isset($leave_request) ? json_encode($leave_request, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '""'; ?>;
 
   // Parse it into a usable JavaScript array
   let leavePlanEvents = [];
+  let leaveRequestEvents = [];
+  
   try {
     leavePlanEvents = JSON.parse(rawLeavePlanEvents);
   } catch (e) {
@@ -114,22 +117,51 @@
     leavePlanEvents = [];
   }
 
-  console.log("Parsed leavePlanEvents:", leavePlanEvents);
+  try {
+    leaveRequestEvents = JSON.parse(rawLeaveRequestEvents);
+  } catch (e) {
+    console.error("Failed to parse leaveRequestEvents:", e);
+    leaveRequestEvents = [];
+  }
 
-  const formattedEvents = leavePlanEvents
+  console.log("Parsed leavePlanEvents:", leavePlanEvents);
+  console.log("Parsed leaveRequestEvents:", leaveRequestEvents);
+
+  // Format leave plan events (existing plans)
+  const formattedPlanEvents = leavePlanEvents
     .filter(item => item.leave_start_date && item.leave_end_date)
     .map(item => ({
-      title: `${item.leave_type_name} - ${item.person_name}`,
+      title: `[PLAN] ${item.leave_type_name} - ${item.person_name}`,
       start: item.leave_start_date,
       end: moment(item.leave_end_date).add(1, 'days').format('YYYY-MM-DD'), // end is exclusive
-      color: getColor(item.status),
+      color: getPlanColor(item.status),
       description: item.reason || '-',
       status: item.status,
       document_number: item.document_number || '-',
-      idDataLeave: item.id
+      idDataLeave: item.id,
+      type: 'plan'
     }));
 
-  function getColor(status) {
+  // Format leave request events (actual requests) - all types with green color
+  const formattedRequestEvents = leaveRequestEvents
+    .filter(item => item.leave_start_date && item.leave_end_date)
+    .map(item => ({
+      title: `[REQUEST] ${item.leave_type_name} - ${item.person_name}`,
+      start: item.leave_start_date,
+      end: moment(item.leave_end_date).add(1, 'days').format('YYYY-MM-DD'), // end is exclusive
+      color: '#28a745', // Green color for all leave requests
+      description: item.reason || '-',
+      status: item.status,
+      document_number: item.document_number || '-',
+      idDataLeave: item.id,
+      type: 'request',
+      leave_code: item.leave_code
+    }));
+
+  // Combine both arrays
+  const formattedEvents = [...formattedPlanEvents, ...formattedRequestEvents];
+
+  function getPlanColor(status) {
     switch (status) {
       case 'APPROVED': return '#4caf50';
       case 'REJECT': return '#f44336';
@@ -140,7 +172,10 @@
 
   $(document).ready(function () {
     console.log('Raw leavePlanEvents:', rawLeavePlanEvents);
+    console.log('Raw leaveRequestEvents:', rawLeaveRequestEvents);
     console.log('Final leavePlanEvents:', leavePlanEvents);
+    console.log('Final leaveRequestEvents:', leaveRequestEvents);
+    console.log('Combined formattedEvents:', formattedEvents);
 
     console.log('FullCalendar:', FullCalendar);
     console.log('MultiMonthPlugin:', FullCalendar.MultiMonth);
@@ -165,7 +200,7 @@
 
         const siteUrl = '<?= site_url(); ?>';
 
-        $('#data-modal .modal-body').html(`
+        let modalContent = `
           <div class="position-relative" style="padding-bottom: 30px;">
           <dl class="dl-inline">
             <dt>Title</dt>
@@ -176,10 +211,14 @@
             <dd>${event.extendedProps.status}</dd>
             <dt>Mulai</dt>
             <dd>${moment(event.start).format('YYYY-MM-DD')}</dd>
-            <dt>Mulai</dt>
-            <dd>${moment(event.end).format('YYYY-MM-DD')}</dd>
+            <dt>Selesai</dt>
+            <dd>${moment(event.end).subtract(1, 'day').format('YYYY-MM-DD')}</dd>
             <dt>Alasan</dt>
-            <dd>${event.extendedProps.description}</dd>
+            <dd>${event.extendedProps.description}</dd>`;
+
+        // Add different buttons based on event type
+        if (event.extendedProps.type === 'plan') {
+          modalContent += `
             <div class="pull-right">
               <button 
                 onclick="window.open('${siteUrl}leave/create/0/${event.extendedProps.idDataLeave}', '_blank')" 
@@ -187,10 +226,27 @@
                 style="bottom: 15px; right: 15px;">
                 Create Request Leave
               </button>
-            </div>
+            </div>`;
+        } else if (event.extendedProps.type === 'request') {
+          modalContent += `
+            <dt>Leave Type</dt>
+            <dd>${event.extendedProps.leave_code || 'N/A'}</dd>
+            <div class="pull-right">
+              <button 
+                onclick="window.open('${siteUrl}leave', '_blank')" 
+                class="btn btn-success position-absolute" 
+                style="bottom: 15px; right: 15px;">
+                View Request Details
+              </button>
+            </div>`;
+        }
+
+        modalContent += `
             </dl>
           </div>
-        `);
+        `;
+
+        $('#data-modal .modal-body').html(modalContent);
 
 
         $('#data-modal').modal('show');

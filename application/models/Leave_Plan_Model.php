@@ -289,6 +289,57 @@ class Leave_Plan_Model extends MY_Model
         }
     }
 
+    public function getAnnualLeaveUsage($employee_number, $contract_start_date, $contract_end_date)
+    {
+        
+        
+        // Get all annual leave (L01) records for this employee within the extended contract period
+        $this->db->select('
+            tb_leave_plan.document_number,
+            tb_leave_plan.leave_start_date,
+            tb_leave_plan.leave_end_date,
+            tb_leave_plan.total_leave_days,
+            tb_leave_plan.status,
+            tb_leave_plan.request_date,
+            tb_leave_type.leave_code,
+            tb_leave_type.name_leave
+        ');
+        $this->db->from('tb_leave_plan');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_leave_plan.leave_type', 'left');
+        $this->db->where('tb_leave_plan.employee_number', $employee_number);
+        $this->db->where('tb_leave_type.leave_code', 'L01'); // Annual leave code
+        $this->db->where('tb_leave_plan.leave_start_date >=', $contract_start_date);
+        $this->db->where('tb_leave_plan.leave_end_date <=', $contract_end_date);
+        // $this->db->where_in('tb_leave_plan.status', array('PLAN', 'APPROVED', 'PROCESSED')); // Only count planned/approved leaves
+        $this->db->order_by('tb_leave_plan.leave_start_date', 'ASC');
+        
+        $query = $this->db->get();
+        $results = $query->result_array();
+        
+        $total_used = 0;
+        $details = array();
+        
+        foreach ($results as $row) {
+            $total_used += $row['total_leave_days'];
+            $details[] = array(
+                'document_number' => $row['document_number'],
+                'leave_start_date' => print_date($row['leave_start_date'], 'd M Y'),
+                'leave_end_date' => print_date($row['leave_end_date'], 'd M Y'),
+                'total_days' => $row['total_leave_days'],
+                'status' => $row['status'],
+                'request_date' => print_date($row['request_date'], 'd M Y'),
+                'leave_type' => $row['name_leave']
+            );
+        }
+        
+        return array(
+            'total_used' => $total_used,
+            'details' => $details,
+            'contract_period' => print_date($contract_start_date, 'd M Y') . ' - ' . print_date($contract_end_date, 'd M Y'),
+            'extended_period' => print_date($contract_start_date, 'd M Y') . ' - ' . print_date($contract_end_date, 'd M Y')
+        );
+    }
+
     public function save()
     {
         $this->db->trans_begin();

@@ -663,7 +663,7 @@ class Leave extends MY_Controller
                     $errors[] = "ID Kontrak".$id;
                     $errors[] = "Start Kontrak {$start_contract->format('Y-m-d')}";
                     $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
-                
+
                 }
             }
 

@@ -91,7 +91,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <input type="number" name="total_leave_days" id="total_leave_days" class="form-control number" value="<?= $_SESSION['leave']['total_leave_days']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_total_leave_days'); ?>">
+                                    <input type="number" name="total_leave_days" id="total_leave_days" class="form-control number" value="<?= $_SESSION['leave']['total_leave_days']; ?>" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_total_leave_days'); ?>" readonly>
                                     <label for="total_leave_days">Jumlah Hari Cuti</label>
                                 </div>
                             </div>
@@ -120,6 +120,25 @@
                                     </div>
                                 </div>
                             </div> -->
+                        </div>
+
+                        <!-- Modal untuk konfirmasi ignore weekend -->
+                        <div class="modal fade" id="ignoreWeekendModal" tabindex="-1" role="dialog" aria-labelledby="ignoreWeekendModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="ignoreWeekendModalLabel">Sabtu–Minggu otomatis tidak dihitung cuti.</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Perhitungan cuti Anda saat ini termasuk hari Sabtu dan Minggu.</p>
+                                        <p>Apakah Anda ingin mengabaikan hari Sabtu dan Minggu dalam perhitungan cuti agar hari cuti lebih sedikit?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" id="btnBatal">Batal</button>
+                                        <button type="button" class="btn btn-primary" id="btnLanjutkan">Lanjutkan</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -341,10 +360,37 @@ window.onload = async function(){
         }
 
         const includeWeekend = $('#ignore_weekend').is(':checked');
-
         const workingDays = countWorkingDays(startDate, endDate, holidays, includeWeekend);
 
+        // Set nilai baru dan trigger change event
         $('#total_leave_days').val(workingDays).trigger('change');
+    }
+
+    function checkDateRangeHasWeekends() {
+        const startVal = $('#leave_start_date').val();
+        const endVal = $('#leave_end_date').val();
+
+        if (!startVal || !endVal) return false;
+
+        const [ds, ms, ys] = startVal.split('-');
+        const [de, me, ye] = endVal.split('-');
+
+        const startDate = new Date(`${ys}-${ms}-${ds}`);
+        const endDate = new Date(`${ye}-${me}-${de}`);
+
+        if (startDate > endDate) return false;
+
+        // Loop through the date range to check for weekends
+        const current = new Date(startDate);
+        while (current <= endDate) {
+            const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+            if (day === 0 || day === 6) {
+                return true; // Found a weekend day
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return false; // No weekends found in the range
     }
 
     
@@ -355,6 +401,9 @@ window.onload = async function(){
         var buttonSubmitDocument = $('#btn-submit-document');
         var formDocument = $('#form-create-document');
         var autosetInputData = $('[data-input-type="autoset"]');
+        
+        // Inisialisasi nilai awal total_leave_days
+        var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
 
         var today = new Date();
         var twoWeeksLater = new Date();
@@ -368,9 +417,44 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        // Tambahkan event untuk checkbox juga
+        // Event untuk checkbox ignore_weekend tanpa modal
         $('#ignore_weekend').on('change', function () {
+            if ($(this).is(':checked')) {
+                $(this).val('yes');
+            } else {
+                $(this).val('no');
+            }
             updateLeaveDays();
+        });
+
+        // Monitor perubahan pada total_leave_days untuk menampilkan modal
+        $('#total_leave_days').on('change input', function() {
+            var currentValue = parseInt($(this).val()) || 0;
+            var previousValue = parseInt(previousTotalLeaveDays) || 0;
+            var ignoreWeekendChecked = $('#ignore_weekend').is(':checked');
+            
+            // Cek apakah tanggal yang dipilih mengandung hari sabtu/minggu
+            var hasWeekends = checkDateRangeHasWeekends();
+            
+            // Cek apakah ada perubahan nilai, nilai lebih besar dari sebelumnya, ignore_weekend tidak dichecklist, dan ada weekend di range tanggal
+            if (currentValue != previousValue && currentValue > previousValue && !ignoreWeekendChecked && currentValue > 0 && hasWeekends) {
+                $('#ignoreWeekendModal').modal('show');
+            }
+            
+            previousTotalLeaveDays = currentValue;
+        });
+
+        // Handle button Lanjutkan di modal
+        $('#btnLanjutkan').on('click', function() {
+            $('#ignore_weekend').prop('checked', true);
+            $('#ignore_weekend').val('yes');
+            $('#ignoreWeekendModal').modal('hide');
+            updateLeaveDays();
+        });
+
+        // Handle button Batal di modal
+        $('#btnBatal').on('click', function() {
+            $('#ignoreWeekendModal').modal('hide');
         });
 
         // $('#is_reserved').on('change', function () {

@@ -151,6 +151,32 @@
                         <ul id="holiday_list" class="form-control-static" style="margin-top: 10px; padding-left: 20px;"></ul>
                     </div>
 
+                    <!-- <div class="form-group" id="contract_period_group" style="display:none;">
+                        <label for="contract_period_info">Contract Period Information</label>
+                        <input type="text" name="contract_period_info" id="contract_period_info" class="form-control" readonly style="background-color: #f5f5f5; color: #333;">
+                        <small class="text-muted">Contract period for annual leave validation</small>
+                    </div> -->
+
+                    <div class="form-group" id="annual_leave_usage_group" style="display:none;">
+                        <label for="annual_leave_usage_info">Sisa Plafond Rencana Cuti Tahunan</label>
+                        <input type="text" name="annual_leave_usage_info" id="annual_leave_usage_info" class="form-control" readonly>
+                       
+                        <!-- Hidden inputs to store quota data for validation -->
+                        <input type="hidden" id="annual_leave_remaining_hidden" value="0">
+                        <input type="hidden" id="annual_leave_quota_hidden" value="0">
+                        <input type="hidden" id="contract_start_hidden" value="">
+                        <input type="hidden" id="contract_end_hidden" value="">
+                        
+                        <div id="annual_leave_details" style="display:none; margin-top: 10px;">
+                            <button type="button" id="toggle_leave_details" class="btn btn-link btn-sm" style="padding: 0; text-decoration: none; font-size: 12px;">
+                                <i class="fa fa-eye"></i> Show Leave Details
+                            </button>
+                            <div id="annual_leave_details_list" style="max-height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 4px; display: none; margin-top: 8px;">
+                                <!-- Details will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- <div class="form-group">
                         <label>Last Contract Date</label>
                         <p class="form-control-static" style="margin-top: 10px;">
@@ -160,6 +186,25 @@
                             <?= $_SESSION['leave_plan']['end_contract']; ?>
                         </p>
                     </div> -->
+
+                    <!-- Modal untuk konfirmasi ignore weekend -->
+                    <div class="modal fade" id="ignoreWeekendModal" tabindex="-1" role="dialog" aria-labelledby="ignoreWeekendModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="ignoreWeekendModalLabel">Sabtu–Minggu otomatis tidak dihitung cuti.</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Perhitungan cuti Anda saat ini termasuk hari Sabtu dan Minggu.</p>
+                                    <p>Apakah Anda ingin mengabaikan hari Sabtu dan Minggu dalam perhitungan cuti agar hari cuti lebih sedikit?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" id="btnBatal">Batal</button>
+                                    <button type="button" class="btn btn-primary" id="btnLanjutkan">Lanjutkan</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     </div>
 
@@ -208,6 +253,16 @@
 <?php endblock() ?>
 
 <?php startblock('scripts') ?>
+<style>
+    .btn-disabled {
+        opacity: 0.6 !important;
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
+    .btn-disabled:hover {
+        opacity: 0.6 !important;
+    }
+</style>
 <?= html_script('vendors/pace/pace.min.js') ?>
 <?= html_script('vendors/jQuery/jQuery-2.2.1.min.js') ?>
 <?= html_script('themes/material/assets/js/libs/jquery-ui/jquery-ui.min.js') ?>
@@ -248,6 +303,14 @@ window.onload = async function(){
         //     $('#left_leave_group').hide();
         // }
 
+        // Check contract period if both employee and leave type are already selected
+        setTimeout(function() {
+            var employee_number = $('#employee_number').val();
+            var leave_type = $('#type_leave').val();
+            if (employee_number && leave_type) {
+                checkContractPeriod(leave_type);
+            }
+        }, 1000);
 
     };
 
@@ -337,6 +400,38 @@ window.onload = async function(){
         const workingDays = countWorkingDays(startDate, endDate, holidays, includeWeekend);
 
         $('#total_leave_days').val(workingDays).trigger('change');
+        
+        // Validate leave quota and date range after updating days (silent)
+        setTimeout(function() {
+            validateDateRange(false); // Silent validation
+        }, 100);
+    }
+
+    function checkDateRangeHasWeekends() {
+        const startVal = $('#leave_start_date').val();
+        const endVal = $('#leave_end_date').val();
+
+        if (!startVal || !endVal) return false;
+
+        const [ds, ms, ys] = startVal.split('-');
+        const [de, me, ye] = endVal.split('-');
+
+        const startDate = new Date(`${ys}-${ms}-${ds}`);
+        const endDate = new Date(`${ye}-${me}-${de}`);
+
+        if (startDate > endDate) return false;
+
+        // Loop through the date range to check for weekends
+        const current = new Date(startDate);
+        while (current <= endDate) {
+            const day = current.getDay(); // 0 = Sunday, 6 = Saturday
+            if (day === 0 || day === 6) {
+                return true; // Found a weekend day
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
+        return false; // No weekends found in the range
     }
 
     
@@ -347,6 +442,9 @@ window.onload = async function(){
         var buttonSubmitDocument = $('#btn-submit-document');
         var formDocument = $('#form-create-document');
         var autosetInputData = $('[data-input-type="autoset"]');
+        
+        // Inisialisasi nilai awal total_leave_days
+        var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
 
         var today = new Date();
         var twoWeeksLater = new Date();
@@ -358,11 +456,63 @@ window.onload = async function(){
             startDate: today,
         }).on('changeDate', function () {
             updateLeaveDays();
+            // Validate date range and quota after updating leave days (silent validation)
+            setTimeout(function() {
+                validateDateRange(false); // Silent validation
+                validateLeaveQuota(false); // Silent validation
+            }, 200);
         });
 
-        // Tambahkan event untuk checkbox juga
+        // Event untuk checkbox ignore_weekend tanpa modal
         $('#ignore_weekend').on('change', function () {
+            if ($(this).is(':checked')) {
+                $(this).val('yes');
+            } else {
+                $(this).val('no');
+            }
             updateLeaveDays();
+            // Validate quota after updating leave days (silent check)
+            setTimeout(function() {
+                validateLeaveQuota(false); // Silent validation
+            }, 100);
+        });
+
+        // Monitor perubahan pada total_leave_days untuk menampilkan modal
+        $('#total_leave_days').on('change input keyup', function() {
+            var currentValue = parseInt($(this).val()) || 0;
+            var previousValue = parseInt(previousTotalLeaveDays) || 0;
+            var ignoreWeekendChecked = $('#ignore_weekend').is(':checked');
+            
+            // Cek apakah tanggal yang dipilih mengandung hari sabtu/minggu
+            var hasWeekends = checkDateRangeHasWeekends();
+            
+            // Cek apakah ada perubahan nilai, nilai lebih besar dari sebelumnya, ignore_weekend tidak dichecklist, dan ada weekend di range tanggal
+            if (currentValue != previousValue && currentValue > previousValue && !ignoreWeekendChecked && currentValue > 0 && hasWeekends) {
+                $('#ignoreWeekendModal').modal('show');
+            }
+            
+            previousTotalLeaveDays = currentValue;
+            
+            // Validate leave quota and date range immediately when total days change
+            validateDateRange(true); // Show toast for manual input changes
+            validateLeaveQuota(true); // Show toast for manual input changes
+        });
+
+        // Handle button Lanjutkan di modal
+        $('#btnLanjutkan').on('click', function() {
+            $('#ignore_weekend').prop('checked', true);
+            $('#ignore_weekend').val('yes');
+            $('#ignoreWeekendModal').modal('hide');
+            updateLeaveDays();
+            // Validate quota after updating leave days (silent check)
+            setTimeout(function() {
+                validateLeaveQuota(false); // Silent validation
+            }, 100);
+        });
+
+        // Handle button Batal di modal
+        $('#btnBatal').on('click', function() {
+            $('#ignoreWeekendModal').modal('hide');
         });
 
         // $('#is_reserved').on('change', function () {
@@ -392,6 +542,10 @@ window.onload = async function(){
             var twoWeeksLater = new Date();
             twoWeeksLater.setDate(today.getDate() + 14);
             
+            // Check contract period for annual leave
+            if (leave_typedata && $('#employee_number').val()) {
+                checkContractPeriod(leave_typedata);
+            }
         });
         
 
@@ -399,6 +553,36 @@ window.onload = async function(){
         $(buttonSubmitDocument).on('click', function (e) {
             e.preventDefault();
             var button = $(this);
+            
+            // Check if button is disabled due to validation failures
+            if (button.hasClass('btn-disabled') || button.attr('disabled')) {
+                var leave_code = $('#type_leave option:selected').data('leave-code');
+                if (leave_code === 'L01') {
+                    var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+                    var annual_leave_remaining = parseInt($('#annual_leave_remaining_hidden').val()) || 0;
+                    
+                    if (total_leave_days > annual_leave_remaining) {
+                        toastr.error('Tidak dapat menyimpan. Total hari cuti (' + total_leave_days + ') melebihi sisa kuota (' + annual_leave_remaining + ' hari).', 'Kuota Cuti Terlampaui', {
+                            timeOut: 10000,
+                            closeButton: true,
+                            positionClass: 'toast-top-right'
+                        });
+                    } else {
+                        toastr.error('Tidak dapat menyimpan rencana cuti tahunan. Silakan periksa validasi form.', 'Validasi Error', {
+                            timeOut: 10000,
+                            closeButton: true,
+                            positionClass: 'toast-top-right'
+                        });
+                    }
+                    return false;
+                }
+            }
+            
+            // Final validation check before proceeding
+            if (!validateDateRange(true) || !validateLeaveQuota(true)) {
+                return false; // Stop execution if validation fails
+            }
+            
             button.attr('disabled', true); 
             var url = button.attr('href');
             var type_leave = $('#type_leave').val(); // Default to 0 if invalid.
@@ -607,6 +791,21 @@ window.onload = async function(){
 
         //END
         
+        // Toggle leave details visibility
+        $(document).on('click', '#toggle_leave_details', function(e) {
+            e.preventDefault();
+            var $detailsList = $('#annual_leave_details_list');
+            var $button = $(this);
+            
+            if ($detailsList.is(':visible')) {
+                $detailsList.slideUp();
+                $button.html('<i class="fa fa-eye"></i> Show Leave Details');
+            } else {
+                $detailsList.slideDown();
+                $button.html('<i class="fa fa-eye-slash"></i> Hide Leave Details');
+            }
+        });
+        
     });
 
 
@@ -668,6 +867,12 @@ window.onload = async function(){
                 // Trigger change event if needed
                 // $select.trigger('change');
                 
+                // Check contract period if leave type is already selected
+                var current_leave_type = $('#type_leave').val();
+                if (current_leave_type) {
+                    checkContractPeriod(current_leave_type);
+                }
+                
             },
             error: function () {
                 toastr.error('Failed to update benefits. Please try again.');
@@ -724,7 +929,352 @@ window.onload = async function(){
         }
     }
 
+    // Variable to track last toast message to prevent duplicates
+    var lastToastMessage = '';
+    var lastToastTime = 0;
+    
+    function validateLeaveQuota(showToast = true) {
+        var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+        var annual_leave_remaining = parseInt($('#annual_leave_remaining_hidden').val()) || 0;
+        var annual_leave_quota = parseInt($('#annual_leave_quota_hidden').val()) || 0;
+        var leave_type = $('#type_leave').val();
+        var $saveButton = $('#btn-submit-document');
+        
+        // Only validate for annual leave (L01)
+        var leave_code = $('#type_leave option:selected').data('leave-code');
+        
+        if (leave_code === 'L01') {
+            // Check if there's any quota available
+            if (annual_leave_quota > 0) {
+                if (total_leave_days > annual_leave_remaining) {
+                    $saveButton.attr('disabled', true);
+                    $saveButton.addClass('btn-disabled');
+                    
+                    // Show toast only if requested and not duplicate
+                    if (showToast) {
+                        var currentMessage = 'quota_exceeded_' + total_leave_days + '_' + annual_leave_remaining;
+                        var currentTime = Date.now();
+                        
+                        if (lastToastMessage !== currentMessage || (currentTime - lastToastTime) > 3000) {
+                            toastr.error(
+                                'Total hari cuti (' + total_leave_days + ') melebihi sisa kuota cuti tahunan (' + annual_leave_remaining + ' hari). Silakan kurangi jumlah hari cuti.', 
+                                'Kuota Cuti Terlampaui', 
+                                {timeOut: 10000, positionClass: 'toast-top-right', closeButton: true}
+                            );
+                            lastToastMessage = currentMessage;
+                            lastToastTime = currentTime;
+                        }
+                    }
+                    return false;
+                } else if (total_leave_days > 0 && annual_leave_remaining >= total_leave_days) {
+                    // Valid quota usage - clear toast tracking
+                    lastToastMessage = '';
+                    $saveButton.attr('disabled', false);
+                    $saveButton.removeClass('btn-disabled');
+                    return true;
+                } else if (total_leave_days === 0) {
+                    // No leave days entered yet - clear toast tracking
+                    lastToastMessage = '';
+                    $saveButton.attr('disabled', false);
+                    $saveButton.removeClass('btn-disabled');
+                    return true;
+                } else {
+                    // Edge case: negative remaining quota
+                    $saveButton.attr('disabled', true);
+                    $saveButton.addClass('btn-disabled');
+                    return false;
+                }
+            } else {
+                // No quota available at all
+                if (total_leave_days > 0) {
+                    $saveButton.attr('disabled', true);
+                    $saveButton.addClass('btn-disabled');
+                    
+                    // Show toast only if requested and not duplicate
+                    if (showToast) {
+                        var currentMessage = 'no_quota_available';
+                        var currentTime = Date.now();
+                        
+                        if (lastToastMessage !== currentMessage || (currentTime - lastToastTime) > 3000) {
+                            toastr.error(
+                                'Karyawan tidak memiliki kuota cuti tahunan yang tersedia.', 
+                                'Tidak Ada Kuota Cuti', 
+                                {timeOut: 10000, positionClass: 'toast-top-right', closeButton: true}
+                            );
+                            lastToastMessage = currentMessage;
+                            lastToastTime = currentTime;
+                        }
+                    }
+                    return false;
+                } else {
+                    // Clear toast tracking
+                    lastToastMessage = '';
+                    $saveButton.attr('disabled', false);
+                    $saveButton.removeClass('btn-disabled');
+                    return true;
+                }
+            }
+        } else {
+            // Not annual leave, no quota validation needed - clear toast tracking
+            lastToastMessage = '';
+            $saveButton.attr('disabled', false);
+            $saveButton.removeClass('btn-disabled');
+            return true;
+        }
+    }
 
+    function validateDateRange(showToast = true) {
+        var leave_code = $('#type_leave option:selected').data('leave-code');
+        var startVal = $('#leave_start_date').val();
+        var endVal = $('#leave_end_date').val();
+        var $saveButton = $('#btn-submit-document');
+        
+        // Only validate for annual leave (L01)
+        if (leave_code === 'L01' && startVal && endVal) {
+            // Get contract period from stored data
+            var contractStartStr = $('#contract_start_hidden').val();
+            var contractEndStr = $('#contract_end_hidden').val();
+            
+            if (contractStartStr && contractEndStr) {
+                // Parse dates
+                var [ds, ms, ys] = startVal.split('-');
+                var [de, me, ye] = endVal.split('-');
+                var [dcs, mcs, ycs] = contractStartStr.split('-');
+                var [dce, mce, yce] = contractEndStr.split('-');
+                
+                var startDate = new Date(`${ys}-${ms}-${ds}`);
+                var endDate = new Date(`${ye}-${me}-${de}`);
+                var contractStart = new Date(`${ycs}-${mcs}-${dcs}`);
+                var contractEnd = new Date(`${yce}-${mce}-${dce}`);
+                
+                if (startDate < contractStart || endDate > contractEnd) {
+                    $saveButton.attr('disabled', true);
+                    $saveButton.addClass('btn-disabled');
+                    
+                    // Show toast only if requested and not duplicate
+                    if (showToast) {
+                        var contractStartFormatted = contractStart.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+                        var contractEndFormatted = contractEnd.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+                        
+                        var currentMessage = 'date_range_invalid_' + startVal + '_' + endVal;
+                        var currentTime = Date.now();
+                        
+                        if (lastToastMessage !== currentMessage || (currentTime - lastToastTime) > 3000) {
+                            toastr.error(
+                                'Tanggal cuti harus berada dalam periode kontrak aktif: ' + contractStartFormatted + ' s/d ' + contractEndFormatted, 
+                                'Tanggal Cuti Tidak Valid', 
+                                {timeOut: 10000, positionClass: 'toast-top-right', closeButton: true}
+                            );
+                            lastToastMessage = currentMessage;
+                            lastToastTime = currentTime;
+                        }
+                    }
+                    return false;
+                } else {
+                    // Date range is valid - clear toast tracking and continue with quota validation
+                    if (lastToastMessage.includes('date_range_invalid_')) {
+                        lastToastMessage = '';
+                    }
+                    return validateLeaveQuota(false);
+                }
+            }
+        }
+        
+        return validateLeaveQuota(false); // Silent validation when called from validateDateRange
+    }
+
+    function checkContractPeriod(leave_type) {
+        var employee_number = $('#employee_number').val();
+        
+        if (!employee_number || !leave_type) {
+            $('#contract_period_group').hide();
+            $('#annual_leave_usage_group').hide();
+            $('#contract_period_info').val('');
+            $('#annual_leave_usage_info').val('');
+            $('#annual_leave_remaining_hidden').val('0');
+            $('#annual_leave_quota_hidden').val('0');
+            $('#contract_start_hidden').val('');
+            $('#contract_end_hidden').val('');
+            
+            // Enable save button when no data
+            $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+            
+            // Re-enable form fields when no selection
+            $('#leave_start_date').attr('disabled', false);
+            $('#leave_end_date').attr('disabled', false);
+            $('#total_leave_days').attr('disabled', false);
+            $('#reason').attr('disabled', false);
+            return;
+        }
+
+        $.ajax({
+            url: '<?= site_url($module['route'] . '/get_contract_period'); ?>',
+            type: 'GET',
+            data: { 
+                employee_number: employee_number,
+                leave_type: leave_type
+            },
+            success: function (response) {
+                console.log('Contract period response:', response);
+                var data = JSON.parse(response);
+                
+                if (data.status === 'success') {
+                    $('#contract_period_info').val(data.contract_period);
+                    $('#contract_period_group').show();
+                    
+                    // Show annual leave usage information with extended period
+                    var usageText = '';
+                    if (data.annual_leave_quota > 0) {
+                        usageText = 'Sisa kuota: ' + data.annual_leave_remaining + ' hari (dari total ' + data.annual_leave_quota + ' hari)';
+                    } else {
+                        usageText = data.total_annual_leave_used + ' hari digunakan dalam periode perencanaan yang diperpanjang (' + data.extended_period + ')';
+                    }
+                    $('#annual_leave_usage_info').val(usageText);
+                    $('#annual_leave_usage_group').show();
+                    
+                    // Store quota data in hidden inputs for validation
+                    $('#annual_leave_remaining_hidden').val(data.annual_leave_remaining || 0);
+                    $('#annual_leave_quota_hidden').val(data.annual_leave_quota || 0);
+                    
+                    // Store contract dates for validation (convert from 'd M Y' format to 'dd-mm-yyyy')
+                    if (data.start_date && data.end_date) {
+                        // We need to convert from response format to dd-mm-yyyy format for validation
+                        var contractStartParts = data.start_date.split(' ');
+                        var contractEndParts = data.end_date.split(' ');
+                        
+                        var monthNames = {'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 
+                                         'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08', 
+                                         'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'};
+                        
+                        if (contractStartParts.length === 3 && contractEndParts.length === 3) {
+                            var startFormatted = contractStartParts[0].padStart(2, '0') + '-' + 
+                                                (monthNames[contractStartParts[1]] || '01') + '-' + 
+                                                contractStartParts[2];
+                            var endFormatted = contractEndParts[0].padStart(2, '0') + '-' + 
+                                              (monthNames[contractEndParts[1]] || '12') + '-' + 
+                                              contractEndParts[2];
+                                              
+                            $('#contract_start_hidden').val(startFormatted);
+                            $('#contract_end_hidden').val(endFormatted);
+                        }
+                    }
+                    
+                    // Populate leave details
+                    var detailsHtml = '';
+                    if (data.annual_leave_details && data.annual_leave_details.length > 0) {
+                        data.annual_leave_details.forEach(function(detail) {
+                            var statusColor = '#28a745'; // Green for APPROVED
+                            if (detail.status === 'PLAN') statusColor = '#ffc107'; // Yellow for PLAN
+                            if (detail.status === 'PROCESSED') statusColor = '#17a2b8'; // Blue for PROCESSED
+                            
+                            detailsHtml += '<div style="margin-bottom: 8px; padding: 8px; background-color: #ffffff; border-left: 4px solid ' + statusColor + '; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 11px;">';
+                            detailsHtml += '<div style="display: flex; justify-content: space-between; align-items: center;">';
+                            detailsHtml += '<strong style="color: #333;">' + detail.document_number + '</strong>';
+                            detailsHtml += '<span style="background-color: ' + statusColor + '; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">' + detail.status + '</span>';
+                            detailsHtml += '</div>';
+                            detailsHtml += '<div style="margin-top: 4px;">';
+                            detailsHtml += '<span class="text-muted" style="font-size: 10px;">' + detail.leave_start_date + ' - ' + detail.leave_end_date + '</span><br>';
+                            detailsHtml += '<span style="color: #dc3545; font-weight: bold; font-size: 11px;">' + detail.total_days + ' days</span>';
+                            detailsHtml += '</div>';
+                            detailsHtml += '</div>';
+                        });
+                        $('#annual_leave_details_list').html(detailsHtml);
+                        $('#annual_leave_details').show();
+                        // Reset toggle button
+                        $('#toggle_leave_details').html('<i class="fa fa-eye"></i> Show Leave Details');
+                        $('#annual_leave_details_list').hide();
+                    } else {
+                        $('#annual_leave_details_list').html('<div style="text-align: center; padding: 20px;"><i class="text-muted" style="font-size: 12px;">No annual leave records found in current contract period.</i></div>');
+                        $('#annual_leave_details').show();
+                        // Reset toggle button
+                        $('#toggle_leave_details').html('<i class="fa fa-eye"></i> Show Leave Details');
+                        $('#annual_leave_details_list').hide();
+                    }
+                    
+                    // Show info message
+                    toastr.info(data.message, 'Contract Period Info', {timeOut: 8000});
+                    
+                    // Re-enable form fields when contract is found
+                    $('#leave_start_date').attr('disabled', false);
+                    $('#leave_end_date').attr('disabled', false);
+                    $('#total_leave_days').attr('disabled', false);
+                    $('#reason').attr('disabled', false);
+                    
+                    // Validate leave quota and date range after loading contract data (silent)
+                    setTimeout(function() {
+                        validateDateRange(false); // Silent validation
+                    }, 200);
+                } else if (data.status === 'error') {
+                    // No active contract found - this is a blocking error
+                    $('#contract_period_group').hide();
+                    $('#annual_leave_usage_group').hide();
+                    $('#contract_period_info').val('');
+                    $('#annual_leave_usage_info').val('');
+                    $('#annual_leave_remaining_hidden').val('0');
+                    $('#annual_leave_quota_hidden').val('0');
+                    $('#contract_start_hidden').val('');
+                    $('#contract_end_hidden').val('');
+                    
+                    // Disable save button when no active contract
+                    $('#btn-submit-document').attr('disabled', true).addClass('btn-disabled');
+                    
+                    // Show error toast message
+                    toastr.error(data.message, 'Kontrak Tidak Aktif', {
+                        timeOut: 15000,
+                        closeButton: true,
+                        positionClass: 'toast-top-right'
+                    });
+                    
+                    // Clear form fields to prevent partial submission
+                    $('#leave_start_date').val('').attr('disabled', true);
+                    $('#leave_end_date').val('').attr('disabled', true);
+                    $('#total_leave_days').val('').attr('disabled', true);
+                    $('#reason').attr('disabled', true);
+                } else if (data.status === 'warning') {
+                    $('#contract_period_info').val('No active contract found');
+                    $('#contract_period_group').show();
+                    $('#annual_leave_usage_group').hide();
+                    $('#annual_leave_remaining_hidden').val('0');
+                    $('#annual_leave_quota_hidden').val('0');
+                    
+                    // Enable save button when no contract found
+                    $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    
+                    // Show warning message
+                    toastr.warning(data.message, 'Contract Warning');
+                } else {
+                    // Not annual leave, hide the fields and reset validation
+                    $('#contract_period_group').hide();
+                    $('#annual_leave_usage_group').hide();
+                    $('#contract_period_info').val('');
+                    $('#annual_leave_usage_info').val('');
+                    $('#annual_leave_remaining_hidden').val('0');
+                    $('#annual_leave_quota_hidden').val('0');
+                    
+                    // Enable save button for non-annual leave
+                    $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    
+                    // Re-enable form fields for non-annual leave
+                    $('#leave_start_date').attr('disabled', false);
+                    $('#leave_end_date').attr('disabled', false);
+                    $('#total_leave_days').attr('disabled', false);
+                    $('#reason').attr('disabled', false);
+                }
+            },
+            error: function () {
+                toastr.error('Failed to check contract period. Please try again.');
+                $('#contract_period_group').hide();
+                $('#annual_leave_usage_group').hide();
+                $('#contract_period_info').val('');
+                $('#annual_leave_usage_info').val('');
+                $('#annual_leave_remaining_hidden').val('0');
+                $('#annual_leave_quota_hidden').val('0');
+                
+                // Enable save button on error
+                $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+            }
+        });
+    }
 
     function popup(mylink, windowname){
         var height = window.innerHeight;
