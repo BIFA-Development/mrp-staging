@@ -741,6 +741,20 @@ class Leave extends MY_Controller
                     $errors[] = "Tanggal permintaan cuti tahunan harus berada dalam masa kontrak: {$start_contract->format('Y-m-d')} s.d. {$end_contract->format('Y-m-d')}.";
                     
                 }
+
+                // Validasi sisa cuti untuk cuti tahunan (L01)
+                if (isset($_SESSION['leave']['employee_has_leave_id']) && $_SESSION['leave']['employee_has_leave_id']) {
+                    $employee_has_leave = $this->model->getEmployeeHasAnnualLeave($_SESSION['leave']['employee_number'], $_SESSION['leave']['leave_type']);
+                    
+                    if ($employee_has_leave && isset($employee_has_leave['left_leave'])) {
+                        $available_leave = (int)$employee_has_leave['left_leave'];
+                        $requested_days = (int)$_SESSION['leave']['total_leave_days'];
+                        
+                        if ($requested_days > $available_leave) {
+                            $errors[] = "Jumlah hari cuti yang diminta ({$requested_days} hari) melebihi sisa cuti yang tersedia ({$available_leave} hari). Silakan kurangi jumlah hari cuti.";
+                        }
+                    }
+                }
             }
             
 
