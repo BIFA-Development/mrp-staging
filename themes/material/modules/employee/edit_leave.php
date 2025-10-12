@@ -36,8 +36,17 @@
                         </div>
 
                         <div class="form-group">
-                            <input type="number" name="used_leave" id="used_leave" class="form-control number" value="<?=$entity['used_leave'];?>" step="1" <?= ($entity['used_leave'] != 0) ? 'readonly' : ''; ?>>
+                            <input type="number" name="used_leave" id="used_leave" class="form-control number" value="<?=$entity['used_leave'];?>" step="1" <?= (($entity['used_leave'] != 0) || ((isset($entity['edit_count']) ? $entity['edit_count'] : 0) >= 10)) ? 'readonly' : ''; ?>>
                             <label for="used_leave">Cuti Digunakan</label>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="alert alert-info">
+                                <strong>Info Edit:</strong> Data ini sudah diedit <?= isset($entity['edit_count']) ? $entity['edit_count'] : 0; ?> kali dari maksimal 10 kali edit yang diizinkan.
+                                <?php if ((isset($entity['edit_count']) ? $entity['edit_count'] : 0) >= 10): ?>
+                                <br><strong style="color: red;">⚠️ Batas maksimal edit telah tercapai. Data tidak dapat diedit lagi.</strong>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -48,7 +57,7 @@
     <div class="card-foot">
         <input type="hidden" name="id" id="id" class="form-control" value="<?=$entity['id'];?>" readonly>
         <input type="hidden" name="contract_number_rexception" id="contract_number_rexception" class="form-control" value="<?=$entity['contract_number'];?>" readonly>
-        <button type="submit" id="modal-create-data-submit" class="btn btn-floating-action btn-primary btn-xhr-submit ink-reaction pull-right" data-title="save and create">
+        <button type="submit" id="modal-create-data-submit" class="btn btn-floating-action btn-primary btn-xhr-submit ink-reaction pull-right" data-title="save and create" <?= ((isset($entity['edit_count']) ? $entity['edit_count'] : 0) >= 10) ? 'disabled' : ''; ?>>
         <i class="md md-save"></i>
         </button>
     </div>

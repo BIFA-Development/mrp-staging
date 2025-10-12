@@ -1128,21 +1128,32 @@ class Employee extends MY_Controller
             $return['info'] = "You don't have permission to access this page!";
         } else {
             if ($this->input->post('id') != ''){
-                $form_data = array(
-                    'amount_leave'   => $this->input->post('amount_leave'),
-                    'left_leave'   => $this->input->post('left_leave'),
-                    'used_leave'   => $this->input->post('used_leave'),
-                    'updated_by'   => config_item('auth_person_name'),
-                );
-
-                $criteria = $this->input->post('id');
-
-                if ($this->model->update_leave($form_data, $criteria)){
-                    $return['type'] = 'success';
-                    $return['info'] = 'Benefit Leave updated.';
-                } else {
+                // Check current edit count before updating
+                $current_leave = $this->model->findLeaveById($this->input->post('id'));
+                $current_edit_count = isset($current_leave['edit_count']) ? (int)$current_leave['edit_count'] : 0;
+                
+                // Check if edit count exceeds limit
+                if ($current_edit_count >= 10) {
                     $return['type'] = 'danger';
-                    $return['info'] = 'There are error while updating data. Please try again later.';
+                    $return['info'] = 'Data cuti ini sudah mencapai batas maksimal edit (10 kali). Tidak dapat diedit lagi.';
+                } else {
+                    $form_data = array(
+                        'amount_leave'   => $this->input->post('amount_leave'),
+                        'left_leave'   => $this->input->post('left_leave'),
+                        'used_leave'   => $this->input->post('used_leave'),
+                        'edit_count'   => $current_edit_count + 1,
+                        'updated_by'   => config_item('auth_person_name'),
+                    );
+
+                    $criteria = $this->input->post('id');
+
+                    if ($this->model->update_leave($form_data, $criteria)){
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave updated.';
+                    } else {
+                        $return['type'] = 'danger';
+                        $return['info'] = 'There are error while updating data. Please try again later.';
+                    }
                 }
                     
                 
