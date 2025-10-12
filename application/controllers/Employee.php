@@ -1165,21 +1165,57 @@ class Employee extends MY_Controller
             $return['info'] = "You don't have permission to access this page!";
         } else {
             if ($this->input->post('id') != ''){
+                // Get leave type information to check if it's L01
+                $leave_type_id = $this->input->post('leave_type');
+                $employee_contract_id = $this->input->post('employee_contract_id');
+                $criteria = $this->input->post('id');
+                
+                // Load helper to get leave type data
+                $this->load->helper('app');
+                $leave_info = getLeaveCodeById($leave_type_id);
+                $leave_code = isset($leave_info['leave_code']) ? $leave_info['leave_code'] : '';
+                
+                // Check if leave code is L01 and if it already exists for this contract (excluding current record)
+                if ($leave_code === 'L01') {
+                    $existing_l01 = $this->model->getL01LeaveDetailsForContract($employee_contract_id, $criteria);
+                    
+                    if ($existing_l01 !== null) {
+                        // Check if the existing L01 leave has been used
+                        if ($existing_l01['used_leave'] > 0) {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'Another L01 (Annual Leave) already exists for this employee contract period and has been used (' . $existing_l01['used_leave'] . ' days). Cannot have duplicate L01 leave.';
+                            echo json_encode($return);
+                            return;
+                        } else {
+                            // Another L01 exists but hasn't been used, delete the other record
+                            if (!$this->model->deleteLeaveById($existing_l01['id'])) {
+                                $return['type'] = 'danger';
+                                $return['info'] = 'Failed to remove existing unused L01 leave. Please try again.';
+                                echo json_encode($return);
+                                return;
+                            }
+                        }
+                    }
+                }
+                
                 $form_data = array(
-                    'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                    'employee_contract_id'  => $employee_contract_id,
                     'employee_number'       => $this->input->post('employee_number'),
-                    'leave_type'   => $this->input->post('leave_type'),
+                    'leave_type'   => $leave_type_id,
                     'amount_leave'        => $this->input->post('amount_leave'),
                     'left_leave'   => $this->input->post('amount_leave'),
                     'used_leave'   => 0,
                     'updated_by'   => config_item('auth_person_name'),
                 );
 
-                $criteria = $this->input->post('id');
-
                 if ($this->model->update_leave($form_data, $criteria)){
-                    $return['type'] = 'success';
-                    $return['info'] = 'Benefit Leave updated.';
+                    if ($leave_code === 'L01' && isset($existing_l01)) {
+                        $return['type'] = 'success';
+                        $return['info'] = 'L01 (Annual Leave) updated successfully. Previous unused duplicate leave data has been removed.';
+                    } else {
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave updated.';
+                    }
                 } else {
                     $return['type'] = 'danger';
                     $return['info'] = 'There are error while updating data. Please try again later.';
@@ -1187,11 +1223,42 @@ class Employee extends MY_Controller
                     
                 
             } else {
+                // Get leave type information to check if it's L01
+                $leave_type_id = $this->input->post('leave_type');
+                $employee_contract_id = $this->input->post('employee_contract_id');
+                
+                // Load helper to get leave type data
+                $this->load->helper('app');
+                $leave_info = getLeaveCodeById($leave_type_id);
+                $leave_code = isset($leave_info['leave_code']) ? $leave_info['leave_code'] : '';
+                
+                // Check if leave code is L01 and if it already exists for this contract
+                if ($leave_code === 'L01') {
+                    $existing_l01 = $this->model->getL01LeaveDetailsForContract($employee_contract_id);
+                    
+                    if ($existing_l01 !== null) {
+                        // Check if the existing L01 leave has been used
+                        if ($existing_l01['used_leave'] > 0) {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'L01 (Annual Leave) already exists for this employee contract period and has been used (' . $existing_l01['used_leave'] . ' days). Cannot replace used leave data.';
+                            echo json_encode($return);
+                            return;
+                        } else {
+                            // L01 exists but hasn't been used, delete the old record
+                            if (!$this->model->deleteLeaveById($existing_l01['id'])) {
+                                $return['type'] = 'danger';
+                                $return['info'] = 'Failed to remove existing unused L01 leave. Please try again.';
+                                echo json_encode($return);
+                                return;
+                            }
+                        }
+                    }
+                }
                
                 $form_data = array(
-                    'employee_contract_id'  => $this->input->post('employee_contract_id'),
+                    'employee_contract_id'  => $employee_contract_id,
                     'employee_number'       => $this->input->post('employee_number'),
-                    'leave_type'   => $this->input->post('leave_type'),
+                    'leave_type'   => $leave_type_id,
                     'amount_leave'        => $this->input->post('amount_leave'),
                     'left_leave'   => $this->input->post('amount_leave'),
                     'used_leave'   => 0,
@@ -1199,8 +1266,13 @@ class Employee extends MY_Controller
                 );
 
                 if ($this->model->insert_leave($form_data)){
-                    $return['type'] = 'success';
-                    $return['info'] = 'Benefit Leave added.';
+                    if ($leave_code === 'L01' && isset($existing_l01)) {
+                        $return['type'] = 'success';
+                        $return['info'] = 'L01 (Annual Leave) replaced successfully. Previous unused leave data has been removed.';
+                    } else {
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave added.';
+                    }
                 } else {
                     $return['type'] = 'danger';
                     $return['info'] = 'There are error while updating data. Please try again later.';

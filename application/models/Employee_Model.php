@@ -1026,6 +1026,76 @@ class Employee_Model extends MY_Model
         }
     
     }
+
+    /**
+     * Check if L01 leave (annual leave) already exists for the given employee contract
+     * @param int $employee_contract_id Contract ID to check
+     * @param int $record_id_exception Optional record ID to exclude from check (for update operations)
+     * @return bool True if L01 leave exists, false otherwise
+     */
+    public function isL01LeaveExistsForContract($employee_contract_id, $record_id_exception = NULL)
+    {
+        $this->db->from('tb_employee_has_leave');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type', 'inner');
+        $this->db->where('tb_employee_has_leave.employee_contract_id', $employee_contract_id);
+        $this->db->where('tb_leave_type.leave_code', 'L01');
+
+        if ($record_id_exception !== NULL) {
+            $this->db->where('tb_employee_has_leave.id != ', $record_id_exception);
+        }
+
+        $query = $this->db->get();
+        
+        return ($query->num_rows() > 0) ? true : false;
+    }
+
+    /**
+     * Get detailed information about existing L01 leave for the given employee contract
+     * @param int $employee_contract_id Contract ID to check
+     * @param int $record_id_exception Optional record ID to exclude from check (for update operations)
+     * @return array|null Array with leave details if exists, null otherwise
+     */
+    public function getL01LeaveDetailsForContract($employee_contract_id, $record_id_exception = NULL)
+    {
+        $this->db->select('tb_employee_has_leave.*');
+        $this->db->from('tb_employee_has_leave');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type', 'inner');
+        $this->db->where('tb_employee_has_leave.employee_contract_id', $employee_contract_id);
+        $this->db->where('tb_leave_type.leave_code', 'L01');
+
+        if ($record_id_exception !== NULL) {
+            $this->db->where('tb_employee_has_leave.id != ', $record_id_exception);
+        }
+
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            return $query->unbuffered_row('array');
+        }
+        
+        return null;
+    }
+
+    /**
+     * Delete L01 leave record by ID
+     * @param int $leave_id Leave record ID to delete
+     * @return bool True if successful, false otherwise
+     */
+    public function deleteLeaveById($leave_id)
+    {
+        $this->db->trans_begin();
+
+        $this->db->where('id', $leave_id);
+        $this->db->delete('tb_employee_has_leave');
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return FALSE;
+        }
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
       
 
 }

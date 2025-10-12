@@ -489,6 +489,13 @@ class Leave_Plan extends MY_Controller
             $get_leave                  = getLeaveCodeById($entity['leave_type']);
             $get_leave_code             = $get_leave['leave_code'];
 
+            // Check date range conflict before sending leave plan
+            $date_conflict = $this->checkDateRangeConflict($entity['employee_number'], $entity['leave_start_date'], $entity['leave_end_date'], $id);
+            
+            if (!empty($date_conflict)) {
+                $errors[] = 'Range tanggal cuti sudah pernah diminta pada periode yang sama. Silakan pilih tanggal yang berbeda.';
+            }
+
             if($get_leave_code == 'L01'){
                 $start_contract = new DateTime($kontrak_active['start_date']);
                 $end_contract = new DateTime($kontrak_active['end_date']);
@@ -563,15 +570,26 @@ class Leave_Plan extends MY_Controller
                 $errors[] = 'Attention!! Please Fill Leave Type!!'. $_SESSION['leave_plan']['leave_type'].'-'.$_SESSION['leave_plan']['type_leave'];
             }
 
+            // Validate date range conflict for all leave types (except if it's an edit and same date range)
+            $employee_number = $_SESSION['leave_plan']['employee_number'];
+            $leave_start_date = $_SESSION['leave_plan']['leave_start_date'];
+            $leave_end_date = $_SESSION['leave_plan']['leave_end_date'];
+            
+            if ($leave_start_date && $leave_end_date && $employee_number) {
+                $current_id = isset($_SESSION['leave_plan']['id']) ? $_SESSION['leave_plan']['id'] : null;
+                $date_conflict = $this->checkDateRangeConflict($employee_number, $leave_start_date, $leave_end_date, $current_id);
+                
+                if (!empty($date_conflict)) {
+                    $errors[] = 'Range tanggal cuti sudah pernah diminta pada periode yang sama. Silakan pilih tanggal yang berbeda atau hubungi HR jika ada keperluan khusus.';
+                }
+            }
+
             // Additional validation for annual leave (L01)
             if ($get_leave_code == 'L01') {
-                $employee_number = $_SESSION['leave_plan']['employee_number'];
                 
                 // Check if employee has active contract
                 if (isEmployeeContractActiveExist($employee_number)) {
                     $kontrak_active = findContractActive($employee_number);
-                    $leave_start_date = $_SESSION['leave_plan']['leave_start_date'];
-                    $leave_end_date = $_SESSION['leave_plan']['leave_end_date'];
                     
                     // Validate date range is within contract period
                     $contract_start = new DateTime($kontrak_active['start_date']);
@@ -619,6 +637,45 @@ class Leave_Plan extends MY_Controller
         }
 
         echo json_encode($data);
+    }
+
+    /**
+     * Check if the given date range conflicts with existing leave plans (excluding rejected ones)
+     * 
+     * @param string $employee_number Employee number
+     * @param string $start_date Leave start date (Y-m-d format)
+     * @param string $end_date Leave end date (Y-m-d format)
+     * @param int|null $exclude_id ID to exclude from check (for edit operations)
+     * @return array Array of conflicting leave plans
+     */
+    private function checkDateRangeConflict($employee_number, $start_date, $end_date, $exclude_id = null)
+    {
+        $this->db->select('lp.id, lp.document_number, lp.leave_start_date, lp.leave_end_date, lp.status, lt.name_leave as leave_type_name');
+        $this->db->from('tb_leave_plan lp');
+        $this->db->join('tb_leave_type lt', 'lt.id = lp.leave_type', 'left');
+        $this->db->where('lp.employee_number', $employee_number);
+        $this->db->where('lp.status !=', 'reject'); // Exclude rejected requests
+        
+        // Date range overlap check: (start1 <= end2) AND (start2 <= end1)
+        $this->db->group_start();
+            $this->db->where('lp.leave_start_date <=', $end_date);
+            $this->db->where('lp.leave_end_date >=', $start_date);
+        $this->db->group_end();
+        
+        // Exclude current record if editing
+        if ($exclude_id) {
+            $this->db->where('lp.id !=', $exclude_id);
+        }
+        
+        $this->db->order_by('lp.leave_start_date', 'ASC');
+        
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            return $query->result_array();
+        }
+        
+        return array();
     }
 
     public function attachment()

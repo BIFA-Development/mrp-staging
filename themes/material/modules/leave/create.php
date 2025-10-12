@@ -104,38 +104,63 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group">
-                                    <div class="radio">
-                                        <input type="checkbox" name="ignore_weekend" id="ignore_weekend" value="no">
-                                        <label for="ignore_weekend">Abaikan Sabtu & Minggu</label>
+                                    <label>Pengaturan Hari Kerja</label>
+                                    <div class="radio-list" style="margin-top: 10px;">
+                                        <div class="radio">
+                                            <input type="radio" name="weekend_option" id="include_all" value="include_all" checked>
+                                            <label for="include_all">Hitung semua hari (termasuk Sabtu & Minggu)</label>
+                                        </div>
+                                        <div class="radio">
+                                            <input type="radio" name="weekend_option" id="ignore_saturday" value="ignore_saturday">
+                                            <label for="ignore_saturday">Abaikan Sabtu saja</label>
+                                        </div>
+                                        <div class="radio">
+                                            <input type="radio" name="weekend_option" id="ignore_sunday" value="ignore_sunday">
+                                            <label for="ignore_sunday">Abaikan Minggu saja</label>
+                                        </div>
+                                        <div class="radio">
+                                            <input type="radio" name="weekend_option" id="ignore_both" value="ignore_both">
+                                            <label for="ignore_both">Abaikan Sabtu & Minggu</label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- <div class="col-md-6">
-                                <div class="form-group">
-                                    <div class="radio" id="is_reserved_group">
-                                        <input type="checkbox" name="is_reserved" id="is_reserved" value="no" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_is_reserved'); ?>">
-                                        <label for="is_reserved">Rencana Cuti Tahunan</label>
-                                    </div>
-                                </div>
-                            </div> -->
                         </div>
 
-                        <!-- Modal untuk konfirmasi ignore weekend -->
-                        <div class="modal fade" id="ignoreWeekendModal" tabindex="-1" role="dialog" aria-labelledby="ignoreWeekendModalLabel" aria-hidden="true">
+                        <!-- Modal untuk konfirmasi weekend options -->
+                        <div class="modal fade" id="weekendOptionsModal" tabindex="-1" role="dialog" aria-labelledby="weekendOptionsModalLabel" aria-hidden="true">
                             <div class="modal-dialog" role="document">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="ignoreWeekendModalLabel">Sabtu–Minggu otomatis tidak dihitung cuti.</h5>
+                                        <h5 class="modal-title" id="weekendOptionsModalLabel">Pengaturan Hari Kerja</h5>
                                     </div>
                                     <div class="modal-body">
-                                        <p>Perhitungan cuti Anda saat ini termasuk hari Sabtu dan Minggu.</p>
-                                        <p>Apakah Anda ingin mengabaikan hari Sabtu dan Minggu dalam perhitungan cuti agar hari cuti lebih sedikit?</p>
+                                        <p>Perhitungan cuti Anda saat ini termasuk hari Sabtu dan/atau Minggu.</p>
+                                        <p>Pilih pengaturan hari kerja untuk mengurangi jumlah hari cuti:</p>
+                                        <div class="radio-list">
+                                            <div class="radio">
+                                                <input type="radio" name="modal_weekend_option" id="modal_include_all" value="include_all">
+                                                <label for="modal_include_all">Hitung semua hari (termasuk Sabtu & Minggu)</label>
+                                            </div>
+                                            <div class="radio">
+                                                <input type="radio" name="modal_weekend_option" id="modal_ignore_saturday" value="ignore_saturday">
+                                                <label for="modal_ignore_saturday">Abaikan Sabtu saja</label>
+                                            </div>
+                                            <div class="radio">
+                                                <input type="radio" name="modal_weekend_option" id="modal_ignore_sunday" value="ignore_sunday">
+                                                <label for="modal_ignore_sunday">Abaikan Minggu saja</label>
+                                            </div>
+                                            <div class="radio">
+                                                <input type="radio" name="modal_weekend_option" id="modal_ignore_both" value="ignore_both" checked>
+                                                <label for="modal_ignore_both">Abaikan Sabtu & Minggu</label>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" id="btnBatal">Batal</button>
-                                        <button type="button" class="btn btn-primary" id="btnLanjutkan">Lanjutkan</button>
+                                        <button type="button" class="btn btn-primary" id="btnTerapkan">Terapkan</button>
                                     </div>
                                 </div>
                             </div>
@@ -317,27 +342,86 @@ window.onload = async function(){
 
     $('#leave_start_date, #leave_end_date').on('change', showHolidaysBetweenDates);
 
-    function countWorkingDays(startDate, endDate, holidays = [], includeWeekend = false) {
-        let count = 0;
-        const current = new Date(startDate);
+    function countWorkingDays(startDate, endDate, holidays = [], weekendOption = 'include_all') {
+        console.log('=== CountWorkingDays Debug Start ===');
+        console.log('Input startDate:', startDate);
+        console.log('Input endDate:', endDate);
+        console.log('Input holidays:', holidays);
+        console.log('Input weekendOption:', weekendOption);
 
-        while (current <= endDate) {
+        // Basic validation
+        if (!startDate || !endDate) {
+            console.error('Missing date parameters');
+            return 0;
+        }
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.error('Invalid date objects');
+            return 0;
+        }
+
+        if (startDate > endDate) {
+            console.error('Start date is after end date in countWorkingDays');
+            return 0;
+        }
+
+        let count = 0;
+        const current = new Date(startDate.getTime()); // Create a copy to avoid modifying original
+        let iterations = 0;
+        const maxIterations = 500; // Safety limit
+
+        console.log('Starting loop...');
+
+        while (current <= endDate && iterations < maxIterations) {
             const day = current.getDay(); // 0 = Sunday, 6 = Saturday
             const dateStr = current.toISOString().slice(0, 10); // Format YYYY-MM-DD
             const isHoliday = holidays.includes(dateStr);
-            const isWeekend = (day === 0 || day === 6);
+            const isSaturday = (day === 6);
+            const isSunday = (day === 0);
 
-            // Hitung hanya jika bukan holiday
+            console.log(`Day ${iterations + 1}: ${current.toDateString()} - Day of week: ${day} - Holiday: ${isHoliday}`);
+
+            // Count if not a holiday
             if (!isHoliday) {
-                if (includeWeekend) {
-                    count++; // Hitung semua hari kecuali holiday
-                } else if (!isWeekend) {
-                    count++; // Hitung hanya weekdays yang bukan holiday
+                let shouldCount = true;
+
+                // Apply weekend filtering
+                switch (weekendOption) {
+                    case 'ignore_saturday':
+                        shouldCount = !isSaturday;
+                        console.log('  Ignore Saturday - Should count:', shouldCount);
+                        break;
+                    case 'ignore_sunday':
+                        shouldCount = !isSunday;
+                        console.log('  Ignore Sunday - Should count:', shouldCount);
+                        break;
+                    case 'ignore_both':
+                        shouldCount = !isSaturday && !isSunday;
+                        console.log('  Ignore Both - Should count:', shouldCount);
+                        break;
+                    case 'include_all':
+                    default:
+                        shouldCount = true;
+                        console.log('  Include All - Should count:', shouldCount);
+                        break;
                 }
+
+                if (shouldCount) {
+                    count++;
+                    console.log('  ✓ Counted! Total so far:', count);
+                } else {
+                    console.log('  ✗ Not counted');
+                }
+            } else {
+                console.log('  ✗ Holiday - not counted');
             }
 
             current.setDate(current.getDate() + 1);
+            iterations++;
         }
+
+        console.log('Final count:', count);
+        console.log('=== CountWorkingDays Debug End ===');
 
         return count;
     }
@@ -346,51 +430,167 @@ window.onload = async function(){
         const startVal = $('#leave_start_date').val();
         const endVal = $('#leave_end_date').val();
 
-        if (!startVal || !endVal) return;
+        console.log('=== UpdateLeaveDays Debug Start ===');
+        console.log('Start val:', startVal);
+        console.log('End val:', endVal);
 
-        const [ds, ms, ys] = startVal.split('-');
-        const [de, me, ye] = endVal.split('-');
+        if (!startVal || !endVal) {
+            console.log('Missing start or end date');
+            return;
+        }
 
-        const startDate = new Date(`${ys}-${ms}-${ds}`);
-        const endDate = new Date(`${ye}-${me}-${de}`);
+        // Parse dates - detect format automatically
+        const startParts = startVal.split('-');
+        const endParts = endVal.split('-');
 
-        if (startDate > endDate) {
+        console.log('Start parts:', startParts);
+        console.log('End parts:', endParts);
+
+        if (startParts.length !== 3 || endParts.length !== 3) {
+            console.error('Invalid date format');
+            return;
+        }
+
+        let startDay, startMonth, startYear, endDay, endMonth, endYear;
+
+        // Detect format based on first part length and value
+        if (startParts[0].length === 4 && parseInt(startParts[0]) > 1900) {
+            // Format is yyyy-mm-dd
+            console.log('Detected format: yyyy-mm-dd');
+            startYear = parseInt(startParts[0], 10);
+            startMonth = parseInt(startParts[1], 10);
+            startDay = parseInt(startParts[2], 10);
+            endYear = parseInt(endParts[0], 10);
+            endMonth = parseInt(endParts[1], 10);
+            endDay = parseInt(endParts[2], 10);
+        } else {
+            // Format is dd-mm-yyyy
+            console.log('Detected format: dd-mm-yyyy');
+            startDay = parseInt(startParts[0], 10);
+            startMonth = parseInt(startParts[1], 10);
+            startYear = parseInt(startParts[2], 10);
+            endDay = parseInt(endParts[0], 10);
+            endMonth = parseInt(endParts[1], 10);
+            endYear = parseInt(endParts[2], 10);
+        }
+
+        console.log('Parsed start components:', { day: startDay, month: startMonth, year: startYear });
+        console.log('Parsed end components:', { day: endDay, month: endMonth, year: endYear });
+
+        // Create dates: new Date(year, month-1, day)
+        const startDate = new Date(startYear, startMonth - 1, startDay);
+        const endDate = new Date(endYear, endMonth - 1, endDay);
+
+        console.log('Parsed start date:', startDate);
+        console.log('Parsed end date:', endDate);
+
+        // Basic validation
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.error('Invalid date objects created');
             $('#total_leave_days').val(0).trigger('change');
             return;
         }
 
-        const includeWeekend = $('#ignore_weekend').is(':checked');
-        const workingDays = countWorkingDays(startDate, endDate, holidays, includeWeekend);
+        // Validate year is reasonable (between 2020 and 2030)
+        const currentYear = new Date().getFullYear();
+        if (startYear < 2020 || startYear > 2030 || endYear < 2020 || endYear > 2030) {
+            console.error('Invalid year detected. Start year:', startYear, 'End year:', endYear);
+            $('#total_leave_days').val(0).trigger('change');
+            return;
+        }
 
-        // Set nilai baru dan trigger change event
+        if (startDate > endDate) {
+            console.log('Start date is after end date');
+            $('#total_leave_days').val(0).trigger('change');
+            return;
+        }
+
+        const weekendOption = $('input[name="weekend_option"]:checked').val() || 'include_all';
+        console.log('Selected weekend option:', weekendOption);
+        
+        const workingDays = countWorkingDays(startDate, endDate, holidays, weekendOption);
+        console.log('Final calculated working days:', workingDays);
+
+        // Set the value
         $('#total_leave_days').val(workingDays).trigger('change');
+        console.log('=== UpdateLeaveDays Debug End ===');
     }
 
     function checkDateRangeHasWeekends() {
         const startVal = $('#leave_start_date').val();
         const endVal = $('#leave_end_date').val();
 
-        if (!startVal || !endVal) return false;
+        if (!startVal || !endVal) return { hasWeekends: false, hasSaturday: false, hasSunday: false };
 
-        const [ds, ms, ys] = startVal.split('-');
-        const [de, me, ye] = endVal.split('-');
+        const startParts = startVal.split('-');
+        const endParts = endVal.split('-');
 
-        const startDate = new Date(`${ys}-${ms}-${ds}`);
-        const endDate = new Date(`${ye}-${me}-${de}`);
+        if (startParts.length !== 3 || endParts.length !== 3) {
+            return { hasWeekends: false, hasSaturday: false, hasSunday: false };
+        }
 
-        if (startDate > endDate) return false;
+        let dayStart, monthStart, yearStart, dayEnd, monthEnd, yearEnd;
+
+        // Detect format based on first part length and value
+        if (startParts[0].length === 4 && parseInt(startParts[0]) > 1900) {
+            // Format is yyyy-mm-dd
+            yearStart = parseInt(startParts[0], 10);
+            monthStart = parseInt(startParts[1], 10);
+            dayStart = parseInt(startParts[2], 10);
+            yearEnd = parseInt(endParts[0], 10);
+            monthEnd = parseInt(endParts[1], 10);
+            dayEnd = parseInt(endParts[2], 10);
+        } else {
+            // Format is dd-mm-yyyy
+            dayStart = parseInt(startParts[0], 10);
+            monthStart = parseInt(startParts[1], 10);
+            yearStart = parseInt(startParts[2], 10);
+            dayEnd = parseInt(endParts[0], 10);
+            monthEnd = parseInt(endParts[1], 10);
+            yearEnd = parseInt(endParts[2], 10);
+        }
+
+        // Validate components
+        if (isNaN(dayStart) || isNaN(monthStart) || isNaN(yearStart) || 
+            isNaN(dayEnd) || isNaN(monthEnd) || isNaN(yearEnd) ||
+            dayStart < 1 || dayStart > 31 || monthStart < 1 || monthStart > 12 ||
+            dayEnd < 1 || dayEnd > 31 || monthEnd < 1 || monthEnd > 12 ||
+            yearStart < 1900 || yearEnd < 1900) {
+            return { hasWeekends: false, hasSaturday: false, hasSunday: false };
+        }
+
+        // Create date objects
+        const startDate = new Date(yearStart, monthStart - 1, dayStart);
+        const endDate = new Date(yearEnd, monthEnd - 1, dayEnd);
+
+        // Validate that dates are valid
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return { hasWeekends: false, hasSaturday: false, hasSunday: false };
+        }
+
+        if (startDate > endDate) return { hasWeekends: false, hasSaturday: false, hasSunday: false };
 
         // Loop through the date range to check for weekends
+        let hasSaturday = false;
+        let hasSunday = false;
         const current = new Date(startDate);
+        
         while (current <= endDate) {
             const day = current.getDay(); // 0 = Sunday, 6 = Saturday
-            if (day === 0 || day === 6) {
-                return true; // Found a weekend day
-            }
+            if (day === 6) hasSaturday = true;
+            if (day === 0) hasSunday = true;
+            
+            // If we found both, no need to continue
+            if (hasSaturday && hasSunday) break;
+            
             current.setDate(current.getDate() + 1);
         }
 
-        return false; // No weekends found in the range
+        return { 
+            hasWeekends: hasSaturday || hasSunday, 
+            hasSaturday: hasSaturday, 
+            hasSunday: hasSunday 
+        };
     }
 
     
@@ -417,13 +617,8 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        // Event untuk checkbox ignore_weekend tanpa modal
-        $('#ignore_weekend').on('change', function () {
-            if ($(this).is(':checked')) {
-                $(this).val('yes');
-            } else {
-                $(this).val('no');
-            }
+        // Event untuk radio button weekend options
+        $('input[name="weekend_option"]').on('change', function () {
             updateLeaveDays();
         });
 
@@ -431,30 +626,30 @@ window.onload = async function(){
         $('#total_leave_days').on('change input', function() {
             var currentValue = parseInt($(this).val()) || 0;
             var previousValue = parseInt(previousTotalLeaveDays) || 0;
-            var ignoreWeekendChecked = $('#ignore_weekend').is(':checked');
+            var weekendOption = $('input[name="weekend_option"]:checked').val();
             
             // Cek apakah tanggal yang dipilih mengandung hari sabtu/minggu
-            var hasWeekends = checkDateRangeHasWeekends();
+            var weekendInfo = checkDateRangeHasWeekends();
             
-            // Cek apakah ada perubahan nilai, nilai lebih besar dari sebelumnya, ignore_weekend tidak dichecklist, dan ada weekend di range tanggal
-            if (currentValue != previousValue && currentValue > previousValue && !ignoreWeekendChecked && currentValue > 0 && hasWeekends) {
-                $('#ignoreWeekendModal').modal('show');
+            // Cek apakah ada perubahan nilai, nilai lebih besar dari sebelumnya, masih include_all, dan ada weekend di range tanggal
+            if (currentValue != previousValue && currentValue > previousValue && weekendOption === 'include_all' && currentValue > 0 && weekendInfo.hasWeekends) {
+                $('#weekendOptionsModal').modal('show');
             }
             
             previousTotalLeaveDays = currentValue;
         });
 
-        // Handle button Lanjutkan di modal
-        $('#btnLanjutkan').on('click', function() {
-            $('#ignore_weekend').prop('checked', true);
-            $('#ignore_weekend').val('yes');
-            $('#ignoreWeekendModal').modal('hide');
+        // Handle button Terapkan di modal
+        $('#btnTerapkan').on('click', function() {
+            var selectedOption = $('input[name="modal_weekend_option"]:checked').val();
+            $('input[name="weekend_option"][value="' + selectedOption + '"]').prop('checked', true);
+            $('#weekendOptionsModal').modal('hide');
             updateLeaveDays();
         });
 
         // Handle button Batal di modal
         $('#btnBatal').on('click', function() {
-            $('#ignoreWeekendModal').modal('hide');
+            $('#weekendOptionsModal').modal('hide');
         });
 
         // $('#is_reserved').on('change', function () {
@@ -482,7 +677,7 @@ window.onload = async function(){
             console.log('Perubahan Data Leave:',leave_type_data);
             var today = new Date();
             var twoWeeksLater = new Date();
-            twoWeeksLater.setDate(today.getDate() + 14);
+            // twoWeeksLater.setDate(today.getDate() + 14);
 
             if (leave_code === 'L01') {
                 getAnnualLeave();
@@ -624,7 +819,8 @@ window.onload = async function(){
         var today = new Date();
         today.setDate(today.getDate() - 30);
         var lastToday = new Date();
-        $('[data-provide="datepicker"]').datepicker({
+        // This datepicker config is for other date fields, not leave dates
+        $('[data-provide="datepicker"]:not(#leave_start_date):not(#leave_end_date)').datepicker({
             autoclose: true,
             todayHighlight: true,
             format: 'yyyy-mm-dd',
@@ -757,7 +953,7 @@ window.onload = async function(){
         
         var today = new Date();
         var twoWeeksLater = new Date();
-        twoWeeksLater.setDate(today.getDate() + 14);
+        //twoWeeksLater.setDate(today.getDate() + 14);
         $.ajax({
             url: sourceUrl,
             type: 'GET',

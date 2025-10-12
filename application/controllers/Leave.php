@@ -631,6 +631,38 @@ class Leave extends MY_Controller
         echo json_encode($employee_has_leave);
     }
 
+    /**
+     * Check if there's any overlapping leave request for the given date range
+     * Returns true if date range conflicts with existing leave request (excluding rejected status)
+     */
+    private function checkDateRangeConflict($employee_number, $leave_start_date, $leave_end_date, $exclude_id = null)
+    {
+        $this->db->select('id, document_number, leave_start_date, leave_end_date, status');
+        $this->db->from('tb_leave_requests');
+        $this->db->where('employee_number', $employee_number);
+        $this->db->where('status !=', 'REJECT'); // Exclude rejected requests
+        
+        // Exclude current record if editing
+        if ($exclude_id) {
+            $this->db->where('id !=', $exclude_id);
+        }
+        
+        // Check for date range overlap using SQL date range logic
+        // Two date ranges overlap if: start1 <= end2 AND start2 <= end1
+        $this->db->group_start();
+        $this->db->where('leave_start_date <=', $leave_end_date);
+        $this->db->where('leave_end_date >=', $leave_start_date);
+        $this->db->group_end();
+        
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            return $query->result_array();
+        }
+        
+        return false;
+    }
+
     public function sendLeavePlan()
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -754,6 +786,27 @@ class Leave extends MY_Controller
                             $errors[] = "Jumlah hari cuti yang diminta ({$requested_days} hari) melebihi sisa cuti yang tersedia ({$available_leave} hari). Silakan kurangi jumlah hari cuti.";
                         }
                     }
+                }
+            }
+
+            // Validasi range tanggal cuti untuk semua jenis cuti
+            if (isset($_SESSION['leave']['leave_start_date']) && isset($_SESSION['leave']['leave_end_date']) && 
+                $_SESSION['leave']['leave_start_date'] && $_SESSION['leave']['leave_end_date']) {
+                
+                $exclude_id = isset($_SESSION['leave']['id']) ? $_SESSION['leave']['id'] : null;
+                $conflicting_requests = $this->checkDateRangeConflict(
+                    $_SESSION['leave']['employee_number'],
+                    $_SESSION['leave']['leave_start_date'],
+                    $_SESSION['leave']['leave_end_date'],
+                    $exclude_id
+                );
+                
+                if ($conflicting_requests) {
+                    $conflict_details = array();
+                    foreach ($conflicting_requests as $request) {
+                        $conflict_details[] = "Dokumen {$request['document_number']} ({$request['leave_start_date']} s.d {$request['leave_end_date']}) - Status: {$request['status']}";
+                    }
+                    $errors[] = "Range tanggal cuti sudah pernah diminta. Konflik dengan:<br>" . implode('<br>', $conflict_details);
                 }
             }
             
