@@ -26,12 +26,12 @@
                         
 
                         <div class="form-group">
-                            <input type="text" name="amount_leave" id="amount_leave" class="form-control" value="<?=$entity['amount_leave'];?>" readonly>
+                            <input type="text" name="amount_leave" id="amount_leave" class="form-control" value="<?=$entity['amount_leave'];?>">
                             <label for="amount_leave">Jumlah Cuti</label>
                         </div>
 
                         <div class="form-group">
-                            <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?=$entity['left_leave'];?>" step="1" <?= ($entity['used_leave'] != 0) ? 'readonly' : ''; ?>>
+                            <input type="number" name="left_leave" id="left_leave" class="form-control number" value="<?=$entity['left_leave'];?>" step="1">
                             <label for="left_leave">Sisa Cuti</label>
                         </div>
 
