@@ -1129,6 +1129,7 @@ class Employee extends MY_Controller
         } else {
             if ($this->input->post('id') != ''){
                 $form_data = array(
+                    'amount_leave'   => $this->input->post('amount_leave'),
                     'left_leave'   => $this->input->post('left_leave'),
                     'used_leave'   => $this->input->post('used_leave'),
                     'updated_by'   => config_item('auth_person_name'),
