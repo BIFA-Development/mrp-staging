@@ -604,6 +604,14 @@ window.onload = async function(){
         
         // Inisialisasi nilai awal total_leave_days
         var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
+        
+        // Set initial state of save button based on total_leave_days value
+        var initialTotalLeaveDays = parseInt($('#total_leave_days').val()) || 0;
+        if (initialTotalLeaveDays <= 0) {
+            $('#btn-submit-document').attr('disabled', true);
+        } else {
+            $('#btn-submit-document').attr('disabled', false);
+        }
 
         var today = new Date();
         var twoWeeksLater = new Date();
@@ -622,11 +630,18 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        // Monitor perubahan pada total_leave_days untuk menampilkan modal
+        // Monitor perubahan pada total_leave_days untuk menampilkan modal dan disable/enable button
         $('#total_leave_days').on('change input', function() {
             var currentValue = parseInt($(this).val()) || 0;
             var previousValue = parseInt(previousTotalLeaveDays) || 0;
             var weekendOption = $('input[name="weekend_option"]:checked').val();
+            
+            // Disable/enable save button based on total_leave_days value
+            if (currentValue <= 0) {
+                $('#btn-submit-document').attr('disabled', true);
+            } else {
+                $('#btn-submit-document').attr('disabled', false);
+            }
             
             // Cek apakah tanggal yang dipilih mengandung hari sabtu/minggu
             var weekendInfo = checkDateRangeHasWeekends();

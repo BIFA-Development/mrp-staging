@@ -638,6 +638,14 @@ window.onload = async function(){
         
         // Inisialisasi nilai awal total_leave_days
         var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
+        
+        // Set initial state of save button based on total_leave_days value
+        var initialTotalLeaveDays = parseInt($('#total_leave_days').val()) || 0;
+        if (initialTotalLeaveDays <= 0) {
+            $('#btn-submit-document').attr('disabled', true);
+        } else {
+            $('#btn-submit-document').attr('disabled', false);
+        }
 
         var today = new Date();
         var twoWeeksLater = new Date();
@@ -661,10 +669,17 @@ window.onload = async function(){
             updateLeaveDays();
         });
 
-        // Monitor perubahan pada total_leave_days untuk menampilkan modal
+        // Monitor perubahan pada total_leave_days untuk menampilkan modal dan disable/enable button
         $('#total_leave_days').on('change input', function() {
             var currentValue = parseInt($(this).val()) || 0;
             var selectedWeekendOption = $('input[name="weekend_option"]:checked').val();
+            
+            // Disable/enable save button based on total_leave_days value
+            if (currentValue <= 0) {
+                $('#btn-submit-document').attr('disabled', true);
+            } else {
+                $('#btn-submit-document').attr('disabled', false);
+            }
             
             // Cek apakah tanggal yang dipilih mengandung hari sabtu/minggu
             var weekendInfo = checkDateRangeHasWeekends();
@@ -1122,6 +1137,13 @@ window.onload = async function(){
         var leave_type = $('#type_leave').val();
         var $saveButton = $('#btn-submit-document');
         
+        // First check: if total_leave_days is 0, always disable the button
+        if (total_leave_days <= 0) {
+            $saveButton.attr('disabled', true);
+            $saveButton.addClass('btn-disabled');
+            return false;
+        }
+        
         // Only validate for annual leave (L01)
         var leave_code = $('#type_leave option:selected').data('leave-code');
         
@@ -1154,12 +1176,6 @@ window.onload = async function(){
                     $saveButton.attr('disabled', false);
                     $saveButton.removeClass('btn-disabled');
                     return true;
-                } else if (total_leave_days === 0) {
-                    // No leave days entered yet - clear toast tracking
-                    lastToastMessage = '';
-                    $saveButton.attr('disabled', false);
-                    $saveButton.removeClass('btn-disabled');
-                    return true;
                 } else {
                     // Edge case: negative remaining quota
                     $saveButton.attr('disabled', true);
@@ -1168,40 +1184,38 @@ window.onload = async function(){
                 }
             } else {
                 // No quota available at all
-                if (total_leave_days > 0) {
-                    $saveButton.attr('disabled', true);
-                    $saveButton.addClass('btn-disabled');
+                $saveButton.attr('disabled', true);
+                $saveButton.addClass('btn-disabled');
+                
+                // Show toast only if requested and not duplicate
+                if (showToast) {
+                    var currentMessage = 'no_quota_available';
+                    var currentTime = Date.now();
                     
-                    // Show toast only if requested and not duplicate
-                    if (showToast) {
-                        var currentMessage = 'no_quota_available';
-                        var currentTime = Date.now();
-                        
-                        if (lastToastMessage !== currentMessage || (currentTime - lastToastTime) > 3000) {
-                            toastr.error(
-                                'Karyawan tidak memiliki kuota cuti tahunan yang tersedia.', 
-                                'Tidak Ada Kuota Cuti', 
-                                {timeOut: 10000, positionClass: 'toast-top-right', closeButton: true}
-                            );
-                            lastToastMessage = currentMessage;
-                            lastToastTime = currentTime;
-                        }
+                    if (lastToastMessage !== currentMessage || (currentTime - lastToastTime) > 3000) {
+                        toastr.error(
+                            'Karyawan tidak memiliki kuota cuti tahunan yang tersedia.', 
+                            'Tidak Ada Kuota Cuti', 
+                            {timeOut: 10000, positionClass: 'toast-top-right', closeButton: true}
+                        );
+                        lastToastMessage = currentMessage;
+                        lastToastTime = currentTime;
                     }
-                    return false;
-                } else {
-                    // Clear toast tracking
-                    lastToastMessage = '';
-                    $saveButton.attr('disabled', false);
-                    $saveButton.removeClass('btn-disabled');
-                    return true;
                 }
+                return false;
             }
         } else {
-            // Not annual leave, no quota validation needed - clear toast tracking
-            lastToastMessage = '';
-            $saveButton.attr('disabled', false);
-            $saveButton.removeClass('btn-disabled');
-            return true;
+            // Not annual leave, but still check if total_leave_days > 0
+            if (total_leave_days > 0) {
+                lastToastMessage = '';
+                $saveButton.attr('disabled', false);
+                $saveButton.removeClass('btn-disabled');
+                return true;
+            } else {
+                $saveButton.attr('disabled', true);
+                $saveButton.addClass('btn-disabled');
+                return false;
+            }
         }
     }
 
@@ -1209,7 +1223,15 @@ window.onload = async function(){
         var leave_code = $('#type_leave option:selected').data('leave-code');
         var startVal = $('#leave_start_date').val();
         var endVal = $('#leave_end_date').val();
+        var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
         var $saveButton = $('#btn-submit-document');
+        
+        // First check: if total_leave_days is 0, always disable the button
+        if (total_leave_days <= 0) {
+            $saveButton.attr('disabled', true);
+            $saveButton.addClass('btn-disabled');
+            return false;
+        }
         
         // Only validate for annual leave (L01)
         if (leave_code === 'L01' && startVal && endVal) {
@@ -1278,8 +1300,13 @@ window.onload = async function(){
             $('#contract_start_hidden').val('');
             $('#contract_end_hidden').val('');
             
-            // Enable save button when no data
-            $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+            // Check total_leave_days before enabling save button
+            var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+            if (total_leave_days <= 0) {
+                $('#btn-submit-document').attr('disabled', true).addClass('btn-disabled');
+            } else {
+                $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+            }
             
             // Re-enable form fields when no selection
             $('#leave_start_date').attr('disabled', false);
@@ -1419,8 +1446,13 @@ window.onload = async function(){
                     $('#annual_leave_remaining_hidden').val('0');
                     $('#annual_leave_quota_hidden').val('0');
                     
-                    // Enable save button when no contract found
-                    $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    // Check total_leave_days before enabling save button
+                    var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+                    if (total_leave_days <= 0) {
+                        $('#btn-submit-document').attr('disabled', true).addClass('btn-disabled');
+                    } else {
+                        $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    }
                     
                     // Show warning message
                     toastr.warning(data.message, 'Contract Warning');
@@ -1433,8 +1465,13 @@ window.onload = async function(){
                     $('#annual_leave_remaining_hidden').val('0');
                     $('#annual_leave_quota_hidden').val('0');
                     
-                    // Enable save button for non-annual leave
-                    $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    // Check total_leave_days before enabling save button for non-annual leave
+                    var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+                    if (total_leave_days <= 0) {
+                        $('#btn-submit-document').attr('disabled', true).addClass('btn-disabled');
+                    } else {
+                        $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                    }
                     
                     // Re-enable form fields for non-annual leave
                     $('#leave_start_date').attr('disabled', false);
@@ -1452,8 +1489,13 @@ window.onload = async function(){
                 $('#annual_leave_remaining_hidden').val('0');
                 $('#annual_leave_quota_hidden').val('0');
                 
-                // Enable save button on error
-                $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                // Check total_leave_days before enabling save button on error
+                var total_leave_days = parseInt($('#total_leave_days').val()) || 0;
+                if (total_leave_days <= 0) {
+                    $('#btn-submit-document').attr('disabled', true).addClass('btn-disabled');
+                } else {
+                    $('#btn-submit-document').attr('disabled', false).removeClass('btn-disabled');
+                }
             }
         });
     }
