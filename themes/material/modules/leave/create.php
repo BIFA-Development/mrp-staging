@@ -779,9 +779,17 @@ window.onload = async function(){
             var url = $(this).data('source');
             var id = $(this).attr('id');
 
-            $.get(url, {
-                data: val
-            });
+            console.log('Autoset triggered for:', id, 'value:', val, 'url:', url);
+
+            if (url) {
+                $.get(url, {
+                    data: val
+                }).done(function() {
+                    console.log('Autoset success for:', id);
+                }).fail(function() {
+                    console.log('Autoset failed for:', id);
+                });
+            }
         });
 
         function submitForm(url, button) {
@@ -956,7 +964,18 @@ window.onload = async function(){
 
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
         var gender = $('#employee_number option:selected').data('gender');
-        var employee_number = $('#employee_number option:selected').data('employee-number');
+        var employee_number = $('#employee_number').val(); // Ambil value yang dipilih, bukan dari data attribute
+        
+        console.log('Employee number changed to:', employee_number);
+        
+        // Pastikan employee_number disimpan ke session
+        var setEmployeeUrl = $(this).data('source');
+        if (setEmployeeUrl && employee_number) {
+            $.get(setEmployeeUrl, {
+                data: employee_number
+            });
+        }
+        
         $('#warehouse').val(warehouse).trigger('change');
         var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');

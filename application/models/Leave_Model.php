@@ -149,6 +149,17 @@ class Leave_Model extends MY_Model
             $this->db->select($selected);
             $this->db->from('tb_leave_requests');
             $this->db->join('tb_leave_plan', 'tb_leave_plan.id = tb_leave_requests.id_leave_plan', 'left');
+        } else if(config_item('auth_role') == 'PIC STAFF') {
+            $idUser = config_item('auth_user_id');
+            $selected_person            = getEmployeeById($idUser);
+            $department_id              = $selected_person['department_id'];
+            $employee_numbers           = getListEmployeeByDepartment($department_id);
+            $selected = array(
+                'tb_leave_requests.*',
+            );
+            $this->db->select($selected);
+            $this->db->where_in('tb_leave_requests.employee_number', $employee_numbers);
+            $this->db->from('tb_leave_requests');
         // } else if(config_item('auth_role') == 'VP FINANCE'){
         //     $selected = array(
         //         'tb_leave_requests.*',
