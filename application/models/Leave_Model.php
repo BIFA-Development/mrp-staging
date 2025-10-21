@@ -38,8 +38,9 @@ class Leave_Model extends MY_Model
     public function getSearchableColumns()
     {
         return array(
-            'document_number',
-            'request_date',
+            'tb_leave_requests.document_number',
+            'CAST(tb_leave_requests.request_date AS TEXT)',
+            'tb_leave_requests.person_name',
         );
     }
 
@@ -59,8 +60,8 @@ class Leave_Model extends MY_Model
     {
         return array(
             null,
-            'request_date',
-            'document_number',
+            'tb_leave_requests.request_date',
+            'tb_leave_requests.document_number',
         );
     }
 
@@ -472,8 +473,56 @@ class Leave_Model extends MY_Model
 
         // CREATE NEW DOCUMENT
         $document_number            = sprintf('%06s', $_SESSION['leave']['document_number']) . $_SESSION['leave']['format_number'];
-        $leave_start_date           = $_SESSION['leave']['leave_start_date'];
-        $leave_end_date             = $_SESSION['leave']['leave_end_date'];
+        
+        // Convert date safely - handle both d-m-Y and Y-m-d formats
+        $start_date_raw = $_SESSION['leave']['leave_start_date'];
+        $end_date_raw = $_SESSION['leave']['leave_end_date'];
+        
+        // Smart date conversion - detect format and convert properly
+        function convertToDbDate($date_string) {
+            if (empty($date_string)) {
+                return null;
+            }
+            
+            // If already in Y-m-d format, return as is
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_string)) {
+                return $date_string;
+            }
+            
+            // If in d-m-Y format (like 25-12-2024)
+            if (preg_match('/^\d{1,2}-\d{1,2}-\d{4}$/', $date_string)) {
+                $parts = explode('-', $date_string);
+                if (count($parts) === 3) {
+                    $day = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+                    $month = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+                    $year = $parts[2];
+                    
+                    // Validate the date
+                    if (checkdate($month, $day, $year)) {
+                        return $year . '-' . $month . '-' . $day;
+                    }
+                }
+            }
+            
+            // Fallback: try to parse with strtotime (replace - with / for d/m/Y format)
+            $timestamp = strtotime(str_replace('-', '/', $date_string));
+            if ($timestamp !== false && $timestamp > 0) {
+                return date('Y-m-d', $timestamp);
+            }
+            
+            // If all fails, return null to avoid 1970-01-01
+            return null;
+        }
+        
+        $leave_start_date = convertToDbDate($start_date_raw);
+        $leave_end_date = convertToDbDate($end_date_raw);
+        
+        // Validate that we have valid dates
+        if ($leave_start_date === null || $leave_end_date === null) {
+            log_message('error', 'Invalid date conversion - Start: ' . $start_date_raw . ', End: ' . $end_date_raw);
+            return false;
+        }
+        
         $total_leave_days           = $_SESSION['leave']['total_leave_days'];
         $reason                     = $_SESSION['leave']['reason'];
         $leave_type                 = $_SESSION['leave']['leave_type'];
@@ -482,7 +531,7 @@ class Leave_Model extends MY_Model
         $selected_person            = getEmployeeByEmployeeNumber($employee_number);
         $person_name                = $selected_person['name'];
         $warehouse                  = $_SESSION['leave']['warehouse'];
-        $head_data                  = getEmployeeById($_SESSION['leave']['head_dept']);
+        $head_data                  = getEmployeeByEmployeeNumber($_SESSION['leave']['head_dept']);
         $head_dept                  = $head_data['employee_number'];
         $employee_has_leave_id      = $_SESSION['leave']['employee_has_leave_id'];
         $get_leave                  = getLeaveCodeById($leave_type);

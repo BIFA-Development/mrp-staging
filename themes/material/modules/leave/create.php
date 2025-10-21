@@ -63,10 +63,7 @@
 
                         <div class="form-group">
                             <select name="head_dept" id="head_dept" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" required>
-                                <option></option>
-                                <?php foreach(list_user_in_head_department($_SESSION['leave']['department_id']) as $head):?>
-                                <option value="<?=$head['user_id'];?>" <?= ( getEmployeeById($head['user_id'])['employee_number'] == $_SESSION['leave']['head_dept']) ? 'selected' : ''; ?>><?=$head['person_name'];?></option>
-                                <?php endforeach;?>
+                                <option value="">---Pilih Atasan---</option>
                             </select>
                             <label for="head_dept">Atasan</label>
                         </div>
@@ -287,6 +284,7 @@ window.onload = async function(){
         console.log(warehouse);
         console.log(gender);
 
+        // Trigger change untuk employee_number agar head department list dan department name terupdate
         $('#employee_number').trigger('change');
         
         // var type = $('#type_leave option:selected').data('leave-code');  
@@ -963,10 +961,14 @@ window.onload = async function(){
         var id_leave_plan = $('#id_leave_plan').val();
 
         var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+        var department_name = $('#employee_number option:selected').data('department-name');
+        var department_id = $('#employee_number option:selected').data('department-id');
         var gender = $('#employee_number option:selected').data('gender');
         var employee_number = $('#employee_number').val(); // Ambil value yang dipilih, bukan dari data attribute
         
         console.log('Employee number changed to:', employee_number);
+        console.log('Selected Dept:', department_name);
+        console.log('Selected Dept ID:', department_id);
         
         // Pastikan employee_number disimpan ke session
         var setEmployeeUrl = $(this).data('source');
@@ -977,6 +979,48 @@ window.onload = async function(){
         }
         
         $('#warehouse').val(warehouse).trigger('change');
+        $('#department_name').val(department_name).trigger('change');
+        
+        // Update head department list based on selected department_id
+        if (department_id) {
+            $.ajax({
+                url: '<?= site_url($module['route'] . '/get_head_department'); ?>',
+                type: 'GET',
+                data: { department_id: department_id },
+                success: function (data) {
+                    console.log('Head department data:', data);
+                    var response = $.parseJSON(data);
+                    let $headSelect = $('#head_dept');
+                    
+                    // Clear current options and append the default option
+                    $headSelect.empty().append('<option value="">---Pilih Atasan---</option>');
+                    
+                    if (response.length > 0) {
+                        var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
+                        console.log('Current selected head employee_number from session:', currentSelectedHead);
+                        
+                        $.each(response, function (index, head) {
+                            // Use employee_number as value to match with session data
+                            var isSelected = (head.employee_number == currentSelectedHead) ? 'selected' : '';
+                            var option = `<option value="${head.employee_number}" ${isSelected}>${head.person_name}</option>`;
+                            $headSelect.append(option);
+                            
+                            if (isSelected) {
+                                console.log('Head selected:', head.person_name, 'with employee_number:', head.employee_number);
+                            }
+                        });
+                    }
+                },
+                error: function () {
+                    console.error('Failed to load head department list');
+                    toastr.error('Failed to load head department list. Please try again.');
+                }
+            });
+        } else {
+            // Clear head department dropdown if no department is selected
+            let $headSelect = $('#head_dept');
+            $headSelect.empty().append('<option value="">---Pilih Atasan---</option>');
+        }
         var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');
         console.log('Init Employee2');

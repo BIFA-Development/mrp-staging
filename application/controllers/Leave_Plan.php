@@ -182,6 +182,30 @@ class Leave_Plan extends MY_Controller
         $_SESSION['leave_plan']['head_dept'] = $_GET['data'];
     }
 
+    public function get_head_department()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        $department_id = $this->input->get('department_id');
+        
+        if (empty($department_id)) {
+            echo json_encode([]);
+            return;
+        }
+
+        // Get head department list based on department_id
+        $head_list = list_user_in_head_department($department_id);
+        
+        // Add employee_number for each head
+        foreach ($head_list as &$head) {
+            $employee_data = getEmployeeById($head['user_id']);
+            $head['employee_number'] = $employee_data ? $employee_data['employee_number'] : '';
+        }
+        
+        echo json_encode($head_list);
+    }
+
 
     public function set_is_reserved()
     {
@@ -307,7 +331,6 @@ class Leave_Plan extends MY_Controller
 
         $entity = $this->model->findById($id);
 
-        $document_number    = sprintf('%06s', substr($entity['document_number'], 0, 6));
         $format_number      = substr($entity['document_number'], 6, 25);
         $holidays = getHolidays();
 
@@ -316,22 +339,29 @@ class Leave_Plan extends MY_Controller
 
         $kontrak_active = findContractActive($entity['employee_number']);
 
-
+        // Extract base document number (remove existing revision if any)
+        $base_document_number = $entity['document_number'];
         if (preg_match('/-R(\d+)/', $entity['document_number'], $matches)) {
             $current_revision = intval($matches[1]); // Ambil angka revisi terakhir
             $revisi = $current_revision + 1; // Tambah revisi berikutnya
-            $document_number = str_replace('-R' . $current_revision, '', $document_number); // Hapus revisi sebelumnya
+            $base_document_number = str_replace('-R' . $current_revision, '', $entity['document_number']); // Hapus revisi sebelumnya
         } else {
             $revisi = 1; // Jika belum ada revisi, mulai dari 1
         }
-    
-        $new_document_number = $document_number . '-R' . $revisi;
+        
+        // Extract just the document number part (first 6 characters) and format number
+        $document_number_only = sprintf('%06s', substr($base_document_number, 0, 6));
+        $format_number = substr($base_document_number, 6);
+        
+        // For session, store the incremented number and add revision to format
+        $new_document_number = $document_number_only;
+        $new_format_number = '-R' . $revisi . $format_number;
 
         $_SESSION['leave_plan']                              = $entity;
         $_SESSION['leave_plan']['id']                        = $id;
         $_SESSION['leave_plan']['edit']                      = $entity['document_number'];
         $_SESSION['leave_plan']['document_number']           = $new_document_number;
-        $_SESSION['leave_plan']['format_number']             = $format_number;
+        $_SESSION['leave_plan']['format_number']             = $new_format_number;
         $_SESSION['leave_plan']['holidays']                  = $holidays;
         $_SESSION['leave_plan']['employee_number']           = $entity['employee_number'];
         $_SESSION['leave_plan']['department_id']             = $employee['department_id'];
@@ -576,8 +606,12 @@ class Leave_Plan extends MY_Controller
             $leave_end_date = $_SESSION['leave_plan']['leave_end_date'];
             
             if ($leave_start_date && $leave_end_date && $employee_number) {
+                // Convert date format from dd-mm-yyyy to yyyy-mm-dd for database query
+                $start_date_db = date('Y-m-d', strtotime(str_replace('-', '/', $leave_start_date)));
+                $end_date_db = date('Y-m-d', strtotime(str_replace('-', '/', $leave_end_date)));
+                
                 $current_id = isset($_SESSION['leave_plan']['id']) ? $_SESSION['leave_plan']['id'] : null;
-                $date_conflict = $this->checkDateRangeConflict($employee_number, $leave_start_date, $leave_end_date, $current_id);
+                $date_conflict = $this->checkDateRangeConflict($employee_number, $start_date_db, $end_date_db, $current_id);
                 
                 if (!empty($date_conflict)) {
                     $errors[] = 'Range tanggal cuti sudah pernah diminta pada periode yang sama. Silakan pilih tanggal yang berbeda atau hubungi HR jika ada keperluan khusus.';
@@ -655,6 +689,7 @@ class Leave_Plan extends MY_Controller
         $this->db->join('tb_leave_type lt', 'lt.id = lp.leave_type', 'left');
         $this->db->where('lp.employee_number', $employee_number);
         $this->db->where('lp.status !=', 'reject'); // Exclude rejected requests
+        $this->db->where('lp.status !=', 'revised'); // Exclude revised requests
         
         // Date range overlap check: (start1 <= end2) AND (start2 <= end1)
         $this->db->group_start();
