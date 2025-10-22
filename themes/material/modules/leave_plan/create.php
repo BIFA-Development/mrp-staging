@@ -318,11 +318,17 @@ console.log('Holidays:', holidays);
 var selectedLeave = "<?= isset($_SESSION['leave']['leave_type']) ? $_SESSION['leave']['leave_type'] : ''; ?>";
 window.onload = async function(){
         console.log('mulaiinit');
-        var warehouse = $('#employee_number option:selected').data('get-warehouse');  
-        console.log(warehouse);
         
-        // Trigger change untuk employee_number agar head department list terupdate
-        $('#employee_number').trigger('change');
+        // Tunggu hingga DOM dan Select2 siap
+        setTimeout(function() {
+            var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+            console.log('Init warehouse:', warehouse);
+            
+            // Trigger change untuk employee_number agar head department list terupdate
+            if ($('#employee_number').val()) {
+                $('#employee_number').trigger('change');
+            }
+        }, 100);
         
         // var type = $('#type_leave option:selected').data('leave-code');  
 
@@ -635,6 +641,31 @@ window.onload = async function(){
         var formDocument = $('#form-create-document');
         var autosetInputData = $('[data-input-type="autoset"]');
         
+        // Fungsi untuk memastikan department_name terupdate
+        function ensureDepartmentName() {
+            var currentDeptName = $('#department_name').val();
+            var selectedEmployeeDept = $('#employee_number option:selected').data('department-name');
+            var sessionDeptName = '<?= $_SESSION['leave_plan']['department_name']; ?>';
+            
+            console.log('Current dept name:', currentDeptName);
+            console.log('Selected employee dept:', selectedEmployeeDept);
+            console.log('Session dept name:', sessionDeptName);
+            
+            // Jika department_name kosong, coba ambil dari selected option atau session
+            if (!currentDeptName || currentDeptName.trim() === '') {
+                if (selectedEmployeeDept && selectedEmployeeDept.trim() !== '') {
+                    $('#department_name').val(selectedEmployeeDept).trigger('change');
+                    console.log('Updated dept name from selected option:', selectedEmployeeDept);
+                } else if (sessionDeptName && sessionDeptName.trim() !== '') {
+                    $('#department_name').val(sessionDeptName).trigger('change');
+                    console.log('Updated dept name from session:', sessionDeptName);
+                }
+            }
+        }
+        
+        // Panggil fungsi ini setelah dokumen ready
+        setTimeout(ensureDepartmentName, 200);
+        
         // Inisialisasi nilai awal total_leave_days
         var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
         
@@ -788,11 +819,29 @@ window.onload = async function(){
             var reason = $('#reason').val(); // Default to 0 if invalid.
             var total_leave_days = $('#total_leave_days').val(); // Default to 0 if invalid.
             var employee_has_leave_id = $('#employee_has_leave_id').val();
+            var department_name = $('#department_name').val(); // Tambahkan validasi department_name
+
+            // Validasi department_name sebelum submit
+            if (!department_name || department_name.trim() === '') {
+                // Coba ambil dari selected option sebagai fallback terakhir
+                var selectedDeptName = $('#employee_number option:selected').data('department-name');
+                if (selectedDeptName && selectedDeptName.trim() !== '') {
+                    $('#department_name').val(selectedDeptName).trigger('change');
+                    department_name = selectedDeptName;
+                    console.log('Department name updated before submit:', selectedDeptName);
+                } else {
+                    toastr.error('Department name is required. Please select an employee first.');
+                    button.attr('disabled', false);
+                    return;
+                }
+            }
+
             $('#employee_has_leave_id').val(employee_has_leave_id).trigger('change');
             $('#warehouse').val(warehouse).trigger('change');
             $('#leave_type').val(leave_type).trigger('change');
             $('#head_dept').val(head_dept).trigger('change');
             $('#reason').val(reason).trigger('change');
+            $('#department_name').val(department_name).trigger('change');
 
             console.log("TypeLeave:", type_leave);
             console.log("LeaveType:", leave_type);
@@ -1014,10 +1063,29 @@ window.onload = async function(){
         var department_name = $('#employee_number option:selected').data('department-name');
         var department_id = $('#employee_number option:selected').data('department-id');
         var gender = $('#employee_number option:selected').data('gender');
-        $('#warehouse').val(warehouse).trigger('change');
-        $('#department_name').val(department_name).trigger('change');
+        var employee_number = $('#employee_number').val(); // Ambil value yang dipilih, bukan dari data attribute
+        
+        console.log('Employee number changed to:', employee_number);
         console.log('Selected Dept:', department_name);
         console.log('Selected Dept ID:', department_id);
+        
+        // Fallback: jika department_name masih kosong, coba ambil dari session atau alternatif lain
+        if (!department_name && employee_number) {
+            console.log('Department name is empty, trying to get from session or alternative source');
+            // Coba ambil dari session sebagai fallback
+            department_name = '<?= $_SESSION['leave_plan']['department_name']; ?>';
+        }
+        
+        // Pastikan employee_number disimpan ke session
+        var setEmployeeUrl = $(this).data('source');
+        if (setEmployeeUrl && employee_number) {
+            $.get(setEmployeeUrl, {
+                data: employee_number
+            });
+        }
+        
+        $('#warehouse').val(warehouse).trigger('change');
+        $('#department_name').val(department_name).trigger('change');
         var warehouse2 = $('#warehouse').val();
         
         // Update head department list based on selected department_id
@@ -1153,6 +1221,30 @@ window.onload = async function(){
 
     $('.select2').select2({
         // theme: "bootstrap",
+    });
+
+    // Tambahkan event listener setelah Select2 selesai diinisialisasi
+    $('#employee_number').on('select2:select', function (e) {
+        var data = e.params.data;
+        console.log('Select2 selection changed:', data);
+        
+        // Delay untuk memastikan DOM telah terupdate
+        setTimeout(function() {
+            var warehouse = $('#employee_number option:selected').data('get-warehouse');  
+            var department_name = $('#employee_number option:selected').data('department-name');
+            var department_id = $('#employee_number option:selected').data('department-id');
+            
+            console.log('From select2:select - Dept:', department_name);
+            console.log('From select2:select - Warehouse:', warehouse);
+            console.log('From select2:select - Dept ID:', department_id);
+            
+            if (department_name) {
+                $('#department_name').val(department_name).trigger('change');
+            }
+            if (warehouse) {
+                $('#warehouse').val(warehouse).trigger('change');
+            }
+        }, 50);
     });
 
     var selectedBenefit = "<?= isset($_SESSION['leave_plan']['type']) ? $_SESSION['leave_plan']['type'] : ''; ?>";
