@@ -64,6 +64,9 @@
                         <div class="form-group">
                             <select name="head_dept" id="head_dept" class="form-control" data-input-type="autoset" data-source="<?= site_url($module['route'] . '/set_head_dept'); ?>" required>
                                 <option value="">---Pilih Atasan---</option>
+                                <?php foreach(list_user_approval([10,16]) as $atasan):?>
+                                <option value="<?=$atasan['username'];?>" <?= ($atasan['username'] == $_SESSION['leave']['head_dept']) ? 'selected' : ''; ?>><?=$atasan['person_name'];?></option>
+                                <?php endforeach;?>
                             </select>
                             <label for="head_dept">Atasan</label>
                         </div>
@@ -290,6 +293,19 @@ window.onload = async function(){
             // Trigger change untuk employee_number agar head department list dan department name terupdate
             if ($('#employee_number').val()) {
                 $('#employee_number').trigger('change');
+            } else {
+                // Jika tidak ada employee yang dipilih, pastikan list_user_approval options tersedia
+                console.log('No employee selected, ensuring list_user_approval options are available');
+                var $headSelect = $('#head_dept');
+                
+                // Periksa apakah sudah ada options selain default
+                if ($headSelect.find('option').length <= 1) {
+                    <?php foreach(list_user_approval([10,16]) as $atasan):?>
+                    var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
+                    var isSelectedApproval = ('<?=$atasan['username'];?>' == currentSelectedHead) ? 'selected' : '';
+                    $headSelect.append('<option value="<?=$atasan['username'];?>" ' + isSelectedApproval + '><?=$atasan['person_name'];?></option>');
+                    <?php endforeach;?>
+                }
             }
         }, 100);
         
@@ -630,6 +646,32 @@ window.onload = async function(){
         
         // Panggil fungsi ini setelah dokumen ready
         setTimeout(ensureDepartmentName, 200);
+        
+        // Fungsi untuk memastikan head_dept options dimuat saat halaman load
+        function ensureHeadDeptOptions() {
+            var $headSelect = $('#head_dept');
+            var currentOptionsCount = $headSelect.find('option').length;
+            
+            console.log('Current head_dept options count:', currentOptionsCount);
+            
+            // Jika hanya ada default option "---Pilih Atasan---", tambahkan dari list_user_approval
+            if (currentOptionsCount <= 1) {
+                console.log('Adding list_user_approval options to head_dept');
+                
+                <?php foreach(list_user_approval([10,16]) as $atasan):?>
+                var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
+                var isSelectedApproval = ('<?=$atasan['username'];?>' == currentSelectedHead) ? 'selected' : '';
+                
+                // Check if option doesn't already exist
+                if ($headSelect.find('option[value="<?=$atasan['username'];?>"]').length === 0) {
+                    $headSelect.append('<option value="<?=$atasan['username'];?>" ' + isSelectedApproval + '><?=$atasan['person_name'];?></option>');
+                }
+                <?php endforeach;?>
+            }
+        }
+        
+        // Panggil fungsi ini juga setelah dokumen ready
+        setTimeout(ensureHeadDeptOptions, 300);
         
         // Inisialisasi nilai awal total_leave_days
         var previousTotalLeaveDays = $('#total_leave_days').val() || 0;
@@ -1050,18 +1092,27 @@ window.onload = async function(){
                     // Clear current options and append the default option
                     $headSelect.empty().append('<option value="">---Pilih Atasan---</option>');
                     
+                    // Add options from list_user_approval first
+                    <?php foreach(list_user_approval([10,16]) as $atasan):?>
+                    var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
+                    var isSelectedApproval = ('<?=$atasan['username'];?>' == currentSelectedHead) ? 'selected' : '';
+                    $headSelect.append('<option value="<?=$atasan['username'];?>" ' + isSelectedApproval + '><?=$atasan['person_name'];?></option>');
+                    <?php endforeach;?>
+                    
+                    // Then add options from AJAX response (avoid duplicates)
                     if (response.length > 0) {
-                        var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
                         console.log('Current selected head employee_number from session:', currentSelectedHead);
                         
                         $.each(response, function (index, head) {
-                            // Use employee_number as value to match with session data
-                            var isSelected = (head.employee_number == currentSelectedHead) ? 'selected' : '';
-                            var option = `<option value="${head.employee_number}" ${isSelected}>${head.person_name}</option>`;
-                            $headSelect.append(option);
-                            
-                            if (isSelected) {
-                                console.log('Head selected:', head.person_name, 'with employee_number:', head.employee_number);
+                            // Check if option already exists to avoid duplicates
+                            if ($headSelect.find('option[value="' + head.employee_number + '"]').length === 0) {
+                                var isSelected = (head.employee_number == currentSelectedHead) ? 'selected' : '';
+                                var option = `<option value="${head.employee_number}" ${isSelected}>${head.person_name}</option>`;
+                                $headSelect.append(option);
+                                
+                                if (isSelected) {
+                                    console.log('Head selected:', head.person_name, 'with employee_number:', head.employee_number);
+                                }
                             }
                         });
                     }
@@ -1072,9 +1123,16 @@ window.onload = async function(){
                 }
             });
         } else {
-            // Clear head department dropdown if no department is selected
+            // When no department is selected, still show list_user_approval options
             let $headSelect = $('#head_dept');
             $headSelect.empty().append('<option value="">---Pilih Atasan---</option>');
+            
+            // Add options from list_user_approval
+            <?php foreach(list_user_approval([10,16]) as $atasan):?>
+            var currentSelectedHead = '<?= $_SESSION['leave']['head_dept']; ?>';
+            var isSelectedApproval = ('<?=$atasan['username'];?>' == currentSelectedHead) ? 'selected' : '';
+            $headSelect.append('<option value="<?=$atasan['username'];?>" ' + isSelectedApproval + '><?=$atasan['person_name'];?></option>');
+            <?php endforeach;?>
         }
         var warehouse2 = $('#warehouse').val();
         console.log('Init Employee');

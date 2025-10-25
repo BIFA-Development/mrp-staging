@@ -13,93 +13,106 @@
 </style>
 <table class="table-reimbursement" width="100%">
   <tr>
-    <th width="30%"> Date of Invoice </th>
-    <td width="70%">: <?=print_date($entity['date'],'d M Y');?></td>
-  </tr>
-  <tr>
-    <th width="30%"> Date Created </th>
-    <td width="70%">: <?=print_date($entity['created_at'],'d M Y');?></td>
-  </tr>
-  <tr>
-    <th width="30%"> NO </th>
+    <th width="30%"> Document No </th>
     <td width="70%">: <?= print_string($entity['document_number'] == '' ? '-' : $entity['document_number']); ?></td>
   </tr>
   <tr>
-    <th width="30%"> Expense Number </th>
-    <td width="70%">: <?= print_string($entity['pr_number'] == '' ? '-' : $entity['pr_number']); ?></td>
+    <th width="30%"> Leave Type </th>
+    <td width="70%">: <?= ($entity['leave_type']==null) ? 'N/A' : print_string(getLeaveCodeById($entity['leave_type'])['name_leave']); ?></td>
   </tr>
   <tr>
-    <th> ID. Nbr/No Karyawan </th>
-    <td>: <?= print_string($entity['employee_number']); ?></td>
+    <th width="30%"> Request Date </th>
+    <td width="70%">: <?= formatDateIndonesian($entity['request_date']); ?></td>
   </tr>
   <tr>
-    <th> Name/Name </th>
-    <td>: <?= print_string($entity['person_name']); ?></td>
+    <th width="30%"> Base </th>
+    <td width="70%">: <?= print_string($entity['warehouse']); ?></td>
   </tr>
   <tr>
-    <th> Job Title/Jabatan </th>
-    <td>: <?= print_string($entity['occupation']); ?></td>
+    <th width="30%"> Status </th>
+    <td width="70%">: <?= $entity['status']; ?></td>
   </tr>
   <tr>
-    <th> Dept. Name </th>
-    <td>: <?= print_string($entity['department_name']); ?></td>
+    <th> Employee Number </th>
+    <td>: <?= ($entity['employee_number']==null) ? 'N/A' : print_string($entity['employee_number']); ?></td>
   </tr>
   <tr>
-    <th> Plafon </th>
-    <td>: <?= print_string($entity['type']); ?></td>
+    <th> Name/Nama </th>
+    <td>: <?= ($entity['person_name']==null) ? 'N/A' : print_string($entity['person_name']); ?></td>
   </tr>
   <tr>
-    <th> Plafond Type </th>
-    <td>: <?= print_string($entity['benefit_name_type']); ?></td>
+    <th> Occupation/Jabatan </th>
+    <td>: <?= print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']); ?></td>
   </tr>
-  
+  <tr>
+    <th> Leave Start Date </th>
+    <td>: <?php 
+        if($entity['leave_start_date']==null) {
+            echo 'N/A';
+        } else {
+            echo formatDateIndonesian($entity['leave_start_date']) . ' (' . getDayNameIndonesian($entity['leave_start_date']) . ')';
+        }
+    ?></td>
+  </tr>
+  <tr>
+    <th> Leave End Date </th>
+    <td>: <?php 
+        if($entity['leave_end_date']==null) {
+            echo 'N/A';
+        } else {
+            echo formatDateIndonesian($entity['leave_end_date']) . ' (' . getDayNameIndonesian($entity['leave_end_date']) . ')';
+        }
+    ?></td>
+  </tr>
+  <tr>
+    <th> Total Days </th>
+    <td>: <?= ($entity['total_leave_days']==null) ? 'N/A' : print_string($entity['total_leave_days']); ?> hari</td>
+  </tr>
+  <?php 
+  // Check if leave type is annual leave (L01) and show remaining leave balance
+  if($entity['leave_type'] != null) {
+      $leave_info = getLeaveCodeById($entity['leave_type']);
+      if($leave_info['leave_code'] == 'L01') {
+          $annual_leave_data = getAnnualLeaveEmployee($entity['employee_number'], $entity['leave_type']);
+          if($annual_leave_data && isset($annual_leave_data['left_leave'])) {
+              echo '<tr>';
+              echo '<th> Sisa Cuti Tahunan </th>';
+              echo '<td>: ' . $annual_leave_data['left_leave'] . ' hari</td>';
+              echo '</tr>';
+          }
+      }
+  }
+  ?>
+  <tr>
+    <th> Requested By </th>
+    <td>: <?= ($entity['request_by']==null) ? 'N/A' : strtoupper($entity['request_by']); ?></td>
+  </tr>
+  <tr>
+    <th> Reason </th>
+    <td>: <?= ($entity['reason']==null) ? 'N/A' : print_string($entity['reason']); ?></td>
+  </tr>
+  <?php if($entity['status']=='REJECT'): ?>
+  <tr>
+    <th> Rejected By </th>
+    <td>: <?= ($entity['rejected_by']==null) ? 'N/A' : print_string($entity['rejected_by']); ?></td>
+  </tr>
+  <?php else: ?>
+  <tr>
+    <th> Validated By </th>
+    <td>: <?= ($entity['validated_by']==null) ? 'N/A' : print_string($entity['validated_by']); ?></td>
+  </tr>
+  <tr>
+    <th> HR Approved By </th>
+    <td>: <?= ($entity['hr_approved_by']==null) ? 'N/A' : print_string($entity['hr_approved_by']); ?></td>
+  </tr>
+  <?php endif; ?>
 </table>
+
+
 
 <div class="clear"></div>
 
-<table class="table table-striped table-nowrap">
-    <thead id="table_header">
-        <tr>
-            <th colspan="6">Realization</th>
-        </tr>
-        <tr>
-            <th>No</th>
-            <th>Expense Detail</th>
-            <th style="text-align:right;">Description</th>
-            <th style="text-align:right;">Account Code</th>
-            <th style="text-align:right;">Amount</th>
-            <th style="text-align:right;">Paid Amount</th>
-        </tr>
-    </thead>
-    <tbody id="table_contents">
-        <?php $n = 1;?>
-        <?php $total = array();?>
-        <?php $total_real = array();?>
-        <?php foreach ($entity['items'] as $item) :?>
-        <tr>
-            <td ><?=$n++;?></td>
-            <td><?=print_string($item['description'] == '' ? '-' : $item['description']);?></td>
-            <td style="text-align:right;"><?=print_string($item['notes'] == '' ? '-' : $item['notes']);?></td>
-            <td style="text-align:right;"><?=print_string($item['account_code'] == '' ? '-' : $item['account_code']);?></td>
-            <td style="text-align:right;"><?=print_number($item['amount'],2);?></td>
-            <td style="text-align:right;"><?=print_number($item['paid_amount'],2);?></td>
 
-        </tr>
-        <?php $total[] = $item['paid_amount'];?>
-        <?php endforeach;?>
-    </tbody>
-    <tfoot>
-        <tr>
-            <th>Total Claim</th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th style="text-align:right;"><?=print_number(array_sum($total), 2);?></th>
-        </tr>
-        
-    </tfoot>
-</table>
 
 <?php if ($entity['signers']['rejected by']['person_name']) : ?>
 Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=print_date($entity['signers']['rejected by']['date'],'d M Y');?>
@@ -116,14 +129,14 @@ Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=p
         <br />Employee<br />
         <?php if ($entity['signers']['requested by']['sign']) : ?>
           <?=print_date($entity['signers']['requested by']['date'],'d M Y');?>
-          <br>
+          <br>  
           <img src="<?= base_url('ttd_user/' . $entity['signers']['requested by']['sign']); ?>" width="auto" height="50">
         <?php endif; ?>
         <br />
         <br /><?=$entity['signers']['requested by']['person_name'];?>
       </p>
     </td>
-    <?php if ($entity['benefit_code'] != "B4") : ?>
+    <?php if (!in_array(getLeaveCodeById($entity['leave_type'])['leave_code'], ['L04', 'L01', 'L02', 'L05'])) : ?>
       <td valign="top" style="text-align:center;">
       <p>
         HR Approved by
@@ -137,12 +150,13 @@ Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=p
         <br /><?=$entity['signers']['hr approved by']['person_name'];?>
       </p>
     </td>
+    <?php endif; ?>
     <td valign="top" style="text-align:center;">
       <p>
         Validated by
-        <?php if ($entity['occupation'] == "VP FINANCE" || $entity['occupation'] == "COO/CEO") : ?>
+        <?php if (print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']) == "VP FINANCE" || print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']) == "COO/CEO") : ?>
         <br />CFO<br />
-        <?php elseif ($entity['occupation'] == "HEAD OF SCHOOL" || $entity['occupation'] == "CFO") : ?>
+        <?php elseif (print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']) == "HEAD OF SCHOOL" || print_string(getEmployeeByEmployeeNumber($entity['employee_number'])['position']) == "CFO") : ?>
         <br />COO<br />
         <?php else:?>
           <?php if ($entity['warehouse'] == "JAKARTA") : ?>
@@ -160,49 +174,6 @@ Rejected by : <?=$entity['signers']['rejected by']['person_name'];?> , at : <?=p
         <br /><?=$entity['signers']['validated by']['person_name'];?>
       </p>
     </td>
-    <?php if ($entity['benefit_code'] == "B4") : ?>
-    <td valign="top" style="text-align:center;">
-      <p>
-        Finance Approved by
-        <br />
-        <br />&nbsp;<br>
-        <?php if ($entity['signers']['finance approved by']['sign']) : ?>
-          <?=print_date($entity['signers']['finance approved by']['date'],'d M Y');?>
-          <br>
-          <img src="<?= base_url('ttd_user/' . $entity['signers']['finance approved by']['sign']); ?>" width="auto" height="50">
-        <?php endif; ?>
-        <br />
-        <br /><?=$entity['signers']['finance approved by']['person_name'];?>
-      </p>
-    </td>
-    <?php endif; ?>
-    <?php endif; ?>
-
-    <?php if ($entity['benefit_code'] == "B4") : ?>
-    <td valign="top" style="text-align:center;">
-      <p>
-        Validated by
-        <?php if ($entity['warehouse'] == "JAKARTA") : ?>
-        <br />VP FINANCE<br />
-        <?php else:?>
-        <br />HOS<br />
-        <?php endif; ?>
-        <?php if ($entity['signers']['validated by']['sign']) : ?>
-          <?=print_date($entity['signers']['validated by']['date'],'d M Y');?>
-          <br>
-          <img src="<?= base_url('ttd_user/' . $entity['signers']['validated by']['sign']); ?>" width="auto" height="50">
-        <?php endif; ?>
-        <br />
-        <br /><?=$entity['signers']['validated by']['person_name'];?>
-      </p>
-    </td>
-    <?php endif; ?>
-
-    
-
-    
   </tr>
 </table>
 <?php endif; ?>
-
-

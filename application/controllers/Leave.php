@@ -617,6 +617,29 @@ class Leave extends MY_Controller
         echo json_encode($return);
     }
 
+    public function print_pdf($id)
+    {
+        $this->authorized($this->module, 'print');
+
+        $entity = $this->model->findById($id);
+        $level_akun = config_item('auth_role');
+
+        $this->data['entity']           = $entity;
+        $this->data['level_akun']       = $level_akun;
+        $this->data['page']['title']    = strtoupper($this->module['label']);
+        $this->data['page']['content']  = $this->module['view'] .'/print_pdf';
+
+        $html = $this->load->view($this->pdf_theme, $this->data, true);
+
+        $pdfFilePath = str_replace('/', '-', $entity['document_number']) .".pdf";
+
+        $this->load->library('m_pdf');
+
+        $pdf = $this->m_pdf->load(null, 'A4-P');
+        $pdf->WriteHTML($html);
+        $pdf->Output($pdfFilePath, "I");
+    }
+
 
     public function get_annual_leave()
     {

@@ -590,6 +590,19 @@ class Leave_Model extends MY_Model
         $this->db->insert('tb_leave_requests');
         $document_id = $this->db->insert_id();
 
+        $this->db->set('document_type','LEAVE');
+        $this->db->set('document_number',$document_number);
+        $this->db->set('document_id', $document_id);
+        $this->db->set('action','requested by');
+        $this->db->set('date', date('Y-m-d H:i:s'));
+        $this->db->set('username', config_item('auth_username'));
+        $this->db->set('person_name', config_item('auth_person_name'));
+        $this->db->set('roles', config_item('auth_role'));
+        $this->db->set('notes', null);
+        $this->db->set('sign', get_ttd(config_item('auth_person_name')));
+        $this->db->set('created_at', date('Y-m-d H:i:s'));
+        $this->db->insert('tb_signers');
+
         if(!empty($_SESSION['leave']['attachment'])){
             foreach ($_SESSION['leave']['attachment'] as $key) {
                 $this->db->set('id_poe', $document_id);
@@ -631,6 +644,8 @@ class Leave_Model extends MY_Model
         if ($this->db->trans_status() === FALSE)
             return FALSE;
 
+        
+
         // $this->send_mail($document_id,'head_dept','request');
 
         $this->db->trans_commit();
@@ -645,6 +660,18 @@ class Leave_Model extends MY_Model
         
         $query      = $this->db->get();
         $row        = $query->unbuffered_row('array');
+
+        $this->db->select('*');
+        $this->db->from('tb_signers');
+        $this->db->where('tb_signers.document_number', $row['document_number']);
+        $query_signers = $this->db->get();
+        foreach ($query_signers->result_array() as $key => $valuesigners) {
+            $row['signers'][$valuesigners['action']]['sign'] = $valuesigners['sign'];
+            $row['signers'][$valuesigners['action']]['person_name'] = $valuesigners['person_name'];
+            $row['signers'][$valuesigners['action']]['date'] = $valuesigners['date'];
+            $row['signers'][$valuesigners['action']]['action'] = $valuesigners['action'];
+            $row['signers'][$valuesigners['action']]['roles'] = $valuesigners['roles'];
+        }
 
         return $row;
     }
@@ -863,14 +890,31 @@ class Leave_Model extends MY_Model
 
             $this->db->set('status',$status);
             $this->db->set('notes_approval', $approval_notes[$x]);
-            $this->db->set('head_dept_approved_by',config_item('auth_person_name'));
+            
+            // Set approved_by field based on current status being approved
+            if($leave['status'] == 'WAITING APPROVAL BY HEAD DEPT'){
+                $this->db->set('head_dept_approved_by',config_item('auth_person_name'));
+            } else if($leave['status'] == 'WAITING APPROVAL BY HR'){
+                $this->db->set('hr_approved_by',config_item('auth_person_name'));
+            } else if($leave['status'] == 'WAITING APPROVAL BY HOS'){
+                $this->db->set('hos_approved_by',config_item('auth_person_name'));
+            } else if($leave['status'] == 'WAITING APPROVAL BY VP'){
+                $this->db->set('vp_approved_by',config_item('auth_person_name'));
+            } else if($leave['status'] == 'WAITING APPROVAL BY BOD'){
+                $this->db->set('bod_approved_by',config_item('auth_person_name'));
+            }
+            
             $this->db->where('id', $id);
             $this->db->update('tb_leave_requests');
 
             $this->db->set('document_type','LEAVE');
             $this->db->set('document_number',$leave['document_number']);
             $this->db->set('document_id', $id);
+            if($leave['status'] == 'WAITING APPROVAL BY HR'){
+            $this->db->set('action','hr approved by');
+            } else {
             $this->db->set('action','validated by');
+            }
             $this->db->set('date', date('Y-m-d'));
             $this->db->set('username', config_item('auth_username'));
             $this->db->set('person_name', config_item('auth_person_name'));
