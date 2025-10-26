@@ -22,6 +22,9 @@ class Employee_Model extends MY_Model
             'Has Benefit',
             'Last Contract',
             'Contract Start - End',
+            'Amount Annual Leave',
+            'Used Annual Leave',
+            'Left Annual Leave',
             'Last Update'
         );
     }
@@ -69,8 +72,45 @@ class Employee_Model extends MY_Model
 
     function getIndex($return = 'array')
     {
-        // $this->db->select('*');
-        // $this->db->from('tb_master_employees');
+
+        // $this->db->select('
+        // emp.employee_number,
+        // emp.name AS name,
+        // emp.position,
+        // emp.department_id,
+        // emp.updated_at,
+        // emp.employee_id,
+        // latest_contract.contract_number,
+        // latest_contract.start_date,
+        // latest_contract.end_date,
+        // latest_contract.status AS contract_status,
+        // COALESCE(STRING_AGG(benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits
+        // ');
+        // $this->db->from('tb_master_employees emp');
+        
+        // $this->db->join('(
+        //     SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status
+        //     FROM tb_employee_contracts
+        //     WHERE status = \'ACTIVE\'
+        //     ORDER BY employee_number, start_date DESC
+        // ) latest_contract', 'emp.employee_number = latest_contract.employee_number', 'left');
+        
+        // $this->db->join('tb_employee_has_benefit emp_benefit', 'emp.employee_number = emp_benefit.employee_number', 'left');
+        // $this->db->join('tb_master_employee_benefits benefit', 'emp_benefit.employee_benefit_id = benefit.id', 'left');
+        
+        // $this->db->group_by([
+        //     'emp.employee_number',
+        //     'emp.name',
+        //     'emp.position',
+        //     'emp.department_id',
+        //     'emp.updated_at',
+        //     'emp.employee_id',
+        //     'latest_contract.contract_number',
+        //     'latest_contract.start_date',
+        //     'latest_contract.end_date',
+        //     'latest_contract.status'
+        // ]);
+        
         $this->db->select('
         emp.employee_number,
         emp.name AS name,
@@ -82,13 +122,15 @@ class Employee_Model extends MY_Model
         latest_contract.start_date,
         latest_contract.end_date,
         latest_contract.status AS contract_status,
-        COALESCE(STRING_AGG(benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits
+        COALESCE(STRING_AGG(DISTINCT benefit.employee_benefit, \', \'), \'No Benefits\') AS benefits,
+        COALESCE(emp_leave.amount_leave, 0) AS total_cuti,
+        COALESCE(emp_leave.used_leave, 0) AS pemakaian_cuti,
+        COALESCE(emp_leave.left_leave, 0) AS sisa_cuti
         ');
         $this->db->from('tb_master_employees emp');
         
-        // Subquery untuk kontrak terbaru dengan alias yang lebih jelas
         $this->db->join('(
-            SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status
+            SELECT DISTINCT ON (employee_number) employee_number, contract_number, start_date, end_date, status, id
             FROM tb_employee_contracts
             WHERE status = \'ACTIVE\'
             ORDER BY employee_number, start_date DESC
@@ -96,8 +138,8 @@ class Employee_Model extends MY_Model
         
         $this->db->join('tb_employee_has_benefit emp_benefit', 'emp.employee_number = emp_benefit.employee_number', 'left');
         $this->db->join('tb_master_employee_benefits benefit', 'emp_benefit.employee_benefit_id = benefit.id', 'left');
+        $this->db->join('tb_employee_has_leave emp_leave', 'emp.employee_number = emp_leave.employee_number AND latest_contract.id = emp_leave.employee_contract_id AND emp_leave.leave_type = 1', 'left');
         
-        // Gunakan emp.employee_number untuk menghindari ambigu
         $this->db->group_by([
             'emp.employee_number',
             'emp.name',
@@ -108,7 +150,10 @@ class Employee_Model extends MY_Model
             'latest_contract.contract_number',
             'latest_contract.start_date',
             'latest_contract.end_date',
-            'latest_contract.status'
+            'latest_contract.status',
+            'emp_leave.amount_leave',
+            'emp_leave.used_leave',
+            'emp_leave.left_leave'
         ]);
     
 
@@ -163,10 +208,12 @@ class Employee_Model extends MY_Model
         $this->db->select(array(
             'tb_master_levels.level AS level_name',
             'tb_master_levels.id AS level_id',
+            'tb_group_leave.id AS name_group',
             'tb_master_employees.*'
         ));
         $this->db->from('tb_master_employees');
         $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+        $this->db->join('tb_group_leave', 'tb_master_employees.group_leave = tb_group_leave.id', 'left'); // Use LEFT JOIN
         $this->db->where('tb_master_employees.employee_number', $id);
 
         
@@ -229,10 +276,12 @@ class Employee_Model extends MY_Model
         $this->db->select(array(
             'tb_master_levels.level AS level_name',
             'tb_master_levels.id AS level_id',
+            'tb_group_leave.name_group AS name_group',
             'tb_master_employees.*'
         ));
         $this->db->from('tb_master_employees');
         $this->db->join('tb_master_levels', 'tb_master_employees.level_id = tb_master_levels.id', 'left'); // Use LEFT JOIN
+        $this->db->join('tb_group_leave', 'tb_master_employees.group_leave = tb_group_leave.id', 'left'); // Use LEFT JOIN
         $this->db->where($conditions); // Dynamic conditions
 
         $query = $this->db->get();
@@ -503,6 +552,20 @@ class Employee_Model extends MY_Model
         $this->db->set($user_data);
         $this->db->insert('tb_employee_contracts');
 
+        $insert_id = $this->db->insert_id();
+
+        $form_data = array(
+        'employee_contract_id'  => $insert_id,
+        'employee_number'       => $user_data['employee_number'],
+        'leave_type'   => 1,
+        'amount_leave' => 12,
+        'left_leave'   => 12,
+        'used_leave'   => 0,
+        'updated_by'   => 'SYSTEM',
+        );
+
+        $this->insert_leave($form_data);
+
         if ($this->db->trans_status() === FALSE)
             return FALSE;
 
@@ -572,6 +635,17 @@ class Employee_Model extends MY_Model
         );
     }
 
+    public function getSelectedColumnsForLeave()
+    {
+        return array(
+            'No',
+            'Name Leave',
+            'Amount Leave',
+            'Used Leave',
+            'Left Leave',
+        );
+    }
+
     public function getSearchableColumnsForBenefit()
     {
         return array(
@@ -619,6 +693,66 @@ class Employee_Model extends MY_Model
             }
 
             $i++;
+        }
+    }
+
+        public function findLeaveById($id)
+    {
+        
+        $this->db->select(array(
+            'tb_employee_has_leave.*',
+            'tb_leave_type.name_leave AS name_leave',
+        ));
+        $this->db->where('tb_employee_has_leave.id', $id);
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type');
+        $query      = $this->db->get('tb_employee_has_leave');
+        $row        = $query->unbuffered_row('array');
+
+        return $row;
+    }
+
+    
+
+    function getIndexForLeave($employee_number,$return = 'array')
+    {
+        $this->db->select(array(
+            'tb_employee_contracts.start_date',
+            'tb_employee_contracts.end_date',
+            'tb_employee_has_leave.id',
+            'tb_employee_has_leave.amount_leave',
+            'tb_employee_has_leave.used_leave',
+            'tb_employee_has_leave.left_leave',
+            'tb_employee_has_leave.leave_type',
+            'tb_leave_type.name_leave',
+        ));
+        $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_leave.employee_contract_id');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type');
+        $this->db->where('tb_employee_has_leave.employee_number',$employee_number);
+        $this->db->from('tb_employee_has_leave');
+
+        // $this->searchIndexForBenefit();
+
+        // $column_order = $this->getOrderableColumnsForBenefit();
+
+        if (isset($_POST['order'])){
+            foreach ($_POST['order'] as $key => $order){
+                $this->db->order_by($column_order[$_POST['order'][$key]['column']], $_POST['order'][$key]['dir']);
+            }
+        } else {
+            $this->db->order_by('id', 'desc');
+        }
+
+        if ($_POST['length'] != -1)
+            $this->db->limit($_POST['length'], $_POST['start']);
+
+        $query = $this->db->get();
+
+        if ($return === 'object'){
+            return $query->result();
+        } elseif ($return === 'json'){
+            return json_encode($query->result());
+        } else {
+            return $query->result_array();
         }
     }
 
@@ -724,6 +858,35 @@ class Employee_Model extends MY_Model
         return TRUE;
     }
 
+    public function insert_leave(array $user_data)
+    {
+        $this->db->trans_begin();
+
+        $this->db->set($user_data);
+        $this->db->insert('tb_employee_has_leave');
+
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
+
+    public function update_leave(array $user_data,$id)
+    {
+        $this->db->trans_begin();
+
+        $this->db->set($user_data);
+        $this->db->where('id',$id);
+        $this->db->update('tb_employee_has_leave');
+        if ($this->db->trans_status() === FALSE)
+            return FALSE;
+
+        $this->db->trans_commit();
+        return TRUE;
+    }
+
     public function isBenefitExist($employee_benefit_id, $employee_contract_id,$employee_benefit_id_exception = NULL, $employee_contract_id_exception = NULL)
     {
         $this->db->from('tb_employee_has_benefit');
@@ -739,6 +902,47 @@ class Employee_Model extends MY_Model
         $query = $this->db->get();
 
         return ( $query->num_rows() > 0 ) ? true : false;
+    }
+
+    public function findEmployeeLeaveById($id)
+    {
+        $this->db->select(array(
+            'tb_employee_contracts.start_date',
+            'tb_employee_contracts.end_date',
+            'tb_employee_contracts.contract_number',
+            'tb_employee_has_benefit.id',
+            'tb_employee_has_benefit.amount_plafond',
+            'tb_employee_has_benefit.used_amount_plafond',
+            'tb_employee_has_benefit.left_amount_plafond',
+            'tb_master_employee_benefits.employee_benefit',
+            'tb_master_employees.name',
+            'tb_master_employees.gender',
+            'tb_master_employees.position',
+            'tb_employee_has_benefit.employee_number',
+            'tb_employee_has_benefit.employee_benefit_id',
+            'tb_employee_has_benefit.employee_contract_id',
+            'tb_employee_has_benefit.created_at',
+            'tb_employee_has_benefit.updated_at',
+            'tb_employee_has_benefit.updated_by',
+            'tb_master_benefit_type.notes as name_type',
+        ));
+        $this->db->join('tb_employee_contracts', 'tb_employee_contracts.id = tb_employee_has_benefit.employee_contract_id');
+        $this->db->join('tb_master_employee_benefits', 'tb_master_employee_benefits.id = tb_employee_has_benefit.employee_benefit_id');
+        $this->db->join('tb_master_benefit_type','tb_master_employee_benefits.benefit_type = tb_master_benefit_type.benefit_type','left');
+        $this->db->join('tb_master_employees', 'tb_master_employees.employee_number = tb_employee_has_benefit.employee_number');
+        $this->db->where('tb_employee_has_benefit.id', $id);
+        $query      = $this->db->get('tb_employee_has_benefit');
+        $row        = $query->unbuffered_row('array');
+        
+        $this->db->select('tb_reimbursements.*');
+        $this->db->where('tb_reimbursements.employee_has_benefit_id', $id);
+        $queryUsed      = $this->db->get('tb_reimbursements');
+
+        foreach ($queryUsed->result_array() as $key => $value){
+            $row['itemUseds'][$key] = $value;
+        }
+
+        return $row;
     }
 
     public function findEmployeeBenefitById($id)
@@ -821,6 +1025,76 @@ class Employee_Model extends MY_Model
             return $result;
         }
     
+    }
+
+    /**
+     * Check if L01 leave (annual leave) already exists for the given employee contract
+     * @param int $employee_contract_id Contract ID to check
+     * @param int $record_id_exception Optional record ID to exclude from check (for update operations)
+     * @return bool True if L01 leave exists, false otherwise
+     */
+    public function isL01LeaveExistsForContract($employee_contract_id, $record_id_exception = NULL)
+    {
+        $this->db->from('tb_employee_has_leave');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type', 'inner');
+        $this->db->where('tb_employee_has_leave.employee_contract_id', $employee_contract_id);
+        $this->db->where('tb_leave_type.leave_code', 'L01');
+
+        if ($record_id_exception !== NULL) {
+            $this->db->where('tb_employee_has_leave.id != ', $record_id_exception);
+        }
+
+        $query = $this->db->get();
+        
+        return ($query->num_rows() > 0) ? true : false;
+    }
+
+    /**
+     * Get detailed information about existing L01 leave for the given employee contract
+     * @param int $employee_contract_id Contract ID to check
+     * @param int $record_id_exception Optional record ID to exclude from check (for update operations)
+     * @return array|null Array with leave details if exists, null otherwise
+     */
+    public function getL01LeaveDetailsForContract($employee_contract_id, $record_id_exception = NULL)
+    {
+        $this->db->select('tb_employee_has_leave.*');
+        $this->db->from('tb_employee_has_leave');
+        $this->db->join('tb_leave_type', 'tb_leave_type.id = tb_employee_has_leave.leave_type', 'inner');
+        $this->db->where('tb_employee_has_leave.employee_contract_id', $employee_contract_id);
+        $this->db->where('tb_leave_type.leave_code', 'L01');
+
+        if ($record_id_exception !== NULL) {
+            $this->db->where('tb_employee_has_leave.id != ', $record_id_exception);
+        }
+
+        $query = $this->db->get();
+        
+        if ($query->num_rows() > 0) {
+            return $query->unbuffered_row('array');
+        }
+        
+        return null;
+    }
+
+    /**
+     * Delete L01 leave record by ID
+     * @param int $leave_id Leave record ID to delete
+     * @return bool True if successful, false otherwise
+     */
+    public function deleteLeaveById($leave_id)
+    {
+        $this->db->trans_begin();
+
+        $this->db->where('id', $leave_id);
+        $this->db->delete('tb_employee_has_leave');
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return FALSE;
+        }
+
+        $this->db->trans_commit();
+        return TRUE;
     }
       
 

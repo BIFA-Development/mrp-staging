@@ -67,6 +67,9 @@ class Employee extends MY_Controller
                 } else {
                     $col[] = print_string(print_date($row['start_date']) . ' - '. print_date($row['end_date']));
                 }
+                $col[] = print_number($row['total_cuti']);
+                $col[] = print_number($row['pemakaian_cuti']);
+                $col[] = print_number($row['sisa_cuti']);
                 $col[] = print_date($row['updated_at']);
                 $col['DT_RowId'] = 'row_'. $row['id'];
                 $col['DT_RowData']['pkey']  = $row['id'];
@@ -183,6 +186,7 @@ class Employee extends MY_Controller
                         'updated_at'                        => date('Y-m-d H:i:s'),
                         'employee_id'                       => $this->input->post('employee_id'),
                         'level_id'                       => $this->input->post('level_id'),
+                        'group_leave'                       => $this->input->post('group_leave'),
                     );
 
                     $criteria = $this->input->post('id');
@@ -232,6 +236,7 @@ class Employee extends MY_Controller
                         'updated_at'                        => date('Y-m-d H:i:s'),
                         'employee_id'                       => $this->model->get_unused_id(),
                         'level_id'                         => $this->input->post('level_id'),
+                        'group_leave'                       => $this->input->post('group_leave'),
 
                     );
 
@@ -671,7 +676,9 @@ class Employee extends MY_Controller
                         $file_kontrak = $config['upload_path'] . $data['upload_data']['file_name'];
                         $form_data['file_kontrak'] = $file_kontrak;
                     }
+           
 
+                    log_message('info', 'New contract created with ID: ' . $idcontract);
                     if ($this->model->insert_contract($form_data)){
                         $return['type'] = 'success';
                         $return['info'] = 'Employee ' . $this->input->post('name') .' updated.';
@@ -700,6 +707,97 @@ class Employee extends MY_Controller
             $file_kontrak = $config['upload_path'] . $data['upload_data']['file_name'];
             return $file_kontrak;
         }
+    }
+
+
+    // employee leave
+    public function index_data_source_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'index') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if (isset($_GET['employee_number']) && $_GET['employee_number'] !== NULL){
+                $employee_number = $_GET['employee_number'];
+            } else {
+                $employee_number = NULL;
+            }
+
+            $entities = $this->model->getIndexForLeave($employee_number);
+
+            $data = array();
+            $no   = $_POST['start'];
+             
+  
+            foreach ($entities as $row){
+                $no++;
+                    $col = array();
+                    // Tambahkan button Info Leave
+                    
+                $col[] = print_number($no);
+                $col[] = print_string($row['name_leave']);
+                $col[] = print_number($row['amount_leave']);
+                $col[] = print_number($row['used_leave']);
+                $col[] = print_number($row['left_leave']);
+                $col['DT_RowId'] = 'row_'. $row['id'];
+                $col['DT_RowData']['pkey']  = $row['id'];
+                $col['DT_RowAttr']['data-target'] = '#data-modal';
+                $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/edit_leave/'. $row['id']);
+                $col['DT_RowAttr']['onClick']     = '';
+
+                $data[] = $col;
+            }
+
+            $return = array(
+                "draw"            => $_POST['draw'],
+                "recordsTotal"    => $this->model->countIndexForBenefit($employee_number),
+                "recordsFiltered" => $this->model->countIndexFilteredForBenefit($employee_number),
+                "data"            => $data,
+            );
+        }
+
+        echo json_encode($return);
+    }
+
+    public function leave($employee_id)
+    {
+        $this->authorized($this->module, 'contract');
+
+        $entity = $this->model->findOneBy(array('employee_id' => $employee_id));
+        if(isEmployeeContractActiveExist($entity['employee_number'])){
+            $kontrak_active = $this->model->findContractActive($entity['employee_number']);
+            $periodeContractActive = print_date($kontrak_active['start_date'],'d M Y').' s/d '.print_date($kontrak_active['end_date'],'d M Y');
+        }else{
+            $this->session->set_flashdata('alert', array(
+                'type' => 'danger',
+                'info' => "Please add Contract For ".$entity['name']
+            ));
+            $periodeContractActive = '-';
+            $kontrak_active = array();
+        }
+        
+
+        $this->data['page']['content']          = $this->module['view'] .'/create';
+        $this->data['page']['offcanvas']        = $this->module['view'] .'/create_offcanvas_add_item';
+        $this->data['entity']                   = $entity;
+        $this->data['kontrak_active']           = $kontrak_active;
+        $this->data['periodeContractActive']    = $periodeContractActive;
+        $this->data['page']['title']            = $entity['name'].' '.$entity['employee_number'];
+        $this->data['page']['menu']             = 'leave';
+        $this->data['grid']['column']           = $this->model->getSelectedColumnsForLeave();
+        $this->data['grid']['data_source']      = site_url($this->module['route'] .'/index_data_source_leave?employee_number='. $entity['employee_number']);
+        $this->data['grid']['fixed_columns']    = 2;
+        $this->data['grid']['summary_columns']  = NULL;
+        $this->data['grid']['order_columns']    = array (
+          0 => array (0 => 1, 1 => 'asc'),
+          1 => array (0 => 2, 1 => 'asc'),
+          2 => array (0 => 3, 1 => 'asc')
+        );
+
+        $this->render_view($this->module['view'] .'/leave');
     }
 
     //employee benefit
@@ -793,6 +891,32 @@ class Employee extends MY_Controller
         echo json_encode($return);
     }
 
+    public function create_leave($employee_number)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'create') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to create data!";
+        } else {
+            $entity = $this->model->findById($employee_number);          
+            if(isEmployeeContractActiveExist($entity['employee_number'])){  
+                $kontrak_active = $this->model->findContractActive($entity['employee_number']);
+                $this->data['entity'] = $entity;
+                $this->data['kontrak_active'] = $kontrak_active;
+                $return['type'] = 'success';
+                $return['info'] = $this->load->view($this->module['view'] .'/create_leave', $this->data, TRUE);
+            }else{
+                $return['type'] = 'danger';
+                $return['info'] = "Please add Contract For ".$entity['name'];
+            }
+            
+        }
+
+        echo json_encode($return);
+    }
+
     public function create_benefit($employee_number)
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -818,6 +942,26 @@ class Employee extends MY_Controller
 
         echo json_encode($return);
     }
+
+    public function edit_leave($id)
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'edit') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to edit this data!";
+        } else {
+            $entities = $this->model->findLeaveById($id);
+            $this->data['entity'] = $entities;
+
+            $return['type'] = 'success';
+            $return['info'] = $this->load->view($this->module['view'] .'/edit_leave', $this->data, TRUE);
+        }
+
+        echo json_encode($return);
+    }
+
     public function info_benefit($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -839,6 +983,7 @@ class Employee extends MY_Controller
 
         echo json_encode($return);
     }
+
 
     public function edit_benefit($id)
     {
@@ -965,6 +1110,184 @@ class Employee extends MY_Controller
                             $return['info'] = 'There are error while updating data. Please try again later.';
                         }
                     }
+                }
+                
+            }
+        }
+
+        echo json_encode($return);
+    }
+
+    public function save_edit_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'save') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if ($this->input->post('id') != ''){
+                // Check current edit count before updating
+                $current_leave = $this->model->findLeaveById($this->input->post('id'));
+                $current_edit_count = isset($current_leave['edit_count']) ? (int)$current_leave['edit_count'] : 0;
+                
+                // Check if edit count exceeds limit
+                if ($current_edit_count >= 10) {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'Data cuti ini sudah mencapai batas maksimal edit (10 kali). Tidak dapat diedit lagi.';
+                } else {
+                    $form_data = array(
+                        'amount_leave'   => $this->input->post('amount_leave'),
+                        'left_leave'   => $this->input->post('left_leave'),
+                        'used_leave'   => $this->input->post('used_leave'),
+                        'edit_count'   => $current_edit_count + 1,
+                        'updated_by'   => config_item('auth_person_name'),
+                    );
+
+                    $criteria = $this->input->post('id');
+
+                    if ($this->model->update_leave($form_data, $criteria)){
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave updated.';
+                    } else {
+                        $return['type'] = 'danger';
+                        $return['info'] = 'There are error while updating data. Please try again later.';
+                    }
+                }
+                    
+                
+            } else {
+                $return['type'] = 'danger';
+                $return['info'] = 'There are error while updating data. Please try again later.';
+                
+            }
+        }
+
+        echo json_encode($return);
+    }
+
+    public function save_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'save') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if ($this->input->post('id') != ''){
+                // Get leave type information to check if it's L01
+                $leave_type_id = $this->input->post('leave_type');
+                $employee_contract_id = $this->input->post('employee_contract_id');
+                $criteria = $this->input->post('id');
+                
+                // Load helper to get leave type data
+                $this->load->helper('app');
+                $leave_info = getLeaveCodeById($leave_type_id);
+                $leave_code = isset($leave_info['leave_code']) ? $leave_info['leave_code'] : '';
+                
+                // Check if leave code is L01 and if it already exists for this contract (excluding current record)
+                if ($leave_code === 'L01') {
+                    $existing_l01 = $this->model->getL01LeaveDetailsForContract($employee_contract_id, $criteria);
+                    
+                    if ($existing_l01 !== null) {
+                        // Check if the existing L01 leave has been used
+                        if ($existing_l01['used_leave'] > 0) {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'Another L01 (Annual Leave) already exists for this employee contract period and has been used (' . $existing_l01['used_leave'] . ' days). Cannot have duplicate L01 leave.';
+                            echo json_encode($return);
+                            return;
+                        } else {
+                            // Another L01 exists but hasn't been used, delete the other record
+                            if (!$this->model->deleteLeaveById($existing_l01['id'])) {
+                                $return['type'] = 'danger';
+                                $return['info'] = 'Failed to remove existing unused L01 leave. Please try again.';
+                                echo json_encode($return);
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                $form_data = array(
+                    'employee_contract_id'  => $employee_contract_id,
+                    'employee_number'       => $this->input->post('employee_number'),
+                    'leave_type'   => $leave_type_id,
+                    'amount_leave'        => $this->input->post('amount_leave'),
+                    'left_leave'   => $this->input->post('amount_leave'),
+                    'used_leave'   => 0,
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                if ($this->model->update_leave($form_data, $criteria)){
+                    if ($leave_code === 'L01' && isset($existing_l01)) {
+                        $return['type'] = 'success';
+                        $return['info'] = 'L01 (Annual Leave) updated successfully. Previous unused duplicate leave data has been removed.';
+                    } else {
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave updated.';
+                    }
+                } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
+                }
+                    
+                
+            } else {
+                // Get leave type information to check if it's L01
+                $leave_type_id = $this->input->post('leave_type');
+                $employee_contract_id = $this->input->post('employee_contract_id');
+                
+                // Load helper to get leave type data
+                $this->load->helper('app');
+                $leave_info = getLeaveCodeById($leave_type_id);
+                $leave_code = isset($leave_info['leave_code']) ? $leave_info['leave_code'] : '';
+                
+                // Check if leave code is L01 and if it already exists for this contract
+                if ($leave_code === 'L01') {
+                    $existing_l01 = $this->model->getL01LeaveDetailsForContract($employee_contract_id);
+                    
+                    if ($existing_l01 !== null) {
+                        // Check if the existing L01 leave has been used
+                        if ($existing_l01['used_leave'] > 0) {
+                            $return['type'] = 'danger';
+                            $return['info'] = 'L01 (Annual Leave) already exists for this employee contract period and has been used (' . $existing_l01['used_leave'] . ' days). Cannot replace used leave data.';
+                            echo json_encode($return);
+                            return;
+                        } else {
+                            // L01 exists but hasn't been used, delete the old record
+                            if (!$this->model->deleteLeaveById($existing_l01['id'])) {
+                                $return['type'] = 'danger';
+                                $return['info'] = 'Failed to remove existing unused L01 leave. Please try again.';
+                                echo json_encode($return);
+                                return;
+                            }
+                        }
+                    }
+                }
+               
+                $form_data = array(
+                    'employee_contract_id'  => $employee_contract_id,
+                    'employee_number'       => $this->input->post('employee_number'),
+                    'leave_type'   => $leave_type_id,
+                    'amount_leave'        => $this->input->post('amount_leave'),
+                    'left_leave'   => $this->input->post('amount_leave'),
+                    'used_leave'   => 0,
+                    'updated_by'   => config_item('auth_person_name'),
+                );
+
+                if ($this->model->insert_leave($form_data)){
+                    if ($leave_code === 'L01' && isset($existing_l01)) {
+                        $return['type'] = 'success';
+                        $return['info'] = 'L01 (Annual Leave) replaced successfully. Previous unused leave data has been removed.';
+                    } else {
+                        $return['type'] = 'success';
+                        $return['info'] = 'Benefit Leave added.';
+                    }
+                } else {
+                    $return['type'] = 'danger';
+                    $return['info'] = 'There are error while updating data. Please try again later.';
                 }
                 
             }
