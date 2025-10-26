@@ -39,6 +39,14 @@ class Leave_Plan extends MY_Controller
 
         $this->render_view($this->module['view'] .'/index');
     }
+    public function discard()
+    {
+        $this->authorized($this->module['permission']['document']);
+
+        unset($_SESSION['leave_plan']);
+
+        redirect($this->module['route']);
+    }
 
     public function index_data_source()
     {
