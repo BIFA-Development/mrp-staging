@@ -930,6 +930,15 @@ class Leave extends MY_Controller
         echo json_encode($result);
     }
 
+    public function discard()
+    {
+        $this->authorized($this->module['permission']['document']);
+
+        unset($_SESSION['leave']);
+
+        redirect($this->module['route']);
+    }
+
     public function manage_attachment($id)
     {
         $this->authorized($this->module, 'info');
