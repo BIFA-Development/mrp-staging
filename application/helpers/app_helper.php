@@ -180,20 +180,20 @@ if ( ! function_exists('print_config')) {
     return $conf[$data];
   }
 }
-
 if ( ! function_exists('print_date')) {
-  function print_date($date, $format = NULL, $null = 'UNKNOWN')
-  {
-    // if (trim($date) === '' || empty($date) || (valid_date($date) === FALSE && valid_datetime($date) === FALSE))
-    if (trim($date) === '' || empty($date))
-      return $null;
+    function print_date($date, $format = 'd M Y H:i', $null = '-')
+    {
+        if (empty($date)) return $null;
 
-    if ($format === NULL)
-      $format = 'F d, Y';
-
-    return nice_date($date, $format);
-  }
+        try {
+            $dt = new DateTime($date, new DateTimeZone(date_default_timezone_get()));
+            return $dt->format($format);
+        } catch (Exception $e) {
+            return $null;
+        }
+    }
 }
+
 
 
 /**
