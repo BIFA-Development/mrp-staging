@@ -4746,6 +4746,7 @@ if (!function_exists('getLeaveTypeData')) {
       return $result;
     }
   }
+  
 
   if ( ! function_exists('getNotifRecipientByRoleLevel')) {
     function getNotifRecipientByRoleLevel($level)

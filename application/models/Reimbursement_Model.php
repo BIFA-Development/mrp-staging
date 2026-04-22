@@ -1848,7 +1848,7 @@ class Reimbursement_Model extends MY_Model
             $this->email->set_newline("\r\n");
 
             $is_requester = ($next_approval_role == 'requester');
-            $subject = $is_requester ? 'TESTING STAGING Update Status Reimbursement Anda' : 'Permintaan Approval Reimbursement';
+            $subject = $is_requester ? 'TEST STAGING Update Status Reimbursement Anda' : 'Permintaan Approval Reimbursement';
             $title_text = $is_requester ? 'Status Update' : 'Approval Request';
             $sub_title = $is_requester ? "Berikut adalah perkembangan terbaru mengenai pengajuan reimbursement Anda." : "Terdapat dokumen baru yang memerlukan tindakan dan persetujuan Anda.";
 
@@ -1893,8 +1893,8 @@ class Reimbursement_Model extends MY_Model
                             </tr>
                             <tr>
                                 <td style='background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;'>
-                                    <p style='margin: 0; color: #999999; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
-                                    <p style='margin: 5px 0 0 0; color: #999999; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
+                                    <p style='margin: 0; color: #FF0000; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
+                                    <p style='margin: 5px 0 0 0; color: #0040FF; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
                                 </td>
                             </tr>
                         </table>
