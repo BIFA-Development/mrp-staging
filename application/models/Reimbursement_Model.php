@@ -1848,7 +1848,7 @@ class Reimbursement_Model extends MY_Model
             $this->email->set_newline("\r\n");
 
             $is_requester = ($next_approval_role == 'requester');
-            $subject = $is_requester ? 'TESTING STAGING Update Status Reimbursement Anda' : 'Permintaan Approval Reimbursement';
+            $subject = $is_requester ? 'TEST STAGING Update Status Reimbursement Anda' : 'Permintaan Approval Reimbursement';
             $title_text = $is_requester ? 'Status Update' : 'Approval Request';
             $sub_title = $is_requester ? "Berikut adalah perkembangan terbaru mengenai pengajuan reimbursement Anda." : "Terdapat dokumen baru yang memerlukan tindakan dan persetujuan Anda.";
 
