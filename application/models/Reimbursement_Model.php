@@ -1933,8 +1933,8 @@ class Reimbursement_Model extends MY_Model
                             </tr>
                             <tr>
                                 <td style='background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;'>
-                                    <p style='margin: 0; color: #999999; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
-                                    <p style='margin: 5px 0 0 0; color: #999999; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
+                                    <p style='margin: 0; color: #E80000; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
+                                    <p style='margin: 5px 0 0 0; color: #0149FF; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
                                 </td>
                             </tr>
                         </table>
