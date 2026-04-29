@@ -711,7 +711,7 @@ class Reimbursement_Model extends MY_Model
 
         // Di dalam public function save(), sebelum return TRUE
         $this->send_mail($document_id, 'hr_manager'); // Email ke HR
-        $this->send_mail($document_id, 'requester');  // Konfirmasi ke Requester
+        // $this->send_mail($document_id, 'requester');  // Konfirmasi ke Requester
 
         $this->db->trans_commit();
         return TRUE;
@@ -1770,13 +1770,50 @@ class Reimbursement_Model extends MY_Model
             return $this->email->print_debugger();
     }
 
+
     public function send_mail($doc_id, $next_approval_role, $tipe = 'request')
     {
         $recipient = array();
         $keterangan = '';
         $ids = is_array($doc_id) ? $doc_id : array($doc_id);
 
+        // --- [1] AMBIL DATA PERMANEN DARI DUA TABEL BERBEDA ---
+        $this->db->select('
+        tb_reimbursements.created_by,
+        tb_reimbursements.warehouse,
+        u_creator.email as email_creator,
+        emp_owner.email as email_owner,
+        emp_owner.name as name_owner
+    ');
+        $this->db->from('tb_reimbursements');
+
+        // Join ke tb_auth_users untuk mendapatkan EMAIL PENGINPUT (berdasarkan person_name)
+        $this->db->join('tb_auth_users as u_creator', 'u_creator.person_name = tb_reimbursements.created_by', 'left');
+
+        // Join ke tb_master_employees untuk mendapatkan EMAIL PEMILIK BENEFIT (berdasarkan employee_number)
+        $this->db->join('tb_master_employees as emp_owner', 'emp_owner.employee_number = tb_reimbursements.employee_number', 'left');
+
+        $this->db->where_in('tb_reimbursements.id', $ids);
+        $this->db->limit(1);
+        $query_data = $this->db->get()->row_array();
+
+        if ($query_data) {
+            // Pembuat Pertama (dari tb_auth_users) selalu masuk daftar recipient
+            if (!empty($query_data['email_creator'])) {
+                $recipient[] = $query_data['email_creator'];
+            }
+            // Pemilik Benefit (dari tb_master_employees) selalu masuk daftar recipient
+            if (!empty($query_data['email_owner'])) {
+                $recipient[] = $query_data['email_owner'];
+            }
+
+            // Sapaan email ditujukan ke pemilik benefit
+            $keterangan = $query_data['name_owner'];
+            $warehouse_doc = strtoupper(trim($query_data['warehouse']));
+        }
+
         // 1. Identifikasi Penerima
+        $recipientList = array();
         switch ($next_approval_role) {
             case 'hr_manager':
                 $recipientList = getNotifRecipientHrManager();
@@ -1791,31 +1828,34 @@ class Reimbursement_Model extends MY_Model
                 $role_search = ($next_approval_role == 'CHIEF OF FINANCE') ? 'CFO' :
                     (($next_approval_role == 'CHIEF OPERATION OFFICER') ? 'COO/CEO' : $next_approval_role);
                 $recipientList = getNotifRecipientByRole($role_search);
-                $keterangan = $role_search;
+
                 break;
             case 'requester':
-                $this->db->select('tb_master_employees.email, tb_master_employees.name');
-                $this->db->from('tb_reimbursements');
-                $this->db->join('tb_master_employees', 'tb_master_employees.employee_number = tb_reimbursements.employee_number');
-                $this->db->where_in('tb_reimbursements.id', $ids);
-                $this->db->limit(1);
-                $res = $this->db->get()->row_array();
-                if ($res) {
-                    $recipient[] = $res['email'];
-                    $keterangan = $res['name'];
+                // Tahap Final: Tambahkan Admin Finance Berdasarkan Warehouse
+            if (isset($warehouse_doc)) {
+                if ($warehouse_doc == 'JAKARTA') {
+                    $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
+                } else {
+                    $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
                 }
+            }
+
                 break;
-            default:
-                return false;
+
         }
 
-        if ($next_approval_role != 'requester' && !empty($recipientList)) {
+        // Tambahkan email approver ke daftar recipient
+        if (!empty($recipientList)) {
             foreach ($recipientList as $key) {
                 if (!empty($key['email'])) {
                     $recipient[] = $key['email'];
                 }
             }
         }
+
+        // --- [4] PEMBERSIHAN DATA (Anti-Spam & Duplicate) ---
+        // array_unique memastikan jika pembuat = pemilik benefit, email hanya dikirim 1x
+        $recipient = array_unique(array_filter($recipient));
 
         if (!empty($recipient)) {
             $this->db->where_in('id', $ids);
@@ -1893,8 +1933,8 @@ class Reimbursement_Model extends MY_Model
                             </tr>
                             <tr>
                                 <td style='background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;'>
-                                    <p style='margin: 0; color: #FF0000; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
-                                    <p style='margin: 5px 0 0 0; color: #0040FF; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
+                                    <p style='margin: 0; color: #999999; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
+                                    <p style='margin: 5px 0 0 0; color: #999999; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
                                 </td>
                             </tr>
                         </table>
@@ -1904,6 +1944,7 @@ class Reimbursement_Model extends MY_Model
         </body>
         </html>";
 
+            $this->load->library('email');
             $this->email->from('itsupervisor@baliflightacademy.com', 'MRP System BIFA');
             $this->email->to($recipient);
             $this->email->subject($subject);
