@@ -1512,227 +1512,77 @@ class Reimbursement_Model extends MY_Model
 
     public function reject($document_id, $approval_notes)
     {
+        // 1. Mulai Transaksi Database
         $this->db->trans_begin();
 
         $total = 0;
         $success = 0;
         $failed = sizeof($document_id);
         $x = 0;
-        $send_email_to = NULL;
 
         foreach ($document_id as $id) {
-            $selected = array(
-                'tb_reimbursements.*',
-                // 'tb_master_business_trip_destinations.business_trip_destination'
-            );
-            $this->db->select($selected);
-            $this->db->where('tb_reimbursements.id', $id);
-            // $this->db->join('tb_master_business_trip_destinations', 'tb_master_business_trip_destinations.id = tb_business_trip_purposes.business_trip_destination_id');
-            $query = $this->db->get('tb_reimbursements');
-            $spd = $query->unbuffered_row('array');
+            // Ambil data dokumen saat ini
+            $this->db->where('id', $id);
+            $spd = $this->db->get('tb_reimbursements')->unbuffered_row('array');
 
-            $cost_center = findCostCenter($spd['annual_cost_center_id']);
-            $cost_center_code = $cost_center['cost_center_code'];
-            $cost_center_name = $cost_center['cost_center_name'];
-            $department_name = $cost_center['department_name'];
-            $findDataPosition = findPositionByEmployeeNumber($spd['employee_number']);
-            if ($findDataPosition['position'] == "HEAD OF SCHOOL" || $findDataPosition['position'] == "VP FINANCE" || $findDataPosition['position'] == "CFO" || $findDataPosition['position'] == "COO/CEO") {
-                // if($spd['status']=='WAITING APPROVAL BY HR MANAGER' && in_array($department_name,config_item('head_department')) && $spd['head_dept']==config_item('auth_username')){
-                // if($spd['status']=='WAITING APPROVAL BY HR MANAGER'){
-                if ($spd['status'] == 'WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'), config_item('hr_manager'))) {
-                    $this->db->set('status', 'REJECT');
-                    $this->db->set('rejected_by', config_item('auth_person_name'));
-                    $this->db->set('notes_approval', $approval_notes[$x]);
-                    $this->db->where('id', $id);
-                    $this->db->update('tb_reimbursements');
+            if (!$spd)
+                continue;
 
+            // [A] Update status dokumen menjadi REJECT
+            $this->db->set('status', 'REJECT');
+            $this->db->set('rejected_by', config_item('auth_person_name'));
+            $this->db->set('notes_approval', $approval_notes[$x]);
+            $this->db->where('id', $id);
+            $this->db->update('tb_reimbursements');
 
+            // [B] Catat Riwayat Penolakan di tabel Signers
+            $this->db->set('document_type', 'RF');
+            $this->db->set('document_number', $spd['document_number']);
+            $this->db->set('document_id', $id);
+            $this->db->set('action', 'rejected by');
+            $this->db->set('date', date('Y-m-d'));
+            $this->db->set('username', config_item('auth_username'));
+            $this->db->set('person_name', config_item('auth_person_name'));
+            $this->db->set('roles', config_item('auth_role'));
+            $this->db->set('notes', $approval_notes[$x]);
+            $this->db->set('sign', get_ttd(config_item('auth_person_name')));
+            $this->db->set('created_at', date('Y-m-d H:i:s'));
+            $this->db->insert('tb_signers');
 
-                    $this->db->set('document_type', 'RF');
-                    $this->db->set('document_number', $spd['document_number']);
-                    $this->db->set('document_id', $id);
-                    $this->db->set('action', 'validated by');
-                    $this->db->set('date', date('Y-m-d'));
-                    $this->db->set('username', config_item('auth_username'));
-                    $this->db->set('person_name', config_item('auth_person_name'));
-                    $this->db->set('roles', config_item('auth_role'));
-                    $this->db->set('notes', $approval_notes[$x]);
-                    $this->db->set('sign', get_ttd(config_item('auth_person_name')));
-                    $this->db->set('created_at', date('Y-m-d H:i:s'));
-                    $this->db->insert('tb_signers');
+            // [C] Logika Pengembalian Saldo (Sangat Penting!)
+            // Mencari semua item dalam pengajuan ini untuk dikembalikan nominalnya
+            $this->db->select('paid_amount');
+            $this->db->where('reimbursement_id', $id);
+            $items = $this->db->get('tb_reimbursement_items')->result();
 
-                    $selected = array(
-                        'tb_reimbursement_items.*',
-                    );
-                    $this->db->select($selected);
-                    $this->db->where('tb_reimbursement_items.reimbursement_id', $id);
-                    $this->db->from('tb_reimbursement_items');
-
-                    $queryReimbursementItem = $this->db->get();
-                    $rowReimbursementItem = $queryReimbursementItem->result();
-
-                    foreach ($rowReimbursementItem as $item) {
-                        $this->db->set('used_amount_plafond', 'used_amount_plafond - ' . $item->paid_amount, FALSE);
-                        $this->db->set('left_amount_plafond', 'left_amount_plafond + ' . $item->paid_amount, FALSE);
-                        $this->db->where('tb_employee_has_benefit.id', $spd['employee_has_benefit_id']);
-                        $this->db->update('tb_employee_has_benefit');
-                    }
-
-                    $send_email_to = 'hr_manager';
-
-                    // }elseif($spd['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),config_item('hr_manager'))){
-                    // }elseif($spd['status']=='WAITING APPROVAL BY HR MANAGER'){
-                } elseif ($spd['status'] == 'WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE' || $spd['status'] == 'WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER') {
-                    $this->db->set('status', 'REJECT');
-                    $this->db->set('rejected_by', config_item('auth_person_name'));
-                    $this->db->set('notes_approval', $approval_notes[$x]);
-                    $this->db->where('id', $id);
-                    $this->db->update('tb_reimbursements');
-
-                    $this->db->set('document_type', 'RF');
-                    $this->db->set('document_number', $spd['document_number']);
-                    $this->db->set('document_id', $id);
-                    $this->db->set('action', 'validated by');
-                    $this->db->set('date', date('Y-m-d'));
-                    $this->db->set('username', config_item('auth_username'));
-                    $this->db->set('person_name', config_item('auth_person_name'));
-                    $this->db->set('roles', config_item('auth_role'));
-                    $this->db->set('notes', $approval_notes[$x]);
-                    $this->db->set('sign', get_ttd(config_item('auth_person_name')));
-                    $this->db->set('created_at', date('Y-m-d H:i:s'));
-                    $this->db->insert('tb_signers');
-
-                    $selected = array(
-                        'tb_reimbursement_items.*',
-                    );
-                    $this->db->select($selected);
-                    $this->db->where('tb_reimbursement_items.reimbursement_id', $id);
-                    $this->db->from('tb_reimbursement_items');
-
-
-                    $queryReimbursementItem = $this->db->get();
-                    $rowReimbursementItem = $queryReimbursementItem->result();
-
-                    foreach ($rowReimbursementItem as $item) {
-                        $this->db->set('used_amount_plafond', 'used_amount_plafond - ' . $item->paid_amount, FALSE);
-                        $this->db->set('left_amount_plafond', 'left_amount_plafond + ' . $item->paid_amount, FALSE);
-                        $this->db->where('tb_employee_has_benefit.id', $spd['employee_has_benefit_id']);
-                        $this->db->update('tb_employee_has_benefit');
-                    }
-
-                    $send_email_to = 'hr_manager';
-                    // }elseif($spd['status']=='WAITING APPROVAL BY FINANCE MANAGER' && config_item('auth_role')=='FINANCE MANAGER'){
-                }
-                $total++;
-                $success++;
-                $failed--;
-                $x++;
-
-            } else {
-                // if($spd['status']=='WAITING APPROVAL BY HEAD DEPT' && in_array($department_name,config_item('head_department')) && $spd['head_dept']==config_item('auth_username')){
-                if ($spd['status'] == 'WAITING APPROVAL BY HOS' || $spd['status'] == 'WAITING APPROVAL BY VP') {
-                    $this->db->set('status', 'REJECT');
-                    $this->db->set('rejected_by', config_item('auth_person_name'));
-                    $this->db->set('notes_approval', $approval_notes[$x]);
-                    $this->db->where('id', $id);
-                    $this->db->update('tb_reimbursements');
-
-                    $this->db->set('document_type', 'RF');
-                    $this->db->set('document_number', $spd['document_number']);
-                    $this->db->set('document_id', $id);
-                    $this->db->set('action', 'validated by');
-                    $this->db->set('date', date('Y-m-d'));
-                    $this->db->set('username', config_item('auth_username'));
-                    $this->db->set('person_name', config_item('auth_person_name'));
-                    $this->db->set('roles', config_item('auth_role'));
-                    $this->db->set('notes', $approval_notes[$x]);
-                    $this->db->set('sign', get_ttd(config_item('auth_person_name')));
-                    $this->db->set('created_at', date('Y-m-d H:i:s'));
-                    $this->db->insert('tb_signers');
-
-                    $selected = array(
-                        'tb_reimbursement_items.*',
-                    );
-                    $this->db->select($selected);
-                    $this->db->where('tb_reimbursement_items.reimbursement_id', $id);
-                    $this->db->from('tb_reimbursement_items');
-
-                    $queryReimbursementItem = $this->db->get();
-                    $rowReimbursementItem = $queryReimbursementItem->result();
-
-                    foreach ($rowReimbursementItem as $item) {
-                        $this->db->set('used_amount_plafond', 'used_amount_plafond - ' . $item->paid_amount, FALSE);
-                        $this->db->set('left_amount_plafond', 'left_amount_plafond + ' . $item->paid_amount, FALSE);
-                        $this->db->where('tb_employee_has_benefit.id', $spd['employee_has_benefit_id']);
-                        $this->db->update('tb_employee_has_benefit');
-                    }
-
-                    $send_email_to = 'hr_manager';
-
-                } elseif ($spd['status'] == 'WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'), config_item('hr_manager'))) {
-                    // }elseif($spd['status']=='WAITING APPROVAL BY HR MANAGER'){
-                    $this->db->set('status', 'REJECT');
-                    $this->db->set('rejected_by', config_item('auth_person_name'));
-                    $this->db->set('notes_approval', $approval_notes[$x]);
-                    $this->db->where('id', $id);
-                    $this->db->update('tb_reimbursements');
-
-                    $this->db->set('document_type', 'RF');
-                    $this->db->set('document_number', $spd['document_number']);
-                    $this->db->set('document_id', $id);
-                    $this->db->set('action', 'validated by');
-                    $this->db->set('date', date('Y-m-d'));
-                    $this->db->set('username', config_item('auth_username'));
-                    $this->db->set('person_name', config_item('auth_person_name'));
-                    $this->db->set('roles', config_item('auth_role'));
-                    $this->db->set('notes', $approval_notes[$x]);
-                    $this->db->set('sign', get_ttd(config_item('auth_person_name')));
-                    $this->db->set('created_at', date('Y-m-d H:i:s'));
-                    $this->db->insert('tb_signers');
-
-                    $selected = array(
-                        'tb_reimbursement_items.*',
-                    );
-                    $this->db->select($selected);
-                    $this->db->where('tb_reimbursement_items.reimbursement_id', $id);
-                    $this->db->from('tb_reimbursement_items');
-
-                    $queryReimbursementItem = $this->db->get();
-                    $rowReimbursementItem = $queryReimbursementItem->result();
-
-
-                    foreach ($rowReimbursementItem as $item) {
-                        $this->db->set('used_amount_plafond', 'used_amount_plafond - ' . $item->paid_amount, FALSE);
-                        $this->db->set('left_amount_plafond', 'left_amount_plafond + ' . $item->paid_amount, FALSE);
-                        $this->db->where('tb_employee_has_benefit.id', $spd['employee_has_benefit_id']);
-                        $this->db->update('tb_employee_has_benefit');
-                    }
-
-                    $send_email_to = 'hr_manager';
-
-                }
-                $total++;
-                $success++;
-                $failed--;
-                $x++;
-
+            foreach ($items as $item) {
+                // Tambahkan kembali nominal ke plafond karyawan
+                $this->db->set('used_amount_plafond', 'used_amount_plafond - ' . $item->paid_amount, FALSE);
+                $this->db->set('left_amount_plafond', 'left_amount_plafond + ' . $item->paid_amount, FALSE);
+                $this->db->where('id', $spd['employee_has_benefit_id']);
+                $this->db->update('tb_employee_has_benefit');
             }
+
+            $total++;
+            $success++;
+            $failed--;
+            $x++;
         }
 
+        // 2. Cek apakah proses database berhasil semua
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return ['status' => FALSE, 'total' => $total, 'success' => $success, 'failed' => $failed];
+        } else {
+            // 3. Simpan permanen ke database (Commit)
+            $this->db->trans_commit();
 
+            // 4. KIRIM EMAIL (Setelah data di-commit agar status REJECT terbaca oleh send_mail)
+            // Memanggil 'requester' akan memicu pengiriman ke Pembuat Pertama + Pemilik + Admin Warehouse
+            $this->send_mail($document_id, 'requester');
 
-        if ($this->db->trans_status() === FALSE)
-            return $return = ['status' => FALSE, 'total' => $total, 'success' => $success, 'failed' => $failed];
-
-        // if($send_email_to!=NULL){
-        //     $this->send_mail($document_id, $send_email_to);
-        // }
-
-
-        // Di dalam public function reject(), sebelum return
-        $this->db->trans_commit();
-        $this->send_mail($document_id, 'requester');
-        return $return = ['status' => TRUE, 'total' => $total, 'success' => $success, 'failed' => $failed];
+            return ['status' => TRUE, 'total' => $total, 'success' => $success, 'failed' => $failed];
+        }
     }
 
     public function test_sendmail()
@@ -1832,13 +1682,13 @@ class Reimbursement_Model extends MY_Model
                 break;
             case 'requester':
                 // Tahap Final: Tambahkan Admin Finance Berdasarkan Warehouse
-            if (isset($warehouse_doc)) {
-                if ($warehouse_doc == 'JAKARTA') {
-                    $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
-                } else {
-                    $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
+                if (isset($warehouse_doc)) {
+                    if ($warehouse_doc == 'JAKARTA') {
+                        $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
+                    } else {
+                        $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
+                    }
                 }
-            }
 
                 break;
 
