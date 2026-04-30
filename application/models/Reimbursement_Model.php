@@ -1412,7 +1412,7 @@ class Reimbursement_Model extends MY_Model
         $total = 0;
         $success = 0;
         $failed = sizeof($document_id);
-        $approved_ids = array();
+        $approved_ids = array(); // Menampung ID yang baru saja berstatus APPROVED (Final)
 
         // Array pembantu untuk mengelompokkan email
         $email_batch = array();
@@ -1429,8 +1429,9 @@ class Reimbursement_Model extends MY_Model
             $findDataPosition = findPositionByEmployeeNumber($spd['employee_number']);
             $nextRoleEmail = '';
 
-            // Jalur 1: Approval Tahap Akhir (Oleh VP/HOS/C-Level)
+            // --- JALUR 1: APPROVAL TAHAP AKHIR (Final Approver) ---
             if (in_array($spd['status'], ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY VP', 'WAITING APPROVAL BY CFO', 'WAITING APPROVAL BY COO'])) {
+
                 $this->db->set('status', 'APPROVED');
                 $this->db->set('notes_approval', $approval_notes[$x]);
                 $this->db->set('validated_by', config_item('auth_person_name'));
@@ -1438,10 +1439,12 @@ class Reimbursement_Model extends MY_Model
                 $this->db->update('tb_reimbursements');
 
                 $this->insert_signer_log($id, $spd['document_number'], 'validated by', $approval_notes[$x]);
-                $approved_ids[] = $id; // ID ini akan diproses create_expense_auto di Controller
+
+                // Masukkan ke array approved_ids untuk diproses Auto Expense dan Email Finance
+                $approved_ids[] = $id;
 
             }
-            // Jalur 2: Approval Oleh HR Manager
+            // --- JALUR 2: APPROVAL OLEH HR MANAGER (Tahap Awal) ---
             else if ($spd['status'] == 'WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'), config_item('hr_manager'))) {
 
                 if (in_array($findDataPosition['position'], ["HEAD OF SCHOOL", "VP FINANCE", "CFO", "COO/CEO"])) {
@@ -1460,7 +1463,6 @@ class Reimbursement_Model extends MY_Model
 
                 $this->insert_signer_log($id, $spd['document_number'], 'hr approved by', $approval_notes[$x]);
 
-                // Kelompokkan ID berdasarkan Role untuk kirim email batch
                 if ($nextRoleEmail != '') {
                     $email_batch[$nextRoleEmail][] = $id;
                 }
@@ -1471,24 +1473,37 @@ class Reimbursement_Model extends MY_Model
             $failed--;
         }
 
+        // --- PROSES AUTO EXPENSE SEBELUM COMMIT ---
+        if (!empty($approved_ids)) {
+            foreach ($approved_ids as $app_id) {
+                // Memanggil fungsi yang sudah ada di model Anda untuk membuat Expense otomatis
+                $this->create_expense_auto($app_id);
+            }
+        }
+
         if ($this->db->trans_status() === FALSE) {
             $this->db->trans_rollback();
             return ['status' => FALSE, 'total' => $total, 'success' => $success, 'failed' => $failed];
         } else {
             $this->db->trans_commit();
 
-            // KIRIM EMAIL BATCH (Setelah Commit agar data sudah fix di DB)
+            // --- PENGIRIMAN EMAIL SETELAH COMMIT ---
+
+            // 1. Email untuk Tahapan Approval Berjalan (Penyetuju Berikutnya)
             foreach ($email_batch as $role => $ids) {
-                $this->send_mail($ids, $role);      // Email ke Penyetuju Berikutnya
-                $this->send_mail($ids, 'requester'); // Update Status ke Requester
+                $this->send_mail($ids, $role);
+                $this->send_mail($ids, 'requester');
             }
+
+            // 2. Email untuk Tahapan FINAL (Kirim ke Finance + Maker + Owner)
             if (!empty($approved_ids)) {
+                // Memanggil send_mail dengan role 'requester' 
+                // Di dalam send_mail sudah ada logika: Jika status APPROVED, kirim ke Nabila/Ratining
                 $this->send_mail($approved_ids, 'requester');
             }
 
             return ['status' => TRUE, 'total' => $total, 'success' => $success, 'failed' => $failed, 'approved_ids' => $approved_ids];
         }
-
     }
 
     /**
@@ -1510,7 +1525,7 @@ class Reimbursement_Model extends MY_Model
         $this->db->insert('tb_signers');
     }
 
-public function reject($document_id, $approval_notes)
+    public function reject($document_id, $approval_notes)
     {
         // 1. Mulai Transaksi Database
         $this->db->trans_begin();
@@ -1525,7 +1540,8 @@ public function reject($document_id, $approval_notes)
             $this->db->where('id', $id);
             $spd = $this->db->get('tb_reimbursements')->unbuffered_row('array');
 
-            if (!$spd) continue;
+            if (!$spd)
+                continue;
 
             // [A] Update status dokumen menjadi REJECT
             $this->db->set('status', 'REJECT');
@@ -1578,8 +1594,8 @@ public function reject($document_id, $approval_notes)
 
             // 4. KIRIM EMAIL (Setelah data di-commit agar status REJECT terbaca oleh send_mail)
             // Memanggil 'requester' akan memicu pengiriman ke Pembuat Pertama + Pemilik + Admin Warehouse
-            $this->send_mail($document_id, 'requester'); 
-            
+            $this->send_mail($document_id, 'requester');
+
             return ['status' => TRUE, 'total' => $total, 'success' => $success, 'failed' => $failed];
         }
     }
@@ -1622,200 +1638,152 @@ public function reject($document_id, $approval_notes)
 
     public function send_mail($doc_id, $next_approval_role, $tipe = 'request')
     {
-        $recipient = array();
-        $keterangan = '';
         $ids = is_array($doc_id) ? $doc_id : array($doc_id);
 
-        // --- [1] AMBIL DATA PERMANEN DARI DUA TABEL BERBEDA ---
+        // --- [1] AMBIL DATA HEADER ---
         $this->db->select('
         tb_reimbursements.created_by,
         tb_reimbursements.warehouse,
+        tb_reimbursements.status as current_status,
+        tb_reimbursements.document_number,
         u_creator.email as email_creator,
+        u_creator.person_name as name_creator,
         emp_owner.email as email_owner,
         emp_owner.name as name_owner
     ');
         $this->db->from('tb_reimbursements');
-
-        // Join ke tb_auth_users untuk mendapatkan EMAIL PENGINPUT (berdasarkan person_name)
         $this->db->join('tb_auth_users as u_creator', 'u_creator.person_name = tb_reimbursements.created_by', 'left');
-
-        // Join ke tb_master_employees untuk mendapatkan EMAIL PEMILIK BENEFIT (berdasarkan employee_number)
         $this->db->join('tb_master_employees as emp_owner', 'emp_owner.employee_number = tb_reimbursements.employee_number', 'left');
-
         $this->db->where_in('tb_reimbursements.id', $ids);
-        $this->db->limit(1);
         $query_data = $this->db->get()->row_array();
 
-        if ($query_data) {
-            // Pembuat Pertama (dari tb_auth_users) selalu masuk daftar recipient
-            if (!empty($query_data['email_creator'])) {
-                $recipient[] = $query_data['email_creator'];
-            }
-            // Pemilik Benefit (dari tb_master_employees) selalu masuk daftar recipient
-            if (!empty($query_data['email_owner'])) {
-                $recipient[] = $query_data['email_owner'];
-            }
+        if (!$query_data)
+            return false;
 
-            // Sapaan email ditujukan ke pemilik benefit
-            $keterangan = $query_data['name_owner'];
-            $warehouse_doc = strtoupper(trim($query_data['warehouse']));
+        // --- [2] SIAPKAN DATA ITEM UNTUK TABEL ---
+        $this->db->where_in('reimbursement_id', $ids);
+        $items = $this->db->get('tb_reimbursement_items')->result_array();
+        $table_content = "";
+        $grand_total = 0;
+        foreach ($items as $detail) {
+            $table_content .= "<tr>
+            <td style='padding:8px; border:1px solid #ddd;'>" . $detail['description'] . "</td>
+            <td style='padding:8px; border:1px solid #ddd;'>" . $detail['notes'] . "</td>
+            <td style='padding:8px; border:1px solid #ddd; text-align:right;'>Rp " . number_format($detail['paid_amount'], 0, ',', '.') . "</td>
+        </tr>";
+            $grand_total += $detail['paid_amount'];
         }
 
-        // 1. Identifikasi Penerima
-        $recipientList = array();
-        switch ($next_approval_role) {
-            case 'hr_manager':
-                $recipientList = getNotifRecipientHrManager();
-                $keterangan = 'HR Manager';
-                break;
-            case 'VP FINANCE':
-            case 'HEAD OF SCHOOL':
-            case 'CFO':
-            case 'COO/CEO':
-            case 'CHIEF OF FINANCE':
-            case 'CHIEF OPERATION OFFICER':
-                $role_search = ($next_approval_role == 'CHIEF OF FINANCE') ? 'CFO' :
-                    (($next_approval_role == 'CHIEF OPERATION OFFICER') ? 'COO/CEO' : $next_approval_role);
-                $recipientList = getNotifRecipientByRole($role_search);
+        // --- [3] ANTRIAN PENGIRIMAN EMAIL ---
+        $emails_to_send = array();
 
-                break;
-            case 'requester':
-                // Tahap Final: Tambahkan Admin Finance Berdasarkan Warehouse
-            if (isset($warehouse_doc)) {
-                if ($warehouse_doc == 'JAKARTA') {
-                    $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
-                } else {
-                    $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
-                }
-            }
-
-                break;
-
+        // A. UNTUK MAKER (PENGINPUT)
+        if (!empty($query_data['email_creator'])) {
+            $emails_to_send[] = [
+                'email' => $query_data['email_creator'],
+                'sapaan' => $query_data['name_creator'],
+                'role' => 'Maker',
+                'body' => "Berikut adalah update status dokumen yang Anda inputkan."
+            ];
         }
 
-        // Tambahkan email approver ke daftar recipient
-        if (!empty($recipientList)) {
-            foreach ($recipientList as $key) {
-                if (!empty($key['email'])) {
-                    $recipient[] = $key['email'];
-                }
+        // B. UNTUK OWNER BENEFIT
+        if (!empty($query_data['email_owner'])) {
+            $emails_to_send[] = [
+                'email' => $query_data['email_owner'],
+                'sapaan' => $query_data['name_owner'],
+                'role' => 'Owner Benefit',
+                'body' => "Berikut adalah update status pengajuan reimbursement Anda."
+            ];
+        }
+
+        // C. UNTUK APPROVER ATAU FINANCE
+        if ($next_approval_role == 'requester' && $query_data['current_status'] == 'EXPENSE REQUEST') {
+            // JALUR FINANCE
+            $warehouse = strtoupper(trim($query_data['warehouse']));
+            $fin_email = ($warehouse == 'JAKARTA') ? 'nabilah@baliflightacademy.com' : 'ratining@baliflightacademy.com';
+
+            $emails_to_send[] = [
+                'email' => $fin_email,
+                'sapaan' => "FINANCE",
+                'role' => 'Finance',
+                'body' => "Status Pengajuan \"<b>" . $query_data['name_owner'] . "</b>\" telah disetujui, mohon diproses pembayaran (Data otomatis masuk ke Expense Request)."
+            ];
+        } elseif ($next_approval_role != 'requester') {
+            // JALUR APPROVER BERJENJANG
+            $role_map = ['CHIEF OF FINANCE' => 'CFO', 'CHIEF OPERATION OFFICER' => 'COO/CEO'];
+            $role_name = isset($role_map[$next_approval_role]) ? $role_map[$next_approval_role] : $next_approval_role;
+
+            $approvers = ($next_approval_role == 'hr_manager') ? getNotifRecipientHrManager() : getNotifRecipientByRole($role_name);
+
+            foreach ($approvers as $ap) {
+                $emails_to_send[] = [
+                    'email' => $ap['email'],
+                    'sapaan' => $role_name,
+                    'role' => 'Approver',
+                    'body' => "Terdapat dokumen yang <b>memerlukan persetujuan Anda</b>."
+                ];
             }
         }
 
-        // --- [4] PEMBERSIHAN DATA (Anti-Spam & Duplicate) ---
-        // array_unique memastikan jika pembuat = pemilik benefit, email hanya dikirim 1x
-        $recipient = array_unique(array_filter($recipient));
+        // --- [4] EKSEKUSI PENGIRIMAN PARALEL ---
+        $this->load->library('email');
+        foreach ($emails_to_send as $target) {
+            $this->email->clear(TRUE); // Sangat penting untuk reset data email tiap loop
+            $this->email->from('itsupervisor@baliflightacademy.com', 'MRP System BIFA');
+            $this->email->to($target['email']);
+            $this->email->subject("[" . $target['role'] . "] Reimbursement - " . $query_data['document_number']);
 
-        if (!empty($recipient)) {
-            $this->db->where_in('id', $ids);
-            $data_reimbursement = $this->db->get('tb_reimbursements')->result_array();
-            if (empty($data_reimbursement))
-                return false;
-
-            // Susun baris tabel dengan styling
-            $item_rows = '';
-            foreach ($data_reimbursement as $item) {
-                // Logika warna status
-                $status_color = ($item['status'] == 'APPROVED') ? '#28a745' : (($item['status'] == 'REJECT') ? '#dc3545' : '#ffc107');
-                $text_color = ($item['status'] == 'APPROVED' || $item['status'] == 'REJECT') ? '#ffffff' : '#000000';
-
-                $item_rows .= "
-                <tr>
-                    <td style='padding: 12px; border-bottom: 1px solid #eeeeee; font-size: 13px; color: #555555;'>" . date('d M Y', strtotime($item['date'])) . "</td>
-                    <td style='padding: 12px; border-bottom: 1px solid #eeeeee; font-size: 13px; font-weight: bold; color: #333333;'>" . $item['document_number'] . "</td>
-                    <td style='padding: 12px; border-bottom: 1px solid #eeeeee; font-size: 13px; color: #555555;'>" . $item['person_name'] . "</td>
-                    <td style='padding: 12px; border-bottom: 1px solid #eeeeee;'>
-                        <span style='background-color: $status_color; color: $text_color; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;'>
-                            " . $item['status'] . "
-                        </span>
-                    </td>
-                    <td style='padding: 12px; border-bottom: 1px solid #eeeeee; font-size: 13px; text-align: right; font-weight: bold; color: #333333;'>Rp " . number_format($item['total'], 0, ',', '.') . "</td>
-                </tr>";
-            }
-
-            $this->load->library('email');
-            $this->email->set_newline("\r\n");
-
-            $is_requester = ($next_approval_role == 'requester');
-            $subject = $is_requester ? 'TEST STAGING Update Status Reimbursement Anda' : 'Permintaan Approval Reimbursement';
-            $title_text = $is_requester ? 'Status Update' : 'Approval Request';
-            $sub_title = $is_requester ? "Berikut adalah perkembangan terbaru mengenai pengajuan reimbursement Anda." : "Terdapat dokumen baru yang memerlukan tindakan dan persetujuan Anda.";
-
-            // Template HTML Email yang dipercantik
             $message = "
         <html>
-        <body style='margin: 0; padding: 0; background-color: #f6f9fc; font-family: Arial, sans-serif;'>
-            <table border='0' cellpadding='0' cellspacing='0' width='100%'>
-                <tr>
-                    <td align='center' style='padding: 40px 0;'>
-                        <table border='0' cellpadding='0' cellspacing='0' width='600' style='background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);'>
-                            <tr>
-                                <td style='background-color: #004a99; padding: 30px; text-align: center;'>
-                                    <h1 style='color: #ffffff; margin: 0; font-size: 22px; letter-spacing: 1px;'>MRP SYSTEM BIFA</h1>
-                                    <p style='color: #a5c7f0; margin: 5px 0 0 0; font-size: 14px;'>$title_text Notification</p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 40px 30px;'>
-                                    <h2 style='color: #333333; margin: 0 0 15px 0; font-size: 18px;'>Dear $keterangan,</h2>
-                                    <p style='color: #666666; font-size: 15px; line-height: 1.5; margin-bottom: 25px;'>$sub_title</p>
-                                    
-                                    <table border='0' cellpadding='0' cellspacing='0' width='100%' style='border: 1px solid #eeeeee; border-radius: 4px;'>
-                                        <thead>
-                                            <tr style='background-color: #fcfcfc;'>
-                                                <th style='padding: 12px; text-align: left; font-size: 12px; color: #999999; border-bottom: 1px solid #eeeeee;'>DATE</th>
-                                                <th style='padding: 12px; text-align: left; font-size: 12px; color: #999999; border-bottom: 1px solid #eeeeee;'>DOC NO.</th>
-                                                <th style='padding: 12px; text-align: left; font-size: 12px; color: #999999; border-bottom: 1px solid #eeeeee;'>NAME</th>
-                                                <th style='padding: 12px; text-align: left; font-size: 12px; color: #999999; border-bottom: 1px solid #eeeeee;'>STATUS</th>
-                                                <th style='padding: 12px; text-align: right; font-size: 12px; color: #999999; border-bottom: 1px solid #eeeeee;'>AMOUNT</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            $item_rows
-                                        </tbody>
-                                    </table>
-
-                                    <div style='margin-top: 35px; text-align: center;'>
-                                        <a href='" . config_item('url_mrp') . "' style='background-color: #004a99; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; display: inline-block;'>Buka MRP System</a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style='background-color: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #eeeeee;'>
-                                    <p style='margin: 0; color: #E80000; font-size: 11px;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
-                                    <p style='margin: 5px 0 0 0; color: #0149FF; font-size: 11px;'>&copy; 2026 Bali International Flight Academy</p>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
+        <body style='font-family:Arial; background:#f4f4f4; padding:20px;'>
+            <div style='max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:8px; border:1px solid #eee;'>
+                <h2 style='color:#004a99; text-align:center; margin:0;'>MRP SYSTEM BIFA</h2>
+                <p style='text-align:center; color:#999; font-size:11px;'>Notification System</p>
+                <hr style='border:0; border-top:1px solid #eee;'>
+                <p>Dear <b>" . $target['sapaan'] . "</b>,</p>
+                <p>" . $target['body'] . "</p>
+                <table width='100%' style='font-size:12px; margin-bottom:15px; background:#f9f9f9; padding:10px; border-radius:4px;'>
+                    <tr><td width='120'>No. Dokumen</td><td>: <b>" . $query_data['document_number'] . "</b></td></tr>
+                    <tr><td>Status Saat Ini</td><td>: <b style='color:#004a99;'>" . $query_data['current_status'] . "</b></td></tr>
+                    <tr><td>Pemilik Benefit</td><td>: " . $query_data['name_owner'] . "</td></tr>
+                </table>
+                <table width='100%' cellspacing='0' style='border-collapse:collapse; font-size:12px; border:1px solid #ddd;'>
+                    <tr style='background:#eee;'>
+                        <th style='padding:8px; border:1px solid #ddd; text-align:left;'>Deskripsi</th>
+                        <th style='padding:8px; border:1px solid #ddd; text-align:left;'>Catatan</th>
+                        <th style='padding:8px; border:1px solid #ddd; text-align:right;'>Nominal</th>
+                    </tr>
+                    $table_content
+                    <tr style='background:#f9f9f9; font-weight:bold;'>
+                        <td colspan='2' style='padding:8px; border:1px solid #ddd; text-align:right;'>GRAND TOTAL</td>
+                        <td style='padding:8px; border:1px solid #ddd; text-align:right;'>Rp " . number_format($grand_total, 0, ',', '.') . "</td>
+                    </tr>
+                </table>
+                <br>
+                <center>
+                    <a href='" . config_item('url_mrp') . "' style='background:#004a99; color:#fff; padding:12px 25px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;'>Buka MRP System</a>
+                </center>
+                <p style='font-size:10px; color:#999; margin-top:25px; text-align:center;'>Email ini dikirim otomatis oleh sistem. &copy; 2026 BIFA</p>
+            </div>
         </body>
         </html>";
 
-            $this->load->library('email');
-            $this->email->from('itsupervisor@baliflightacademy.com', 'MRP System BIFA');
-            $this->email->to($recipient);
-            $this->email->subject($subject);
             $this->email->message($message);
-            $this->email->set_mailtype("html"); // Pastikan tipe email diatur ke HTML
+            $this->email->set_mailtype("html");
 
-            // ATTACHMENT LOGIC
-            $this->db->where_in('id_poe', $ids);
-            $this->db->where('tipe', 'REIMBURSEMENT');
-            $this->db->where('deleted_at', NULL);
+            // Lampirkan nota kuitansi
+            $this->db->where_in('id_poe', $ids)->where('tipe', 'REIMBURSEMENT')->where('deleted_at', NULL);
             $attachments = $this->db->get('tb_attachment_poe')->result_array();
-
-            foreach ($attachments as $file) {
-                $file_path = FCPATH . $file['file'];
-                if (file_exists($file_path)) {
-                    $this->email->attach($file_path);
-                }
+            foreach ($attachments as $f) {
+                $path = FCPATH . $f['file'];
+                if (file_exists($path))
+                    $this->email->attach($path);
             }
 
-            return $this->email->send();
+            $this->email->send();
         }
-        return false;
+        return true;
     }
 
     public function getExpenseOrderNumber()
