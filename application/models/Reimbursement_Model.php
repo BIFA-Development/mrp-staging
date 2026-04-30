@@ -1510,7 +1510,7 @@ class Reimbursement_Model extends MY_Model
         $this->db->insert('tb_signers');
     }
 
-    public function reject($document_id, $approval_notes)
+public function reject($document_id, $approval_notes)
     {
         // 1. Mulai Transaksi Database
         $this->db->trans_begin();
@@ -1525,8 +1525,7 @@ class Reimbursement_Model extends MY_Model
             $this->db->where('id', $id);
             $spd = $this->db->get('tb_reimbursements')->unbuffered_row('array');
 
-            if (!$spd)
-                continue;
+            if (!$spd) continue;
 
             // [A] Update status dokumen menjadi REJECT
             $this->db->set('status', 'REJECT');
@@ -1579,8 +1578,8 @@ class Reimbursement_Model extends MY_Model
 
             // 4. KIRIM EMAIL (Setelah data di-commit agar status REJECT terbaca oleh send_mail)
             // Memanggil 'requester' akan memicu pengiriman ke Pembuat Pertama + Pemilik + Admin Warehouse
-            $this->send_mail($document_id, 'requester');
-
+            $this->send_mail($document_id, 'requester'); 
+            
             return ['status' => TRUE, 'total' => $total, 'success' => $success, 'failed' => $failed];
         }
     }
@@ -1682,13 +1681,13 @@ class Reimbursement_Model extends MY_Model
                 break;
             case 'requester':
                 // Tahap Final: Tambahkan Admin Finance Berdasarkan Warehouse
-                if (isset($warehouse_doc)) {
-                    if ($warehouse_doc == 'JAKARTA') {
-                        $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
-                    } else {
-                        $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
-                    }
+            if (isset($warehouse_doc)) {
+                if ($warehouse_doc == 'JAKARTA') {
+                    $recipient[] = 'nabilah@baliflightacademy.com'; // Nabila (Jakarta)
+                } else {
+                    $recipient[] = 'ratining@baliflightacademy.com'; // Ratining (Luar Jakarta)
                 }
+            }
 
                 break;
 
