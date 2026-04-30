@@ -256,9 +256,10 @@ class Reimbursement_Model extends MY_Model
                 $this->db->order_by($column_order[$_POST['order'][$key]['column']], $_POST['order'][$key]['dir']);
             }
         } else {
-            $this->db->order_by('status', 'desc');
-            $this->db->order_by('id', 'desc');
             $this->db->order_by('date', 'desc');
+            $this->db->order_by('id', 'desc');
+            $this->db->order_by('status', 'desc');
+
         }
 
         if ($_POST['length'] != -1)
@@ -1734,37 +1735,58 @@ class Reimbursement_Model extends MY_Model
             $this->email->to($target['email']);
             $this->email->subject("[" . $target['role'] . "] Reimbursement - " . $query_data['document_number']);
 
+            // HEADER BERWARNA BIRU (#004a99)
             $message = "
         <html>
-        <body style='font-family:Arial; background:#f4f4f4; padding:20px;'>
-            <div style='max-width:600px; margin:auto; background:#fff; padding:20px; border-radius:8px; border:1px solid #eee;'>
-                <h2 style='color:#004a99; text-align:center; margin:0;'>MRP SYSTEM BIFA</h2>
-                <p style='text-align:center; color:#999; font-size:11px;'>Notification System</p>
-                <hr style='border:0; border-top:1px solid #eee;'>
-                <p>Dear <b>" . $target['sapaan'] . "</b>,</p>
-                <p>" . $target['body'] . "</p>
-                <table width='100%' style='font-size:12px; margin-bottom:15px; background:#f9f9f9; padding:10px; border-radius:4px;'>
-                    <tr><td width='120'>No. Dokumen</td><td>: <b>" . $query_data['document_number'] . "</b></td></tr>
-                    <tr><td>Status Saat Ini</td><td>: <b style='color:#004a99;'>" . $query_data['current_status'] . "</b></td></tr>
-                    <tr><td>Pemilik Benefit</td><td>: " . $query_data['name_owner'] . "</td></tr>
-                </table>
-                <table width='100%' cellspacing='0' style='border-collapse:collapse; font-size:12px; border:1px solid #ddd;'>
-                    <tr style='background:#eee;'>
-                        <th style='padding:8px; border:1px solid #ddd; text-align:left;'>Deskripsi</th>
-                        <th style='padding:8px; border:1px solid #ddd; text-align:left;'>Catatan</th>
-                        <th style='padding:8px; border:1px solid #ddd; text-align:right;'>Nominal</th>
-                    </tr>
-                    $table_content
-                    <tr style='background:#f9f9f9; font-weight:bold;'>
-                        <td colspan='2' style='padding:8px; border:1px solid #ddd; text-align:right;'>GRAND TOTAL</td>
-                        <td style='padding:8px; border:1px solid #ddd; text-align:right;'>Rp " . number_format($grand_total, 0, ',', '.') . "</td>
-                    </tr>
-                </table>
-                <br>
-                <center>
-                    <a href='" . config_item('url_mrp') . "' style='background:#004a99; color:#fff; padding:12px 25px; text-decoration:none; border-radius:5px; font-weight:bold; display:inline-block;'>Buka MRP System</a>
-                </center>
-                <p style='font-size:10px; color:#999; margin-top:25px; text-align:center;'>Email ini dikirim otomatis oleh sistem. &copy; 2026 BIFA</p>
+        <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; margin: 0;'>
+            <div style='max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'>
+                
+                <div style='background-color: #004a99; padding: 30px 20px; text-align: center;'>
+                    <h1 style='color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px;'>MRP SYSTEM BIFA</h1>
+                    <p style='color: #a5c7f0; margin: 5px 0 0 0; font-size: 12px;'>Approval Request Notification</p>
+                </div>
+
+                <div style='padding: 30px;'>
+                    <p style='font-size: 16px; color: #333;'>Dear <b>" . $target['sapaan'] . "</b>,</p>
+                    <p style='font-size: 14px; color: #666; line-height: 1.6;'>" . $target['body'] . "</p>
+                    
+                    <div style='background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #004a99;'>
+                        <table width='100%' style='font-size: 13px; color: #333;'>
+                            <tr><td width='120' style='padding: 2px 0;'>No. Dokumen</td><td>: <b>" . $query_data['document_number'] . "</b></td></tr>
+                            <tr><td style='padding: 2px 0;'>Status Dokumen</td><td>: <b style='color: #004a99;'>" . $query_data['current_status'] . "</b></td></tr>
+                            <tr><td style='padding: 2px 0;'>Pemilik Benefit</td><td>: " . $query_data['name_owner'] . "</td></tr>
+                        </table>
+                    </div>
+
+                    <table width='100%' cellspacing='0' cellpadding='8' style='border-collapse: collapse; font-size: 13px; border: 1px solid #ddd;'>
+                        <thead>
+                            <tr style='background-color: #f2f2f2; color: #333;'>
+                                <th style='border: 1px solid #ddd; text-align: left;'>Deskripsi</th>
+                                <th style='border: 1px solid #ddd; text-align: left;'>Catatan</th>
+                                <th style='border: 1px solid #ddd; text-align: right;'>Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            $table_content
+                        </tbody>
+                        <tfoot>
+                            <tr style='background-color: #f9f9f9; font-weight: bold;'>
+                                <td colspan='2' style='border: 1px solid #ddd; text-align: right;'>GRAND TOTAL</td>
+                                <td style='border: 1px solid #ddd; text-align: right; color: #004a99;'>Rp " . number_format($grand_total, 0, ',', '.') . "</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <br>
+                    <center>
+                        <a href='" . config_item('url_mrp') . "' style='background-color: #004a99; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 14px;'>BUKA MRP SYSTEM</a>
+                    </center>
+                </div>
+
+                <div style='background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee;'>
+                    <p style='margin: 0;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
+                    <p style='margin: 5px 0 0 0;'>&copy; 2026 Bali International Flight Academy</p>
+                </div>
             </div>
         </body>
         </html>";
