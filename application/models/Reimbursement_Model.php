@@ -1784,8 +1784,8 @@ class Reimbursement_Model extends MY_Model
                 </div>
 
                 <div style='background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee;'>
-                    <p style='margin: 0;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
-                    <p style='margin: 5px 0 0 0;'>&copy; 2026 Bali International Flight Academy</p>
+                    <p style='margin: 0; color:#FF0000;'>Email ini dikirim otomatis oleh sistem. Harap tidak membalas email ini.</p>
+                    <p style='margin: 5px 0 0 0; color:#0062FF;'>&copy; 2026 Bali International Flight Academy</p>
                 </div>
             </div>
         </body>
