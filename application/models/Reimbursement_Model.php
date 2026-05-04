@@ -1493,7 +1493,7 @@ class Reimbursement_Model extends MY_Model
             // 1. Email untuk Tahapan Approval Berjalan (Penyetuju Berikutnya)
             foreach ($email_batch as $role => $ids) {
                 $this->send_mail($ids, $role);
-                $this->send_mail($ids, 'requester');
+                // $this->send_mail($ids, 'requester');
             }
 
             // 2. Email untuk Tahapan FINAL (Kirim ke Finance + Maker + Owner)
@@ -1733,7 +1733,15 @@ class Reimbursement_Model extends MY_Model
             $this->email->clear(TRUE); // Sangat penting untuk reset data email tiap loop
             $this->email->from('itsupervisor@baliflightacademy.com', 'MRP System BIFA');
             $this->email->to($target['email']);
-            $this->email->subject("[" . $target['role'] . "] Reimbursement - " . $query_data['document_number']);
+            if ($target['role'] == 'Finance') {
+                // Subject khusus Finance: [Finance] [Nama Owner] Reimbursement - No. Dokumen
+                $subject = "[Finance] [" . $query_data['name_owner'] . "] Reimbursement - " . $query_data['document_number'];
+            } else {
+                // Subject standar untuk Maker, Owner, dan Approver
+                $subject = "[" . $target['role'] . "] Reimbursement - " . $query_data['document_number'];
+            }
+
+            $this->email->subject($subject);
 
             // HEADER BERWARNA BIRU (#004a99)
             $message = "
