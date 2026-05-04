@@ -108,6 +108,9 @@
       <option value="WAITING APPROVAL BY FINANCE MANAGER">
         Waiting Approval By Finance Manager
       </option>
+      <option value="EXPENSE REQUEST">
+        Expense Request
+      </option>
       <option value="APPROVED">
         Approved
       </option>
