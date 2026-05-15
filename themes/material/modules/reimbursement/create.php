@@ -301,7 +301,7 @@
                     <button type="button" href="" onClick="addRow()" class="btn btn-primary ink-reaction pull-left hide">
                     Add
                     </button>
-<!-- 
+                <!-- 
                     <a style="margin-left: 15px;" href="<?= site_url($module['route'] . '/attachment'); ?>" onClick="return popup(this, 'attachment')" class="btn btn-primary ink-reaction">
                         Attachment
                     </a> -->

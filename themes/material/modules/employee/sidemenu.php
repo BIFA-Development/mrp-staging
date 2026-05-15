@@ -26,6 +26,10 @@
                             <a href="<?= site_url($module['route'].'/benefit/'.$entity['employee_id']); ?>">
                                 <i class="md md-info-outline"></i> Employee's Benefit </a>
                         </li>
+                        <li class="<?=($page['menu']=='leave')? 'active':'';?>">
+                            <a href="<?= site_url($module['route'].'/leave/'.$entity['employee_id']); ?>">
+                                <i class="md md-info-outline"></i> Employee's Leave </a>
+                        </li>
                     </ul>
                 </div>
             </div>            

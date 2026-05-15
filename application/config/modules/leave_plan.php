@@ -1,0 +1,24 @@
+<?php defined('BASEPATH') or exit('No direct script access allowed');
+
+$config['module']['leave_plan']['visible']         = true;
+$config['module']['leave_plan']['main_warehouse']   = FALSE;
+$config['module']['leave_plan']['parent']      = 'leave';
+$config['module']['leave_plan']['label']       = 'Leave Plan';
+$config['module']['leave_plan']['name']        = 'Leave Plan';
+$config['module']['leave_plan']['route']       = 'leave_plan';
+$config['module']['leave_plan']['view']        = config_item('module_path') .'leave_plan/';
+$config['module']['leave_plan']['language']    = 'item_group_lang';
+$config['module']['leave_plan']['helper']      = 'leave_plan_helper';
+$config['module']['leave_plan']['table']       = 'tb_leave_plan';
+$config['module']['leave_plan']['model']       = 'Leave_Plan_Model';
+$config['module']['leave_plan']['permission']  = array(
+    'index'   => 'ADMIN DEPARTMENT,ADMIN JKT,ADMIN LUAR JKT,REIMBURSEMENT,PIC STAFF JKT,SUPERVISOR,PROCUREMENT,PROCUREMENT MANAGER,PIC STAFF,ADMIN,SUPER ADMIN,HR MANAGER,HEAD OF SCHOOL,FINANCE MANAGER,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'index_approval'   => 'SUPER ADMIN,HR MANAGER,HEAD OF SCHOOL,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'create'  => 'ADMIN DEPARTMENT,ADMIN JKT,ADMIN LUAR JKT,REIMBURSEMENT,PIC STAFF JKT,HR MANAGER,HR STAFF,SUPERVISOR,PROCUREMENT,PROCUREMENT MANAGER,PIC STAFF,ADMIN,SUPER ADMIN,HEAD OF SCHOOL,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'import'  => 'ADMIN,SUPER ADMIN,VP FINANCE',
+    'print'   => 'ADMIN DEPARTMENT,ADMIN JKT,ADMIN LUAR JKT,REIMBURSEMENT,PIC STAFF JKT,SUPERVISOR,PROCUREMENT,PROCUREMENT MANAGER,PIC STAFF,ADMIN,SUPER ADMIN,FINANCE MANAGER,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'info'    => 'ADMIN DEPARTMENT,ADMIN JKT,ADMIN LUAR JKT,REIMBURSEMENT,PIC STAFF JKT,SUPERVISOR,PROCUREMENT,PROCUREMENT MANAGER,PIC STAFF,ADMIN,SUPER ADMIN,HR MANAGER,HEAD OF SCHOOL,FINANCE MANAGER,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'save'    => 'ADMIN DEPARTMENT,ADMIN JKT,ADMIN LUAR JKT,REIMBURSEMENT,PIC STAFF JKT,HR MANAGER,HR STAFF,SUPERVISOR,PROCUREMENT,PROCUREMENT MANAGER,PIC STAFF,ADMIN,SUPER ADMIN,HEAD OF SCHOOL,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'delete'  => 'PROCUREMENT,PROCUREMENT MANAGER,ADMIN,SUPER ADMIN,HEAD OF SCHOOL,VP FINANCE,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+    'approval'  => 'PROCUREMENT,PROCUREMENT MANAGER,SUPER ADMIN,HR MANAGER,FINANCE MANAGER,CHIEF OF FINANCE,CHIEF OPERATION OFFICER',
+);

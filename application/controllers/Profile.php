@@ -125,6 +125,12 @@ class Profile extends MY_Controller
         echo json_encode($return);
     }
 
+    public function get_index_leave_data(){
+        $entities = $this->model->getAllDataLeave();
+
+        echo json_encode($entities);
+    }
+
     public function edit($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
@@ -709,6 +715,118 @@ class Profile extends MY_Controller
         }
     }
 
+    public function plan($employee_id){
+        $this->authorized($this->module, 'index');
+        $entity = $this->model->findOneBy(array('employee_id' => $employee_id));
+
+        $dataLeave = $this->model->getAllDataLeave($entity['employee_number']);
+        $dataLeaveRequest = $this->model->getAllDataLeaveRequest($entity['employee_number']);
+
+        $this->data['page']['content']          = $this->module['view'] .'/create';
+        $this->data['page']['offcanvas']        = $this->module['view'] .'/create_offcanvas_add_item';
+        $this->data['entity']                   = $entity;
+        $this->data['leave_plan']               = $dataLeave;
+        $this->data['leave_request']            = $dataLeaveRequest;
+        $this->data['page']['title']            = $entity['name'].' '.$entity['employee_number'];
+        $this->data['page']['menu']             = 'plan';
+        $this->render_view($this->module['view'] .'/plan');
+    }
+
+    public function leave($employee_id){
+        $this->authorized($this->module, 'index');
+        
+        $entity = $this->model->findOneBy(array('employee_id' => $employee_id));
+        if(isEmployeeContractActiveExist($entity['employee_number'])){
+            $kontrak_active = $this->model->findContractActive($entity['employee_number']);
+            $periodeContractActive = print_date($kontrak_active['start_date'],'d M Y').' s/d '.print_date($kontrak_active['end_date'],'d M Y');
+        }else{
+            $this->session->set_flashdata('alert', array(
+                'type' => 'danger',
+                'info' => "Please add Contract For ".$entity['name']
+            ));
+            $periodeContractActive = '-';
+            $kontrak_active = array();
+        }
+
+        $dataAnnual = getAnnualLeaveEmployee($entity['employee_number'], 1);
+        $sabbaticalLeave = checkSabbaticalLeaveEligibility($entity['employee_number']);
+        $religiosLeave = checkReligiousLeaveEligibility($entity['employee_number']);
+
+        
+
+        $this->data['page']['content']          = $this->module['view'] .'/create';
+        $this->data['page']['offcanvas']        = $this->module['view'] .'/create_offcanvas_add_item';
+        $this->data['entity']                   = $entity;
+        $this->data['annual_leave']             = $dataAnnual;
+        $this->data['sabbatical_leave']         = $sabbaticalLeave;
+        $this->data['religious_leave']          = $religiosLeave;
+        $this->data['kontrak_active']           = $kontrak_active;
+        $this->data['periodeContractActive']    = $periodeContractActive;
+        $this->data['page']['title']            = $entity['name'].' '.$entity['employee_number'];
+        $this->data['page']['menu']             = 'leave';
+        $this->data['grid']['column']           = $this->model->getSelectedColumnsForBenefit();
+        $this->data['grid']['data_source']      = site_url($this->module['route'] .'/index_data_source_leave?employee_number='. $entity['employee_number']);
+        $this->data['grid']['fixed_columns']    = 2;
+        $this->data['grid']['summary_columns']  = NULL;
+        $this->data['grid']['order_columns']    = array (
+          0 => array (0 => 1, 1 => 'asc'),
+          1 => array (0 => 2, 1 => 'asc'),
+          2 => array (0 => 3, 1 => 'asc'),
+          3 => array (0 => 4, 1 => 'asc')
+        );
+
+        $this->render_view($this->module['view'] .'/leave');
+    }
+
+    
+    public function index_data_source_leave()
+    {
+        if ($this->input->is_ajax_request() === FALSE)
+            redirect($this->modules['secure']['route'] .'/denied');
+
+        if (is_granted($this->module, 'index') === FALSE){
+            $return['type'] = 'danger';
+            $return['info'] = "You don't have permission to access this page!";
+        } else {
+            if (isset($_GET['employee_number']) && $_GET['employee_number'] !== NULL){
+                $employee_number = $_GET['employee_number'];
+            } else {
+                $employee_number = NULL;
+            }
+
+            $entities = $this->model->getIndexForBenefit($employee_number);
+
+            $data = array();
+            $no   = $_POST['start'];
+
+            foreach ($entities as $row){
+                $no++;
+                $col = array();
+                $col[] = print_number($no);
+                $col[] = print_string($row['employee_benefit']);
+                $col[] = print_date($row['start_date']).' s/d '.print_date($row['end_date']);
+                $col[] = print_number($row['amount_plafond']);
+                $col[] = print_number($row['used_amount_plafond']);
+                $col[] = print_number($row['left_amount_plafond']);
+                $col['DT_RowId'] = 'row_'. $row['id'];
+                $col['DT_RowData']['pkey']  = $row['id'];
+
+                $data[] = $col;
+            }
+
+            $return = array(
+                "draw"            => $_POST['draw'],
+                "recordsTotal"    => $this->model->countIndexForBenefit($employee_number),
+                "recordsFiltered" => $this->model->countIndexFilteredForBenefit($employee_number),
+                "data"            => $data,
+            );
+        }
+
+        echo json_encode($return);
+    }
+
+
+
     //employee benefit
 
     public function benefit($employee_id)
@@ -749,6 +867,8 @@ class Profile extends MY_Controller
 
         $this->render_view($this->module['view'] .'/benefit');
     }
+
+    
 
     public function index_data_source_benefit()
     {

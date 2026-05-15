@@ -692,7 +692,7 @@ class Reimbursement extends MY_Controller
         // Pastikan tidak ada revisi duplikat
         $new_document_number = $document_number . '-R' . $revisi;
 
-        if (isset($_SESSION['receipt']) === FALSE){
+        if (isset($_SESSION['receipt']) !== FALSE){
             $cost_center = findCostCenter($entity['annual_cost_center_id']);
             $type_benefit = getBenefitById($entity['id_benefit']);
             $cost_center_code = $cost_center['cost_center_code'];
