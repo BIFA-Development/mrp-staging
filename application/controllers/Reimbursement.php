@@ -997,57 +997,46 @@ class Reimbursement extends MY_Controller
 
 
 
-    public function multi_approve()
-    {
-        $document_id = $this->input->post('document_id');
-        $document_id = str_replace("|", "", $document_id);
-        $document_id = substr($document_id, 0, -1);
-        $document_id = explode(",", $document_id);
+ public function multi_approve()
+{
+    $document_id = $this->input->post('document_id');
+    $document_id = str_replace("|", "", $document_id);
+    $document_id = substr($document_id, 0, -1);
+    $document_id = explode(",", $document_id);
 
-        $str_notes = $this->input->post('notes');
-        $notes = str_replace("|", "", $str_notes);
-        $notes = substr($notes, 0, -3);
-        $notes = explode("##,", $notes);
+    $str_notes = $this->input->post('notes');
+    $notes = str_replace("|", "", $str_notes);
+    $notes = substr($notes, 0, -3);
+    $notes = explode("##,", $notes);
 
-        $total = 0;
-        $success = 0;
-        $failed = sizeof($document_id);
-        $x = 0;
+    // Cukup panggil fungsi approve satu kali. 
+    // Di dalam model->approve() sudah otomatis memanggil create_expense_auto() 
+    // untuk dokumen yang statusnya final (HOS/VP/CFO/COO).
+    $save_approval = $this->model->approve($document_id, $notes);
 
+    if ($save_approval['status']) {
+        $info_message = "Data has been updated!";
         
-
-        $save_approval = $this->model->approve($document_id, $notes);
-        if ($save_approval['status']) {
-                if(!empty($save_approval['approved_ids'])){
-                    foreach ($save_approval['approved_ids'] as $id) {
-                        $this->model->create_expense_auto($id);
-                    }
-                    $this->session->set_flashdata('alert', array(
-                        'type' => 'success',
-                        'info' => $save_approval['success'] . " expense has been create!"
-                    ));
-                } else {
-                    $this->session->set_flashdata('alert', array(
-                        'type' => 'success',
-                        // 'info' => $save_approval['success'] . " data has been update!"
-                        'info' => "Data has been update!"
-
-                    ));
-                }
-        }else{
-            $this->session->set_flashdata('alert', array(
-                'type' => 'danger',
-                'info' => "There are " . $save_approval['failed'] . " rejected"
-            ));
+        // Opsional: Jika ada dokumen yang sampai tahap final, beri info spesifik
+        if(!empty($save_approval['approved_ids'])){
+            $info_message = count($save_approval['approved_ids']) . " Expense Request(s) telah otomatis dibuat.";
         }
-        
-        if ($save_approval['status']) {
-            $result['status'] = 'success';
-        } else {
-            $result['status'] = 'failed';
-        }
-        echo json_encode($result);
+
+        $this->session->set_flashdata('alert', array(
+            'type' => 'success',
+            'info' => $info_message
+        ));
+        $result['status'] = 'success';
+    } else {
+        $this->session->set_flashdata('alert', array(
+            'type' => 'danger',
+            'info' => "Proses gagal atau terdapat data yang ditolak."
+        ));
+        $result['status'] = 'failed';
     }
+    
+    echo json_encode($result);
+}
 
     public function multi_reject()
     {
