@@ -1408,6 +1408,15 @@ class Reimbursement_Model extends MY_Model
 
     public function approve($document_id, $approval_notes)
     {
+        // 1. CEK KEAMANAN: Jangan proses jika PR Number sudah ada
+        $this->db->select('pr_number');
+        $this->db->where('id', $id);
+        $check = $this->db->get('tb_reimbursements')->row();
+
+        if ($check && !empty($check->pr_number)) {
+            return ['status' => TRUE, 'pr_number' => $check->pr_number];
+        }
+        
         $this->db->trans_begin();
 
         $total = 0;
