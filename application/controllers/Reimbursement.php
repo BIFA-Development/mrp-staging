@@ -1001,30 +1001,33 @@ class Reimbursement extends MY_Controller
  */
 public function cleanup_tool()
 {
-    $this->authorized($this->module, 'index'); // Pastikan user punya hak akses
-    $this->data['module'] = $this->module;
+    $this->authorized($this->module, 'index');
+    
+    // Scan data duplikat secara otomatis
+    $this->data['duplicates'] = $this->model->get_duplicate_list();
+    $this->data['module']     = $this->module;
+    $this->data['page_title'] = "Auto Cleanup Double Expenses";
+
     $this->render_view($this->module['view'] . '/v_cleanup_budget');
 }
 
-public function process_cleanup()
+public function fix_all_duplicates()
 {
-    $reimbursement_id = $this->input->post('reimb_id');
-
-    if (!empty($reimbursement_id)) {
-        $result = $this->model->fix_expense_double_entry($reimbursement_id);
-        
-        // Menggunakan format alert sesuai helper Material Theme Anda
-        $this->session->set_flashdata('alert', array(
-            'type' => 'info',
-            'info' => $result
-        ));
-    } else {
-        $this->session->set_flashdata('alert', array(
-            'type' => 'danger',
-            'info' => 'ID Reimbursement tidak boleh kosong!'
-        ));
+    $this->authorized($this->module, 'approval');
+    $duplicates = $this->model->get_duplicate_list();
+    
+    $success = 0;
+    foreach ($duplicates as $row) {
+        $ref = json_decode($row['reference_document'], true);
+        if ($this->model->fix_expense_double_entry($ref[1])) {
+            $success++;
+        }
     }
 
+    $this->session->set_flashdata('alert', [
+        'type' => 'success',
+        'info' => "Berhasil memperbaiki $success dokumen. Saldo budget telah dikembalikan."
+    ]);
     redirect($this->module['route'] . '/cleanup_tool');
 }
 

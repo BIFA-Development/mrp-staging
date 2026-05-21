@@ -1942,16 +1942,13 @@ class Reimbursement_Model extends MY_Model
         return TRUE;
     }
 
-    /**
- * Fungsi untuk mengembalikan budget yang terpotong akibat double entry
- * @param int $reimbursement_id ID dari tb_reimbursements
+/**
+ * Mencari daftar Reimbursement yang double di Expense Request
  */
-// Fungsi untuk mencari data yang double di Expense Request
-public function get_duplicate_expenses()
+public function get_duplicate_list()
 {
-    // Query untuk mencari reference_document yang muncul lebih dari 1 kali
-    // Format JSON di DB: ["RF", "ID", "DOC_NUM", "URL"]
-    $sql = "SELECT reference_document, COUNT(*) as jumlah 
+    // Cari reference_document (JSON) yang muncul lebih dari 1 kali
+    $sql = "SELECT reference_document, COUNT(*) as total_row
             FROM tb_expense_purchase_requisitions 
             WHERE reference_document LIKE '[\"RF\"%'
             GROUP BY reference_document 
@@ -1959,26 +1956,85 @@ public function get_duplicate_expenses()
             
     $duplicates = $this->connection->query($sql)->result_array();
     
-    $data = [];
+    $final_list = [];
     foreach ($duplicates as $row) {
-        // Decode JSON untuk ambil ID Reimbursement (indeks ke-1)
-        $ref = json_decode($row['reference_document']);
-        $reimb_id = $ref[1];
-        
-        // Ambil info dari database utama untuk ditampilkan di tabel scanning
+        $ref_json = json_decode($row['reference_document'], true);
+        $reimb_id = $ref_json[1];
+
+        // Ambil data detail untuk ditampilkan di View
+        $this->db->select('id, document_number, person_name, total');
         $this->db->where('id', $reimb_id);
         $reimb = $this->db->get('tb_reimbursements')->row_array();
-        
+
         if ($reimb) {
-            $data[] = [
-                'reimb_id' => $reimb_id,
-                'doc_number' => $reimb['document_number'],
-                'person_name' => $reimb['person_name'],
-                'total_amount' => $reimb['total'],
-                'found_count' => $row['jumlah']
-            ];
+            $final_list[] = array_merge($reimb, [
+                'duplicate_count' => $row['total_row'],
+                'raw_reference'   => $row['reference_document']
+            ]);
         }
     }
-    return $data;
+    return $final_list;
+}
+
+/**
+ * Logika Reversal & Cleanup untuk satu ID
+ */
+public function fix_expense_double_entry($reimbursement_id)
+{
+    $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
+    $results = $this->connection->get('tb_expense_purchase_requisitions')->result();
+
+    if (count($results) > 1) {
+        $this->connection->trans_begin();
+        $this->db->trans_begin();
+
+        // Loop mulai dari index 1 (Data index 0 DISISAKAN)
+        for ($i = 1; $i < count($results); $i++) {
+            $duplicate_er = $results[$i];
+            $er_id = $duplicate_er->id;
+
+            // KEMBALIKAN BUDGET (MTD & YTD)
+            $used_budgets = $this->connection->get_where('tb_expense_used_budgets', [
+                'expense_purchase_requisition_id' => $er_id
+            ])->result();
+
+            foreach ($used_budgets as $ub) {
+                // Balikkan MTD
+                $this->connection->set('mtd_used_budget', 'mtd_used_budget - ' . $ub->used_budget, FALSE);
+                $this->connection->where('id', $ub->expense_monthly_budget_id);
+                $this->connection->update('tb_expense_monthly_budgets');
+
+                // Balikkan YTD sampai bulan 12
+                for ($m = $ub->month_number; $m <= 12; $m++) {
+                    $this->connection->set('ytd_used_budget', 'ytd_used_budget - ' . $ub->used_budget, FALSE);
+                    $this->connection->where('annual_cost_center_id', $duplicate_er->annual_cost_center_id);
+                    $this->connection->where('account_id', $ub->account_id);
+                    $this->connection->where('month_number', $m);
+                    $this->connection->update('tb_expense_monthly_budgets');
+                }
+            }
+
+            // Hapus data duplikat di budgetcontrol
+            $this->connection->delete('tb_expense_used_budgets', ['expense_purchase_requisition_id' => $er_id]);
+            $this->connection->delete('tb_expense_purchase_requisition_details', ['expense_purchase_requisition_id' => $er_id]);
+            $this->connection->delete('tb_expense_purchase_requisitions', ['id' => $er_id]);
+        }
+
+        // Update pr_number di Reimbursement utama ke ER yang disisakan
+        $this->db->set('pr_number', $results[0]->pr_number);
+        $this->db->where('id', $reimbursement_id);
+        $this->db->update('tb_reimbursements');
+
+        if ($this->connection->trans_status() === FALSE || $this->db->trans_status() === FALSE) {
+            $this->connection->trans_rollback();
+            $this->db->trans_rollback();
+            return false;
+        } else {
+            $this->connection->trans_commit();
+            $this->db->trans_commit();
+            return true;
+        }
+    }
+    return false;
 }
 }
