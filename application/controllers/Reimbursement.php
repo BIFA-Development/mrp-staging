@@ -3,7 +3,7 @@
 class Reimbursement extends MY_Controller
 {
     protected $module;
-    protected $id_item=0;
+    protected $id_item = 0;
 
     public function __construct()
     {
@@ -13,7 +13,7 @@ class Reimbursement extends MY_Controller
         $this->module_approval = $this->modules['reimbursement_approval'];
         $this->load->model($this->module['model'], 'model');
         $this->load->helper($this->module['helper']);
-        $this->load->library('upload');        
+        $this->load->library('upload');
         $this->load->library('email');
         $this->data['module'] = $this->module;
     }
@@ -21,27 +21,27 @@ class Reimbursement extends MY_Controller
     public function index_data_source()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
-        if (is_granted($this->module, 'index') === FALSE){
+        if (is_granted($this->module, 'index') === FALSE) {
             $return['type'] = 'danger';
             $return['info'] = "You don't have permission to access this page!";
         } else {
 
 
             $entities = $this->model->getIndex();
-            $data     = array();
-            $no       = $_POST['start'];
-            $total_value  = array();
+            $data = array();
+            $no = $_POST['start'];
+            $total_value = array();
 
-            foreach ($entities as $row){
+            foreach ($entities as $row) {
                 $cost_center = findCostCenter($row['annual_cost_center_id']);
                 $cost_center_code = $cost_center['cost_center_code'];
                 $cost_center_name = $cost_center['cost_center_name'];
-                $department_name = $cost_center['department_name'];         
+                $department_name = $cost_center['department_name'];
                 $no++;
                 $col = array();
-                if (is_granted($this->module, 'approval')){
+                if (is_granted($this->module, 'approval')) {
                     // if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && in_array($department_name,config_item('head_department')) && $row['head_dept']==config_item('auth_username') ){
                     // if(($row['status']=='WAITING APPROVAL BY HOS' || $row['status']=='WAITING APPROVAL BY VP') && (config_item('auth_role') == 'VP FINANCE' || config_item('auth_role') == 'HEAD OF SCHOOL')){
                     //     $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
@@ -54,26 +54,26 @@ class Reimbursement extends MY_Controller
                     // } else if($row['status']=='REVISED'){
                     //     $col[] = print_number($no);
                     // } else {
-                        $col[] = print_number($no);
+                    $col[] = print_number($no);
                     // }
-                    
+
                     // if($row['status']=='REVISED'){
                     //     $col[] = print_number($no);
                     // } else {
                     //     $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     // }
-                }else{
+                } else {
                     $col[] = print_number($no);
-                }            
-                $col[] = print_date($row['date'], 'd F Y');    
+                }
+                $col[] = print_date($row['date'], 'd F Y');
                 $col[] = print_string($row['document_number']);
                 $col[] = print_string($row['pr_number']);
                 $col[] = print_string($row['type']);
                 $col[] = print_string($row['status']);
-                if($row['status']=='approved' || $row['status']=='closed'){
+                if ($row['status'] == 'approved' || $row['status'] == 'closed') {
                     $col[] = print_string($row['notes_approval']);
-                }else{
-                    if($row['notes_approval'] != ''){
+                } else {
+                    if ($row['notes_approval'] != '') {
                         if (is_granted($this->module, 'approval') === TRUE) {
                             $col[] = '<input type="text" id="note_' . $row['id'] . '" value="' . $row['notes_approval'] . '" autocomplete="off"/>';
                         } else {
@@ -86,44 +86,44 @@ class Reimbursement extends MY_Controller
                             $col[] = print_string($row['notes_approval']);
                         }
                     }
-                    
+
                 }
                 $col[] = print_string($cost_center['cost_center_name']);
                 $col[] = print_string($row['person_name']);
-                $col[] = print_number($row['total'],2);
+                $col[] = print_number($row['total'], 2);
                 $col[] = print_string($row['notes']);
-                if($row['status']=='approved' || $row['status']=='closed'){
+                if ($row['status'] == 'approved' || $row['status'] == 'closed') {
                     $col[] = '';
-                }else{
-                    if (is_granted($this->module, 'approval') === TRUE && in_array($row['status'],['WAITING APPROVAL BY HOS','WAITING APPROVAL BY VP','WAITING APPROVAL BY HR MANAGER','WAITING APPROVAL BY COO','WAITING APPROVAL BY CFO'])) {
+                } else {
+                    if (is_granted($this->module, 'approval') === TRUE && in_array($row['status'], ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY VP', 'WAITING APPROVAL BY HR MANAGER', 'WAITING APPROVAL BY COO', 'WAITING APPROVAL BY CFO'])) {
                         $col[] = '<input type="text" id="note_' . $row['id'] . '" autocomplete="off"/>';
-                    }else{
+                    } else {
                         $col[] = '';
                     }
                 }
-               
+
 
                 $total_value[] = $row['total'];
-                
-                $col['DT_RowId'] = 'row_'. $row['id'];
-                $col['DT_RowData']['pkey']  = $row['id'];
-                
-                if ($this->has_role($this->module, 'info')){
-                    $col['DT_RowAttr']['onClick']     = '';
-                    $col['DT_RowAttr']['data-id']     = $row['id'];
+
+                $col['DT_RowId'] = 'row_' . $row['id'];
+                $col['DT_RowData']['pkey'] = $row['id'];
+
+                if ($this->has_role($this->module, 'info')) {
+                    $col['DT_RowAttr']['onClick'] = '';
+                    $col['DT_RowAttr']['data-id'] = $row['id'];
                     $col['DT_RowAttr']['data-target'] = '#data-modal';
-                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info/'. $row['id']);
+                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] . '/info/' . $row['id']);
                 }
 
                 $data[] = $col;
             }
 
             $result = array(
-                "draw"            => $_POST['draw'],
-                "recordsTotal"    => $this->model->countIndex(),
+                "draw" => $_POST['draw'],
+                "recordsTotal" => $this->model->countIndex(),
                 "recordsFiltered" => $this->model->countIndexFiltered(),
-                "data"            => $data,
-                "total"           => array(
+                "data" => $data,
+                "total" => array(
                     7 => print_number(array_sum($total_value), 2),
                 )
             );
@@ -135,61 +135,61 @@ class Reimbursement extends MY_Controller
     public function index_data_source_approval()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
-        if (is_granted($this->module, 'index') === FALSE){
+        if (is_granted($this->module, 'index') === FALSE) {
             $return['type'] = 'danger';
             $return['info'] = "You don't have permission to access this page!";
         } else {
 
 
             $entities = $this->model->getIndexApproval();
-            $data     = array();
-            $no       = $_POST['start'];
-            $total_value  = array();
+            $data = array();
+            $no = $_POST['start'];
+            $total_value = array();
 
-            foreach ($entities as $row){
+            foreach ($entities as $row) {
                 $cost_center = findCostCenter($row['annual_cost_center_id']);
                 $cost_center_code = $cost_center['cost_center_code'];
                 $cost_center_name = $cost_center['cost_center_name'];
-                $department_name = $cost_center['department_name'];         
+                $department_name = $cost_center['department_name'];
                 $no++;
                 $col = array();
-                if (is_granted($this->module, 'approval')){
+                if (is_granted($this->module, 'approval')) {
                     // if($row['status']=='WAITING APPROVAL BY HEAD DEPT' && in_array($department_name,config_item('head_department')) && $row['head_dept']==config_item('auth_username') ){
-                    if($row['status']=='WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL'){
+                    if ($row['status'] == 'WAITING APPROVAL BY HOS' && config_item('auth_role') == 'HEAD OF SCHOOL') {
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE'){
+                    } else if ($row['status'] == 'WAITING APPROVAL BY VP' && config_item('auth_role') == 'VP FINANCE') {
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'),list_username_in_head_department(11))){
+                    } else if ($row['status'] == 'WAITING APPROVAL BY HR MANAGER' && in_array(config_item('auth_username'), list_username_in_head_department(11))) {
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE'){
+                    } else if ($row['status'] == 'WAITING APPROVAL BY CFO' && config_item('auth_role') == 'CHIEF OF FINANCE') {
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER'){
+                    } else if ($row['status'] == 'WAITING APPROVAL BY COO' && config_item('auth_role') == 'CHIEF OPERATION OFFICER') {
                         $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
-                    } else if($row['status']=='REVISED'){
+                    } else if ($row['status'] == 'REVISED') {
                         $col[] = print_number($no);
                     } else {
                         $col[] = print_number($no);
                     }
-                    
+
                     // if($row['status']=='REVISED'){
                     //     $col[] = print_number($no);
                     // } else {
                     //     $col[] = '<input type="checkbox" id="cb_' . $row['id'] . '"  data-id="' . $row['id'] . '" name="" style="display: inline;">';
                     // }
-                }else{
+                } else {
                     $col[] = print_number($no);
-                }            
-                $col[] = print_date($row['date'], 'd F Y');    
+                }
+                $col[] = print_date($row['date'], 'd F Y');
                 $col[] = print_string($row['document_number']);
                 $col[] = print_string($row['pr_number']);
                 $col[] = print_string($row['type']);
                 $col[] = print_string($row['status']);
-                if($row['status']=='approved' || $row['status']=='closed'){
+                if ($row['status'] == 'approved' || $row['status'] == 'closed') {
                     $col[] = print_string($row['notes_approval']);
-                }else{
-                    if($row['notes_approval'] != ''){
+                } else {
+                    if ($row['notes_approval'] != '') {
                         if (is_granted($this->module, 'approval') === TRUE) {
                             $col[] = '<input type="text" id="note_' . $row['id'] . '" value="' . $row['notes_approval'] . '" autocomplete="off"/>';
                         } else {
@@ -202,44 +202,44 @@ class Reimbursement extends MY_Controller
                             $col[] = print_string($row['notes_approval']);
                         }
                     }
-                    
+
                 }
                 $col[] = print_string($cost_center['cost_center_name']);
                 $col[] = print_string($row['person_name']);
-                $col[] = print_number($row['total'],2);
+                $col[] = print_number($row['total'], 2);
                 $col[] = print_string($row['notes']);
-                if($row['status']=='approved' || $row['status']=='closed'){
+                if ($row['status'] == 'approved' || $row['status'] == 'closed') {
                     $col[] = '';
-                }else{
-                    if (is_granted($this->module, 'approval') === TRUE && in_array($row['status'],['WAITING APPROVAL BY HOS','WAITING APPROVAL BY VP','WAITING APPROVAL BY HR MANAGER','WAITING APPROVAL BY COO','WAITING APPROVAL BY CFO'])) {
+                } else {
+                    if (is_granted($this->module, 'approval') === TRUE && in_array($row['status'], ['WAITING APPROVAL BY HOS', 'WAITING APPROVAL BY VP', 'WAITING APPROVAL BY HR MANAGER', 'WAITING APPROVAL BY COO', 'WAITING APPROVAL BY CFO'])) {
                         $col[] = '<input type="text" id="note_' . $row['id'] . '" autocomplete="off"/>';
-                    }else{
+                    } else {
                         $col[] = '';
                     }
                 }
-               
+
 
                 $total_value[] = $row['total'];
-                
-                $col['DT_RowId'] = 'row_'. $row['id'];
-                $col['DT_RowData']['pkey']  = $row['id'];
-                
-                if ($this->has_role($this->module, 'info')){
-                    $col['DT_RowAttr']['onClick']     = '';
-                    $col['DT_RowAttr']['data-id']     = $row['id'];
+
+                $col['DT_RowId'] = 'row_' . $row['id'];
+                $col['DT_RowData']['pkey'] = $row['id'];
+
+                if ($this->has_role($this->module, 'info')) {
+                    $col['DT_RowAttr']['onClick'] = '';
+                    $col['DT_RowAttr']['data-id'] = $row['id'];
                     $col['DT_RowAttr']['data-target'] = '#data-modal';
-                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] .'/info/'. $row['id']);
+                    $col['DT_RowAttr']['data-source'] = site_url($this->module['route'] . '/info/' . $row['id']);
                 }
 
                 $data[] = $col;
             }
 
             $result = array(
-                "draw"            => $_POST['draw'],
-                "recordsTotal"    => $this->model->countIndex(),
+                "draw" => $_POST['draw'],
+                "recordsTotal" => $this->model->countIndex(),
                 "recordsFiltered" => $this->model->countIndexFiltered(),
-                "data"            => $data,
-                "total"           => array(
+                "data" => $data,
+                "total" => array(
                     7 => print_number(array_sum($total_value), 2),
                 )
             );
@@ -252,12 +252,12 @@ class Reimbursement extends MY_Controller
     {
         $this->authorized($this->module, 'index');
 
-        $this->data['page']['title']            = $this->module['label'];
-        $this->data['grid']['column']           = $this->model->getSelectedColumns();
-        $this->data['grid']['data_source']      = site_url($this->module['route'] .'/index_data_source');
-        $this->data['grid']['fixed_columns']    = 1;
-        $this->data['grid']['summary_columns']  = array(7);
-        $this->data['grid']['order_columns']    = array();
+        $this->data['page']['title'] = $this->module['label'];
+        $this->data['grid']['column'] = $this->model->getSelectedColumns();
+        $this->data['grid']['data_source'] = site_url($this->module['route'] . '/index_data_source');
+        $this->data['grid']['fixed_columns'] = 1;
+        $this->data['grid']['summary_columns'] = array(7);
+        $this->data['grid']['order_columns'] = array();
 
         // $this->data['grid']['order_columns']    = array(
 
@@ -270,58 +270,58 @@ class Reimbursement extends MY_Controller
         //     6   => array( 0 => 6,  1 => 'desc' ),
         // );
 
-        $this->render_view($this->module['view'] .'/index');
+        $this->render_view($this->module['view'] . '/index');
     }
 
     public function approval()
     {
         $this->authorized($this->module, 'index_approval');
 
-        $this->data['page']['title']            = $this->module['label'];
-        $this->data['grid']['column']           = $this->model->getSelectedColumns();
-        $this->data['grid']['data_source']      = site_url($this->module['route'] .'/index_data_source_approval');
-        $this->data['grid']['fixed_columns']    = 1;
-        $this->data['grid']['summary_columns']  = array(7);
+        $this->data['page']['title'] = $this->module['label'];
+        $this->data['grid']['column'] = $this->model->getSelectedColumns();
+        $this->data['grid']['data_source'] = site_url($this->module['route'] . '/index_data_source_approval');
+        $this->data['grid']['fixed_columns'] = 1;
+        $this->data['grid']['summary_columns'] = array(7);
 
-        $this->data['grid']['order_columns']    = array(
+        $this->data['grid']['order_columns'] = array(
 
-            0   => array( 0 => 0,  1 => '' ),
-            1   => array( 0 => 1,  1 => '' ),
-            2   => array( 0 => 2,  1 => '' ),
-            3   => array( 0 => 3,  1 => '' ),
-            4   => array( 0 => 4,  1 => '' ),
-            5   => array( 0 => 5,  1 => '' ),
-            6   => array( 0 => 6,  1 => 'desc' ),
+            0 => array(0 => 0, 1 => ''),
+            1 => array(0 => 1, 1 => ''),
+            2 => array(0 => 2, 1 => ''),
+            3 => array(0 => 3, 1 => ''),
+            4 => array(0 => 4, 1 => ''),
+            5 => array(0 => 5, 1 => ''),
+            6 => array(0 => 6, 1 => 'desc'),
         );
 
-        $this->render_view($this->module['view'] .'/approval/index');
+        $this->render_view($this->module['view'] . '/approval/index');
     }
 
     public function get_employee_saldo()
     {
         // if ($this->input->is_ajax_request() === FALSE)
         //     redirect($this->modules['secure']['route'] .'/denied');
-        
+
 
         $employee_number = $_GET['employee_number'];
         $benefit_id = $_GET['type'];
         $position = $_GET['position'];
 
-        $employee_has_benefit = $this->model->getEmployeeHasBenefit($employee_number,$benefit_id,$position);
-        
+        $employee_has_benefit = $this->model->getEmployeeHasBenefit($employee_number, $benefit_id, $position);
+
         echo json_encode($employee_has_benefit);
     }
 
     public function get_expense_reimbursement()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
-        
+            redirect($this->modules['secure']['route'] . '/denied');
+
 
         $id_expense = $_GET['id_expense_reimbursement'];
 
         $employee_has_benefit = $this->model->getExpenseReimbursement($id_expense);
-        
+
         echo json_encode($employee_has_benefit);
     }
 
@@ -329,15 +329,15 @@ class Reimbursement extends MY_Controller
     public function get_expense_name()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
-        
+            redirect($this->modules['secure']['route'] . '/denied');
+
 
         $id_expense = $_GET['id_type'];
         $id_annual_cost = $_GET['cost_center_group_id'];
 
 
-        $expense = $this->model->getExpenseName($id_expense,$id_annual_cost);
-        
+        $expense = $this->model->getExpenseName($id_expense, $id_annual_cost);
+
         echo json_encode($expense);
     }
 
@@ -345,22 +345,22 @@ class Reimbursement extends MY_Controller
     public function get_employee_benefits_list()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
-        
+            redirect($this->modules['secure']['route'] . '/denied');
+
 
         $employee = $_GET['employee_number'];
         $gender = $_GET['gender'];
 
 
-        $list = getBenefits($employee,$gender);
-        
+        $list = getBenefits($employee, $gender);
+
         echo json_encode($list);
     }
 
     public function set_doc_number()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         if (empty($_GET['data']))
             $number = reimbursement_last_number();
@@ -373,7 +373,7 @@ class Reimbursement extends MY_Controller
     public function set_employee_has_benefit_id()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['employee_has_benefit_id'] = $_GET['data'];
@@ -382,7 +382,7 @@ class Reimbursement extends MY_Controller
     public function set_received_date()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['date'] = $_GET['data'];
@@ -392,7 +392,7 @@ class Reimbursement extends MY_Controller
     public function set_saldo_balance()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['saldo_balance'] = $_GET['data'];
@@ -402,7 +402,7 @@ class Reimbursement extends MY_Controller
     public function set_saldo_balance_init()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['saldo_balance_initial'] = $_GET['data'];
@@ -412,7 +412,7 @@ class Reimbursement extends MY_Controller
     public function set_plafond_saldo_balance()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['plafond_balance'] = $_GET['data'];
@@ -421,7 +421,7 @@ class Reimbursement extends MY_Controller
     public function set_description()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['description'] = $number;
     }
@@ -429,7 +429,7 @@ class Reimbursement extends MY_Controller
     public function set_used_saldo_balance()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
 
         $_SESSION['reimbursement']['used_balance'] = $_GET['data'];
@@ -438,7 +438,7 @@ class Reimbursement extends MY_Controller
     public function set_employee_number()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['employee_number'] = $_GET['data'];
         $entityEmployee = $this->model->findEmployeeBy(array('tb_master_employees.employee_number' => $_GET['data']));
@@ -450,7 +450,7 @@ class Reimbursement extends MY_Controller
     public function set_occupation()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['occupation'] = $_GET['data'];
     }
@@ -458,7 +458,7 @@ class Reimbursement extends MY_Controller
     public function set_type_reimbursement()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['type'] = $_GET['data'];
     }
@@ -466,7 +466,7 @@ class Reimbursement extends MY_Controller
     public function set_type_reimbursement_id()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['type_id'] = $_GET['data'];
     }
@@ -474,7 +474,7 @@ class Reimbursement extends MY_Controller
     public function set_account_code()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['account_code'] = $_GET['data'];
     }
@@ -482,7 +482,7 @@ class Reimbursement extends MY_Controller
     public function set_annual_cost_center_id()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['annual_cost_center_id'] = $_GET['data'];
     }
@@ -490,7 +490,7 @@ class Reimbursement extends MY_Controller
     public function set_id_benefit()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['id_benefit'] = $_GET['data'];
     }
@@ -498,7 +498,7 @@ class Reimbursement extends MY_Controller
     public function set_benefitcode()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['benefit_code'] = $_GET['data'];
     }
@@ -514,7 +514,7 @@ class Reimbursement extends MY_Controller
     public function set_head_dept()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['head_dept'] = $_GET['data'];
     }
@@ -522,7 +522,7 @@ class Reimbursement extends MY_Controller
     public function set_from_base()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['from_base'] = $_GET['data'];
     }
@@ -530,7 +530,7 @@ class Reimbursement extends MY_Controller
     public function set_notes()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['notes'] = $_GET['data'];
     }
@@ -538,7 +538,7 @@ class Reimbursement extends MY_Controller
     public function set_warehouse()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
         $_SESSION['reimbursement']['warehouse'] = $_GET['data'];
     }
@@ -547,70 +547,70 @@ class Reimbursement extends MY_Controller
     {
         $this->authorized($this->module, 'create');
 
-        if ($annual_cost_center_id !== NULL){
+        if ($annual_cost_center_id !== NULL) {
             $annual_cost_center_id = urldecode($annual_cost_center_id);
             $cost_center = findCostCenter($annual_cost_center_id);
             $cost_center_code = $cost_center['cost_center_code'];
-            $cost_center_name = $cost_center['cost_center_name'];          
-            $department_id    = $cost_center['department_id'];         
-            $department_name  = $cost_center['department_name'];
-            $cost_center_group_id  = $cost_center['group_id'];
+            $cost_center_name = $cost_center['cost_center_name'];
+            $department_id = $cost_center['department_id'];
+            $department_name = $cost_center['department_name'];
+            $cost_center_group_id = $cost_center['group_id'];
 
-            $employee_id  = config_item('auth_user_id');
+            $employee_id = config_item('auth_user_id');
             $employee_and_user = findEmployeeByUserId($employee_id);
 
 
-            $_SESSION['reimbursement']['items']                     = array();
-            $_SESSION['reimbursement']['annual_cost_center_id']     = $annual_cost_center_id;
+            $_SESSION['reimbursement']['items'] = array();
+            $_SESSION['reimbursement']['annual_cost_center_id'] = $annual_cost_center_id;
             // $_SESSION['reimbursement']['annual_cost_center_id']     = NULL;
             // $_SESSION['reimbursement']['cost_center_id']     = NULL;
             // $_SESSION['reimbursement']['cost_center_name']     = NULL;
             // $_SESSION['reimbursement']['cost_center_code']     = NULL;
-            $_SESSION['reimbursement']['cost_center_id']            = $cost_center_id;
-            $_SESSION['reimbursement']['cost_center_name']          = $cost_center_name;
-            $_SESSION['reimbursement']['cost_center_code']          = $cost_center_code;
-            $_SESSION['reimbursement']['document_number']           = reimbursement_last_number();
-            $_SESSION['reimbursement']['format_number']             = reimbursement_format_number();
-            $_SESSION['reimbursement']['date']                      = date('Y-m-d');
-            $_SESSION['reimbursement']['created_by']                = config_item('auth_person_name');
+            $_SESSION['reimbursement']['cost_center_id'] = $cost_center_id;
+            $_SESSION['reimbursement']['cost_center_name'] = $cost_center_name;
+            $_SESSION['reimbursement']['cost_center_code'] = $cost_center_code;
+            $_SESSION['reimbursement']['document_number'] = reimbursement_last_number();
+            $_SESSION['reimbursement']['format_number'] = reimbursement_format_number();
+            $_SESSION['reimbursement']['date'] = date('Y-m-d');
+            $_SESSION['reimbursement']['created_by'] = config_item('auth_person_name');
             // $_SESSION['reimbursement']['warehouse']                 = NULL;
-            $_SESSION['reimbursement']['warehouse']                 = config_item('auth_warehouse');
+            $_SESSION['reimbursement']['warehouse'] = config_item('auth_warehouse');
 
-            $_SESSION['reimbursement']['notes']                     = NULL;
-            $_SESSION['reimbursement']['employee_number']           = $employee_and_user['employee_number'];
-            $_SESSION['reimbursement']['person_name']               = NULL;
-            $_SESSION['reimbursement']['department_id']             = $department_id;
+            $_SESSION['reimbursement']['notes'] = NULL;
+            $_SESSION['reimbursement']['employee_number'] = $employee_and_user['employee_number'];
+            $_SESSION['reimbursement']['person_name'] = NULL;
+            $_SESSION['reimbursement']['department_id'] = $department_id;
             // $_SESSION['reimbursement']['department_id']             = NULL;
-            $_SESSION['reimbursement']['occupation']                = $employee_and_user['position'];
-            $_SESSION['reimbursement']['department_name']           = $department_name;
+            $_SESSION['reimbursement']['occupation'] = $employee_and_user['position'];
+            $_SESSION['reimbursement']['department_name'] = $department_name;
             // $_SESSION['reimbursement']['department_name']           = NULL;
-            $_SESSION['reimbursement']['head_dept']                 = NULL;
-            $_SESSION['reimbursement']['id']                        = NULL;
-            $_SESSION['reimbursement']['type']                      = 'Reimbursement';
-            $_SESSION['reimbursement']['saldo_balance']             = 0;
-            $_SESSION['reimbursement']['plafond_balance']           = 0;
-            $_SESSION['reimbursement']['used_balance']              = 0;
-            $_SESSION['reimbursement']['saldo_balance_initial']     = 0;
-            $_SESSION['reimbursement']['employee_has_benefit_id']   = NULL;
-            $_SESSION['reimbursement']['account_code']   = NULL;
+            $_SESSION['reimbursement']['head_dept'] = NULL;
+            $_SESSION['reimbursement']['id'] = NULL;
+            $_SESSION['reimbursement']['type'] = 'Reimbursement';
+            $_SESSION['reimbursement']['saldo_balance'] = 0;
+            $_SESSION['reimbursement']['plafond_balance'] = 0;
+            $_SESSION['reimbursement']['used_balance'] = 0;
+            $_SESSION['reimbursement']['saldo_balance_initial'] = 0;
+            $_SESSION['reimbursement']['employee_has_benefit_id'] = NULL;
+            $_SESSION['reimbursement']['account_code'] = NULL;
             // $_SESSION['reimbursement']['cost_center_group_id']   = NULL;
-            $_SESSION['reimbursement']['cost_center_group_id']            = $cost_center_group_id;
-            $_SESSION['reimbursement']['type_benefit']   = NULL;
-            $_SESSION['reimbursement']['last_status']               = NULL;
+            $_SESSION['reimbursement']['cost_center_group_id'] = $cost_center_group_id;
+            $_SESSION['reimbursement']['type_benefit'] = NULL;
+            $_SESSION['reimbursement']['last_status'] = NULL;
 
 
 
 
-            redirect($this->module['route'] .'/create');
+            redirect($this->module['route'] . '/create');
         }
 
         if (!isset($_SESSION['reimbursement']))
-          redirect($this->module['route']);
+            redirect($this->module['route']);
 
-        $this->data['page']['content']    = $this->module['view'] .'/create';
-        $this->data['page']['offcanvas']  = $this->module['view'] .'/create_offcanvas_add_item';
+        $this->data['page']['content'] = $this->module['view'] . '/create';
+        $this->data['page']['offcanvas'] = $this->module['view'] . '/create_offcanvas_add_item';
 
-        $this->render_view($this->module['view'] .'/create');
+        $this->render_view($this->module['view'] . '/create');
     }
 
     public function search_budget()
@@ -619,11 +619,11 @@ class Reimbursement extends MY_Controller
             redirect($this->modules['secure']['route'] . '/denied');
 
         $annual_cost_center_id = $_SESSION['reimbursement']['annual_cost_center_id'];
-        $entities = $this->model->getExpenseReimbursementItem($annual_cost_center_id,$with_po);
+        $entities = $this->model->getExpenseReimbursementItem($annual_cost_center_id, $with_po);
 
         foreach ($entities as $key => $value) {
-                $entities[$key]['label'] .= $value['account_code'];
-                $entities[$key]['label'] .= $value['expense_name'];
+            $entities[$key]['label'] .= $value['account_code'];
+            $entities[$key]['label'] .= $value['expense_name'];
         }
 
         echo json_encode($entities);
@@ -632,18 +632,18 @@ class Reimbursement extends MY_Controller
     public function info($id)
     {
         if ($this->input->is_ajax_request() === FALSE)
-        redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
-        if (is_granted($this->module, 'info') === FALSE){
-        $return['type'] = 'denied';
-        $return['info'] = "You don't have permission to access this data. You may need to login again.";
+        if (is_granted($this->module, 'info') === FALSE) {
+            $return['type'] = 'denied';
+            $return['info'] = "You don't have permission to access this data. You may need to login again.";
         } else {
-        $entity = $this->model->findById($id);
+            $entity = $this->model->findById($id);
 
-        $this->data['entity'] = $entity;
+            $this->data['entity'] = $entity;
 
-        $return['type'] = 'success';
-        $return['info'] = $this->load->view($this->module['view'] .'/info', $this->data, TRUE);
+            $return['type'] = 'success';
+            $return['info'] = $this->load->view($this->module['view'] . '/info', $this->data, TRUE);
         }
 
         echo json_encode($return);
@@ -656,14 +656,14 @@ class Reimbursement extends MY_Controller
         $entity = $this->model->findById($id);
         $level_akun = config_item('auth_role');
 
-        $this->data['entity']           = $entity;
-        $this->data['level_akun']       = $level_akun;
-        $this->data['page']['title']    = strtoupper($this->module['label']);
-        $this->data['page']['content']  = $this->module['view'] .'/print_pdf';
+        $this->data['entity'] = $entity;
+        $this->data['level_akun'] = $level_akun;
+        $this->data['page']['title'] = strtoupper($this->module['label']);
+        $this->data['page']['content'] = $this->module['view'] . '/print_pdf';
 
         $html = $this->load->view($this->pdf_theme, $this->data, true);
 
-        $pdfFilePath = str_replace('/', '-', $entity['document_number']) .".pdf";
+        $pdfFilePath = str_replace('/', '-', $entity['document_number']) . ".pdf";
 
         $this->load->library('m_pdf');
 
@@ -678,8 +678,8 @@ class Reimbursement extends MY_Controller
 
         $entity = $this->model->findById($id);
 
-        $document_number    = sprintf('%06s', substr($entity['document_number'], 0, 6));
-        $format_number      = substr($entity['document_number'], 9, 25);
+        $document_number = sprintf('%06s', substr($entity['document_number'], 0, 6));
+        $format_number = substr($entity['document_number'], 9, 25);
 
         if (preg_match('/-R(\d+)/', $entity['document_number'], $matches)) {
             $current_revision = intval($matches[1]); // Ambil angka revisi terakhir
@@ -688,68 +688,68 @@ class Reimbursement extends MY_Controller
         } else {
             $revisi = 1; // Jika belum ada revisi, mulai dari 1
         }
-    
+
         // Pastikan tidak ada revisi duplikat
         $new_document_number = $document_number . '-R' . $revisi;
 
-        if (isset($_SESSION['receipt']) !== FALSE){
+        if (isset($_SESSION['receipt']) !== FALSE) {
             $cost_center = findCostCenter($entity['annual_cost_center_id']);
             $type_benefit = getBenefitById($entity['id_benefit']);
             $cost_center_code = $cost_center['cost_center_code'];
-            $cost_center_name = $cost_center['cost_center_name'];          
-            $department_id    = $cost_center['department_id'];
-            $cost_center_group_id  = $cost_center['group_id'];
-            $employee_has_benefit    = $this->model->getEmployeeHasBenefitById($entity['employee_has_benefit_id']);
+            $cost_center_name = $cost_center['cost_center_name'];
+            $department_id = $cost_center['department_id'];
+            $cost_center_group_id = $cost_center['group_id'];
+            $employee_has_benefit = $this->model->getEmployeeHasBenefitById($entity['employee_has_benefit_id']);
 
             $last_status = $entity['status'];
             $saldo_balance = $employee_has_benefit['left_amount_plafond'];
             $used_balance = $employee_has_benefit['used_amount_plafond'];
 
 
-            if($last_status == 'REJECT'){
+            if ($last_status == 'REJECT') {
                 $saldo_balance = $employee_has_benefit['left_amount_plafond'] - $entity['total'];
                 $used_balance = $employee_has_benefit['used_amount_plafond'] + $entity['total'];
             }
 
 
-            $_SESSION['reimbursement']['annual_cost_center_id']     = $entity['annual_cost_center_id'];
-            $_SESSION['reimbursement']['cost_center_id']            = $cost_center_id;
-            $_SESSION['reimbursement']['cost_center_name']          = $cost_center_name;
-            $_SESSION['reimbursement']['cost_center_code']          = $cost_center_code;
-            $_SESSION['reimbursement']                              = $entity;
-            $_SESSION['reimbursement']['id']                        = $id;
-            $_SESSION['reimbursement']['edit']                      = $entity['document_number'];
-            $_SESSION['reimbursement']['document_number']           = $new_document_number;
-            $_SESSION['reimbursement']['format_number']             = $format_number;
-            $_SESSION['reimbursement']['department_id']             = $department_id;
-            $_SESSION['reimbursement']['person_in_charge']          = $entity['user_id'];
-            $_SESSION['reimbursement']['saldo_balance']             = $saldo_balance;
-            $_SESSION['reimbursement']['saldo_balance_initial']     = $employee_has_benefit['left_amount_plafond'];
-            $_SESSION['reimbursement']['plafond_balance']           = $employee_has_benefit['amount_plafond'];
-            $_SESSION['reimbursement']['used_balance']              = $used_balance;
-            $_SESSION['reimbursement']['cost_center_group_id']      = $cost_center_group_id;
-            $_SESSION['reimbursement']['benefit_type']              = $type_benefit['benefit_type'];
-            $_SESSION['reimbursement']['last_status']               = $entity['status'];
+            $_SESSION['reimbursement']['annual_cost_center_id'] = $entity['annual_cost_center_id'];
+            $_SESSION['reimbursement']['cost_center_id'] = $cost_center_id;
+            $_SESSION['reimbursement']['cost_center_name'] = $cost_center_name;
+            $_SESSION['reimbursement']['cost_center_code'] = $cost_center_code;
+            $_SESSION['reimbursement'] = $entity;
+            $_SESSION['reimbursement']['id'] = $id;
+            $_SESSION['reimbursement']['edit'] = $entity['document_number'];
+            $_SESSION['reimbursement']['document_number'] = $new_document_number;
+            $_SESSION['reimbursement']['format_number'] = $format_number;
+            $_SESSION['reimbursement']['department_id'] = $department_id;
+            $_SESSION['reimbursement']['person_in_charge'] = $entity['user_id'];
+            $_SESSION['reimbursement']['saldo_balance'] = $saldo_balance;
+            $_SESSION['reimbursement']['saldo_balance_initial'] = $employee_has_benefit['left_amount_plafond'];
+            $_SESSION['reimbursement']['plafond_balance'] = $employee_has_benefit['amount_plafond'];
+            $_SESSION['reimbursement']['used_balance'] = $used_balance;
+            $_SESSION['reimbursement']['cost_center_group_id'] = $cost_center_group_id;
+            $_SESSION['reimbursement']['benefit_type'] = $type_benefit['benefit_type'];
+            $_SESSION['reimbursement']['last_status'] = $entity['status'];
 
 
 
-            $_SESSION['reimbursement']['dateline']                  = print_date($entity['start_date'], 'd-m-Y').' s/d '.print_date($entity['end_date'], 'd-m-Y');
-            
+            $_SESSION['reimbursement']['dateline'] = print_date($entity['start_date'], 'd-m-Y') . ' s/d ' . print_date($entity['end_date'], 'd-m-Y');
+
         }
 
-        redirect($this->module['route'] .'/create');
+        redirect($this->module['route'] . '/create');
         //$this->render_view($this->module['view'] .'/edit');
     }
 
     public function save()
     {
-        
+
         if ($this->input->is_ajax_request() == FALSE)
             redirect($this->modules['secure']['route'] . '/denied');
 
-        
 
-        if (is_granted($this->module, 'create') == FALSE){
+
+        if (is_granted($this->module, 'create') == FALSE) {
             $data['success'] = FALSE;
             $data['message'] = 'You are not allowed to save this Document!';
         } else {
@@ -758,24 +758,24 @@ class Reimbursement extends MY_Controller
             $document_number = $_SESSION['reimbursement']['document_number'] . $_SESSION['reimbursement']['format_number'];
 
 
-            if ($_SESSION['reimbursement']['notes']==NULL || $_SESSION['reimbursement']['notes']=='') {
+            if ($_SESSION['reimbursement']['notes'] == NULL || $_SESSION['reimbursement']['notes'] == '') {
                 $errors[] = 'Attention!! Please Fill Notes!!';
             }
 
-            if ($_SESSION['reimbursement']['saldo_balance_initial']==0 && $_SESSION['reimbursement']['saldo_balance']==0) {
+            if ($_SESSION['reimbursement']['saldo_balance_initial'] == 0 && $_SESSION['reimbursement']['saldo_balance'] == 0) {
                 $errors[] = "Saldo balance is 0. You Can't create reimbursement";
             }
-            
 
-            if (!empty($errors)){
+
+            if (!empty($errors)) {
                 $data['success'] = FALSE;
                 $data['message'] = implode('<br />', $errors);
             } else {
-                if ($this->model->save()){
+                if ($this->model->save()) {
                     unset($_SESSION['reimbursement']);
-        
+
                     $data['success'] = TRUE;
-                    $data['message'] = 'Document '. $document_number .' has been saved. You will redirected now.';
+                    $data['message'] = 'Document ' . $document_number . ' has been saved. You will redirected now.';
                 } else {
                     $data['success'] = FALSE;
                     $data['message'] = 'Error while saving this document. Please ask Technical Support.';
@@ -800,7 +800,7 @@ class Reimbursement extends MY_Controller
     //                 'paid_amount'       => $this->input->post('paid_amount_modal'),
     //                 'account_code_item' => $this->input->post('account_code_item'),
 
-    
+
     //             );    
 
     //         } else {
@@ -811,10 +811,10 @@ class Reimbursement extends MY_Controller
     //                 'amount'            => $this->input->post('amount'),
     //                 'paid_amount'       => $this->input->post('paid_amount_modal'),
     //                 'account_code_item' => $this->input->post('account_code_item'),
-    
+
     //             );    
     //         }
-               
+
     //     }
 
     //     redirect($this->module['route'] .'/create');
@@ -824,45 +824,45 @@ class Reimbursement extends MY_Controller
     {
         $this->authorized($this->module, 'create');
 
-        
-            // File upload handling
-            $file_path = $this->input->post('existing_attachment');
-            if (!empty($_FILES['attachment']['name'])) {
-                $date = new DateTime();
-                // $config['file_name'] = $date->getTimestamp().random_string('alnum', 5);
-                $config['upload_path'] = 'attachment/reimbursement/';
-                $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
-                $config['max_size']      = 1024; // 1MB
-                $config['file_name']     = time() . "_" . $_FILES['attachment']['name'];
 
-                $this->upload->initialize($config);
+        // File upload handling
+        $file_path = $this->input->post('existing_attachment');
+        if (!empty($_FILES['attachment']['name'])) {
+            $date = new DateTime();
+            // $config['file_name'] = $date->getTimestamp().random_string('alnum', 5);
+            $config['upload_path'] = 'attachment/reimbursement/';
+            $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
+            $config['max_size'] = 1024; // 1MB
+            $config['file_name'] = time() . "_" . $_FILES['attachment']['name'];
 
-                if ($this->upload->do_upload('attachment')) {
-                    $data = $this->upload->data();
-                    $file_path = $data['file_name']; // Store file name for reference
-                } else {
-                    // Handle upload error
-                    $this->session->set_flashdata('error', $this->upload->display_errors());
-                    redirect($this->module['route'] . '/create');
-                    return;
-                }
+            $this->upload->initialize($config);
+
+            if ($this->upload->do_upload('attachment')) {
+                $data = $this->upload->data();
+                $file_path = $data['file_name']; // Store file name for reference
+            } else {
+                // Handle upload error
+                $this->session->set_flashdata('error', $this->upload->display_errors());
+                redirect($this->module['route'] . '/create');
+                return;
             }
+        }
 
-            // Add item with file path
-            $_SESSION['reimbursement']['items'][] = array(
-                'description'       => $this->input->post('description'),
-                'transaction_date'  => $this->input->post('date'),
-                'notes_modal'       => $this->input->post('notes_modal'),
-                'amount'            => $this->input->post('amount'),
-                'paid_amount'       => $this->input->post('paid_amount_modal'),
-                'account_code_item' => $this->input->post('account_code_item'),
-                'attachment'        => $file_path, 
-                'existing_attachment' => $file_path,
+        // Add item with file path
+        $_SESSION['reimbursement']['items'][] = array(
+            'description' => $this->input->post('description'),
+            'transaction_date' => $this->input->post('date'),
+            'notes_modal' => $this->input->post('notes_modal'),
+            'amount' => $this->input->post('amount'),
+            'paid_amount' => $this->input->post('paid_amount_modal'),
+            'account_code_item' => $this->input->post('account_code_item'),
+            'attachment' => $file_path,
+            'existing_attachment' => $file_path,
 
-            );
+        );
 
-            redirect($this->module['route'] . '/create');
-        
+        redirect($this->module['route'] . '/create');
+
     }
 
 
@@ -878,25 +878,25 @@ class Reimbursement extends MY_Controller
     public function delete_ajax()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
-        if (is_granted($this->module, 'delete') === FALSE){
-            $alert['type']  = 'danger';
-            $alert['info']  = 'You are not allowed to delete this data!';
+        if (is_granted($this->module, 'delete') === FALSE) {
+            $alert['type'] = 'danger';
+            $alert['info'] = 'You are not allowed to delete this data!';
         } else {
             $entity = $this->model->findById($this->input->post('id'));
 
-            if ($this->model->isValidDocumentQuantity($entity['document_number']) === FALSE){
-                $alert['type']  = 'danger';
-                $alert['info']  = 'Stock quantity for document ' . $entity['document_number'] . ' has been change. You are not allowed to delete this document. You can adjust stock to sync the quantity.';
-            } else {
-                if ($this->model->delete()){
-                $alert['type'] = 'success';
-                $alert['info'] = 'Data deleted.';
-                $alert['link'] = site_url($this->module['route']);
-                } else {
+            if ($this->model->isValidDocumentQuantity($entity['document_number']) === FALSE) {
                 $alert['type'] = 'danger';
-                $alert['info'] = 'There are error while deleting data. Please try again later.';
+                $alert['info'] = 'Stock quantity for document ' . $entity['document_number'] . ' has been change. You are not allowed to delete this document. You can adjust stock to sync the quantity.';
+            } else {
+                if ($this->model->delete()) {
+                    $alert['type'] = 'success';
+                    $alert['info'] = 'Data deleted.';
+                    $alert['link'] = site_url($this->module['route']);
+                } else {
+                    $alert['type'] = 'danger';
+                    $alert['info'] = 'There are error while deleting data. Please try again later.';
                 }
             }
         }
@@ -906,7 +906,7 @@ class Reimbursement extends MY_Controller
 
     public function ajax_editItem($key)
     {
-        $this->authorized($this->module, 'create');    
+        $this->authorized($this->module, 'create');
 
         $entity = $_SESSION['reimbursement']['items'][$key];
 
@@ -915,19 +915,19 @@ class Reimbursement extends MY_Controller
 
     public function edit_item($key)
     {
-        
+
         $this->authorized($this->module, 'create');
 
         // $key=$this->input->post('item_id');
-        if (isset($_POST) && !empty($_POST)){
+        if (isset($_POST) && !empty($_POST)) {
             $file_path = $this->input->post('existing_attachment');
             if (!empty($_FILES['attachment']['name'])) {
                 $date = new DateTime();
                 // $config['file_name'] = $date->getTimestamp().random_string('alnum', 5);
                 $config['upload_path'] = 'attachment/reimbursement/';
                 $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
-                $config['max_size']      = 1024; // 1MB
-                $config['file_name']     = time() . "_" . $_FILES['attachment']['name'];
+                $config['max_size'] = 1024; // 1MB
+                $config['file_name'] = time() . "_" . $_FILES['attachment']['name'];
 
                 $this->upload->initialize($config);
 
@@ -942,139 +942,155 @@ class Reimbursement extends MY_Controller
                 }
             }
             // $receipts_items_id = $this->input->post('item_id')
-            $_SESSION['reimbursement']['items'][$key] = array(        
-                'description'       => $this->input->post('description'),
-                'transaction_date'  => $this->input->post('date'),
-                'notes_modal'       => $this->input->post('notes_modal'),
-                'amount'            => $this->input->post('amount'),
+            $_SESSION['reimbursement']['items'][$key] = array(
+                'description' => $this->input->post('description'),
+                'transaction_date' => $this->input->post('date'),
+                'notes_modal' => $this->input->post('notes_modal'),
+                'amount' => $this->input->post('amount'),
                 'account_code_item' => $this->input->post('account_code_item'),
-                'paid_amount'       => $this->input->post('paid_amount_modal'),
-                'attachment'        =>  $file_path,
-                'existing_attachment' =>  $file_path,
+                'paid_amount' => $this->input->post('paid_amount_modal'),
+                'attachment' => $file_path,
+                'existing_attachment' => $file_path,
 
             );
-        } 
-        redirect($this->module['route'] .'/create');
+        }
+        redirect($this->module['route'] . '/create');
 
     }
 
 
-    public function del_item($item_index) {
+    public function del_item($item_index)
+    {
         // . '/'.$items['id'] 
 
-      
 
-        
-            if (isset($_SESSION['reimbursement']['items'][$item_index])) {
-               
-                // $this->model->delete_reimbursement_item($_SESSION['reimbursement']['items'][$item_index]['id']);
-                
 
-                $_SESSION['reimbursement']['saldo_balance'] =  $_SESSION['reimbursement']['saldo_balance'] + $_SESSION['reimbursement']['items'][$item_index]['paid_amount'];
-                $_SESSION['reimbursement']['used_balance'] =  $_SESSION['reimbursement']['used_balance'] - $_SESSION['reimbursement']['items'][$item_index]['paid_amount'];
 
-                // Delete the item
-                unset($_SESSION['reimbursement']['items'][$item_index]);
-        
-                // Recalculate the total
-                $total = array_sum(array_column($_SESSION['reimbursement']['items'], 'paid_amount'));
-    
-            
-        
-                // Return the new total in JSON format
-                echo json_encode(['total' => $total]);
-            } else {
-                echo json_encode(['total' => 0]);
-            }
-        
-        
+        if (isset($_SESSION['reimbursement']['items'][$item_index])) {
+
+            // $this->model->delete_reimbursement_item($_SESSION['reimbursement']['items'][$item_index]['id']);
+
+
+            $_SESSION['reimbursement']['saldo_balance'] = $_SESSION['reimbursement']['saldo_balance'] + $_SESSION['reimbursement']['items'][$item_index]['paid_amount'];
+            $_SESSION['reimbursement']['used_balance'] = $_SESSION['reimbursement']['used_balance'] - $_SESSION['reimbursement']['items'][$item_index]['paid_amount'];
+
+            // Delete the item
+            unset($_SESSION['reimbursement']['items'][$item_index]);
+
+            // Recalculate the total
+            $total = array_sum(array_column($_SESSION['reimbursement']['items'], 'paid_amount'));
+
+
+
+            // Return the new total in JSON format
+            echo json_encode(['total' => $total]);
+        } else {
+            echo json_encode(['total' => 0]);
+        }
+
+
     }
 
-    public function test_sendmail(){
+    public function test_sendmail()
+    {
         echo $this->model->test_sendmail();
     }
+    // Menampilkan halaman tool
+    public function cleanup_tool()
+    {
+        $this->authorized($this->module, 'index');
+        $this->data['module'] = $this->module;
+        $this->render_view($this->module['view'] . '/v_cleanup_budget');
+    }
 
-public function cleanup_tool() {
-    $this->authorized($this->module, 'index');
-    $this->data['page_title'] = "Budget Cleanup Tool";
-    $this->render_view($this->module['view'] . '/v_cleanup_budget');
-}
+    // Suplai data JSON untuk DataTable
+    public function cleanup_data_index()
+    {
+        $duplicates = $this->model->get_duplicate_list_json();
+        $data = array();
 
-public function cleanup_data_index() {
-    $duplicates = $this->model->get_duplicate_list_json();
-    $data = array();
-    foreach ($duplicates as $row) {
-        $ref = json_decode($row['reference_document'], true);
-        $reimb = $this->db->get_where('tb_reimbursements', ['id' => $ref[1]])->row_array();
-        if ($reimb) {
-            $data[] = [
-                'doc'    => $reimb['document_number'],
-                'person' => $reimb['person_name'],
-                'total'  => number_format($reimb['total'], 0, ',', '.'),
-                'status' => '<span class="badge style-danger">'.$row['total_row'].' Entries</span>',
-                'action' => '<a href="'.site_url($this->module['route'].'/process_fix/'.$reimb['id']).'" class="btn btn-xs btn-danger ink-reaction" onclick="return confirm(\'Fix budget?\')">FIX</a>'
-            ];
+        foreach ($duplicates as $row) {
+            $ref = json_decode($row['reference_document'], true);
+            // Ambil data dari tabel utama (Reimbursement)
+            $reimb = $this->db->get_where('tb_reimbursements', ['id' => $ref[1]])->row_array();
+
+            if ($reimb) {
+                $data[] = [
+                    'doc' => $reimb['document_number'],
+                    'person' => $reimb['person_name'],
+                    'total' => 'Rp ' . number_format($reimb['total'], 0, ',', '.'),
+                    'status' => '<span class="badge style-danger">' . $row['total_row'] . ' Baris</span>',
+                    'action' => '<a href="' . site_url($this->module['route'] . '/process_fix/' . $reimb['id']) . '" 
+                                class="btn btn-xs btn-danger ink-reaction" 
+                                onclick="return confirm(\'Fix this document?\')">FIX</a>'
+                ];
+            }
         }
+        echo json_encode(['data' => $data]);
     }
-    echo json_encode(['data' => $data]);
-}
 
-public function process_fix($id) {
-    $this->model->fix_expense_double_entry($id);
-    $this->session->set_flashdata('alert', ['type' => 'success', 'info' => 'Data ID #'.$id.' cleaned!']);
-    redirect($this->module['route'] . '/cleanup_tool');
-}
-
-public function fix_all_duplicates() {
-    $list = $this->model->get_duplicate_list_json();
-    $count = 0;
-    foreach ($list as $row) {
-        $ref = json_decode($row['reference_document'], true);
-        if ($this->model->fix_expense_double_entry($ref[1])) $count++;
+    // Fix per satu dokumen
+    public function process_fix($id)
+    {
+        $this->model->fix_expense_double_entry($id);
+        $this->session->set_flashdata('alert', ['type' => 'success', 'info' => 'Document #' . $id . ' fixed successfully!']);
+        redirect($this->module['route'] . '/cleanup_tool');
     }
-    $this->session->set_flashdata('alert', ['type' => 'success', 'info' => "Total $count documents cleaned!"]);
-    redirect($this->module['route'] . '/cleanup_tool');
-}
- public function multi_approve()
-{
-    $document_id = $this->input->post('document_id');
-    $document_id = str_replace("|", "", $document_id);
-    $document_id = substr($document_id, 0, -1);
-    $document_id = explode(",", $document_id);
 
-    $str_notes = $this->input->post('notes');
-    $notes = str_replace("|", "", $str_notes);
-    $notes = substr($notes, 0, -3);
-    $notes = explode("##,", $notes);
+    // Fix massal (Bulk Fix)
+    public function fix_all_duplicates()
+    {
+        $list = $this->model->get_duplicate_list_json();
+        $count = 0;
+        foreach ($list as $row) {
+            $ref = json_decode($row['reference_document'], true);
+            if ($this->model->fix_expense_double_entry($ref[1])) {
+                $count++;
+            }
+        }
+        $this->session->set_flashdata('alert', ['type' => 'success', 'info' => "$count documents cleaned and budgets restored!"]);
+        redirect($this->module['route'] . '/cleanup_tool');
+    }
+    public function multi_approve()
+    {
+        $document_id = $this->input->post('document_id');
+        $document_id = str_replace("|", "", $document_id);
+        $document_id = substr($document_id, 0, -1);
+        $document_id = explode(",", $document_id);
 
-    // Cukup panggil fungsi approve satu kali. 
-    // Di dalam model->approve() sudah otomatis memanggil create_expense_auto() 
-    // untuk dokumen yang statusnya final (HOS/VP/CFO/COO).
-    $save_approval = $this->model->approve($document_id, $notes);
+        $str_notes = $this->input->post('notes');
+        $notes = str_replace("|", "", $str_notes);
+        $notes = substr($notes, 0, -3);
+        $notes = explode("##,", $notes);
 
-    if ($save_approval['status']) {
-        $info_message = "Data has been updated!";
-        
-        // Opsional: Jika ada dokumen yang sampai tahap final, beri info spesifik
-        if(!empty($save_approval['approved_ids'])){
-            $info_message = count($save_approval['approved_ids']) . " Expense Request(s) telah otomatis dibuat.";
+        // Cukup panggil fungsi approve satu kali. 
+        // Di dalam model->approve() sudah otomatis memanggil create_expense_auto() 
+        // untuk dokumen yang statusnya final (HOS/VP/CFO/COO).
+        $save_approval = $this->model->approve($document_id, $notes);
+
+        if ($save_approval['status']) {
+            $info_message = "Data has been updated!";
+
+            // Opsional: Jika ada dokumen yang sampai tahap final, beri info spesifik
+            if (!empty($save_approval['approved_ids'])) {
+                $info_message = count($save_approval['approved_ids']) . " Expense Request(s) telah otomatis dibuat.";
+            }
+
+            $this->session->set_flashdata('alert', array(
+                'type' => 'success',
+                'info' => $info_message
+            ));
+            $result['status'] = 'success';
+        } else {
+            $this->session->set_flashdata('alert', array(
+                'type' => 'danger',
+                'info' => "Proses gagal atau terdapat data yang ditolak."
+            ));
+            $result['status'] = 'failed';
         }
 
-        $this->session->set_flashdata('alert', array(
-            'type' => 'success',
-            'info' => $info_message
-        ));
-        $result['status'] = 'success';
-    } else {
-        $this->session->set_flashdata('alert', array(
-            'type' => 'danger',
-            'info' => "Proses gagal atau terdapat data yang ditolak."
-        ));
-        $result['status'] = 'failed';
+        echo json_encode($result);
     }
-    
-    echo json_encode($result);
-}
 
     public function multi_reject()
     {
@@ -1099,13 +1115,13 @@ public function fix_all_duplicates() {
                 'type' => 'success',
                 'info' => "Data has been update!"
             ));
-        }else{
+        } else {
             $this->session->set_flashdata('alert', array(
                 'type' => 'danger',
                 'info' => "There are " . $save_approval['failed'] . " rejected"
             ));
         }
-        
+
 
         if ($success > 0) {
             // $this->model->send_mail_approval($id_expense_request, 'approve', config_item('auth_person_name'),$notes);
@@ -1122,7 +1138,7 @@ public function fix_all_duplicates() {
                 // 'info' => "There are " . $failed . " errors"
             ));
         }
-        
+
         if ($save_approval['total'] == 0) {
             $result['status'] = 'failed';
         } else {
@@ -1137,21 +1153,21 @@ public function fix_all_duplicates() {
 
 
         redirect($this->module['route']);
-    }  
+    }
 
     public function create_expense_ajax()
     {
         if ($this->input->is_ajax_request() === FALSE)
-            redirect($this->modules['secure']['route'] .'/denied');
+            redirect($this->modules['secure']['route'] . '/denied');
 
-        if (is_granted($this->module, 'delete') === FALSE){
-            $alert['type']  = 'danger';
-            $alert['info']  = 'You are not allowed to delete this data!';
+        if (is_granted($this->module, 'delete') === FALSE) {
+            $alert['type'] = 'danger';
+            $alert['info'] = 'You are not allowed to delete this data!';
         } else {
             $create_expense = $this->model->create_expense();
-            if ($create_expense['status']){
+            if ($create_expense['status']) {
                 $alert['type'] = 'success';
-                $alert['info'] = 'Reimbursement has beenn create in to Expense Request #'.$create_expense['pr_number'];
+                $alert['info'] = 'Reimbursement has beenn create in to Expense Request #' . $create_expense['pr_number'];
                 $alert['link'] = site_url($this->module['route']);
             } else {
                 $alert['type'] = 'danger';
@@ -1168,8 +1184,8 @@ public function fix_all_duplicates() {
         // $data = get_count_revisi('000005/SPD/BWD-BIFA/01/2023');
         // $data = get_travel_on_duty_last_number();
         // $data = $range_date  = explode('.', '000005/SPD/BWD-BIFA/01/2023');
-        $data  = substr('000005/SPD/BWD-BIFA/01/2023', 7, 21);
-        
+        $data = substr('000005/SPD/BWD-BIFA/01/2023', 7, 21);
+
         // $result['status'] = $send;
         echo json_encode($data);
     }
@@ -1184,7 +1200,7 @@ public function fix_all_duplicates() {
         $this->render_view($this->module['view'] . '/attachment');
     }
 
-    public function attachment_detail_spd($item_id,$type)
+    public function attachment_detail_spd($item_id, $type)
     {
         $this->authorized($this->module, 'create');
         $this->data['item_id'] = $item_id;
@@ -1194,32 +1210,32 @@ public function fix_all_duplicates() {
 
     public function add_attachment()
     {
-      $result["status"] = 0;
-      $date = new DateTime();
-      // $config['file_name'] = $date->getTimestamp().random_string('alnum', 5);
-      $config['upload_path'] = 'attachment/reimbursement/';
-      $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
-      $config['max_size']  = 2000;
-  
-      $this->upload->initialize($config);
-  
-      if (!$this->upload->do_upload('attachment')) {
-        $error = array('error' => $this->upload->display_errors());
-      } else {
+        $result["status"] = 0;
+        $date = new DateTime();
+        // $config['file_name'] = $date->getTimestamp().random_string('alnum', 5);
+        $config['upload_path'] = 'attachment/reimbursement/';
+        $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
+        $config['max_size'] = 2000;
 
-        if (!isset($_SESSION["reimbursement"]["attachment"]) || !is_array($_SESSION["reimbursement"]["attachment"])) {
-            $_SESSION["reimbursement"]["attachment"] = [];
+        $this->upload->initialize($config);
+
+        if (!$this->upload->do_upload('attachment')) {
+            $error = array('error' => $this->upload->display_errors());
+        } else {
+
+            if (!isset($_SESSION["reimbursement"]["attachment"]) || !is_array($_SESSION["reimbursement"]["attachment"])) {
+                $_SESSION["reimbursement"]["attachment"] = [];
+            }
+
+            $data = array('upload_data' => $this->upload->data());
+            $url = $config['upload_path'] . $data['upload_data']['file_name'];
+            array_push($_SESSION["reimbursement"]["attachment"], $url);
+            $result["status"] = 1;
         }
-  
-        $data = array('upload_data' => $this->upload->data());
-        $url = $config['upload_path'] . $data['upload_data']['file_name'];
-        array_push($_SESSION["reimbursement"]["attachment"], $url);
-        $result["status"] = 1;
-      }
-      echo json_encode($result);
+        echo json_encode($result);
     }
 
-    
+
 
     public function add_attachment_detail()
     {
@@ -1227,7 +1243,7 @@ public function fix_all_duplicates() {
         $date = new DateTime();
         $config['upload_path'] = 'attachment/reimbursement-detail/';
         $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
-        $config['max_size']  = 2000;
+        $config['max_size'] = 2000;
 
         $this->upload->initialize($config);
 
@@ -1237,8 +1253,8 @@ public function fix_all_duplicates() {
 
             $data = array('upload_data' => $this->upload->data());
             $url = $config['upload_path'] . $data['upload_data']['file_name'];
-            $data_att = $url.'|,'.$this->input->post('id_poe').'|,'.$this->input->post('tipe');
-            array_push($_SESSION["reimbursement"]["attachment_detail"],$data_att);
+            $data_att = $url . '|,' . $this->input->post('id_poe') . '|,' . $this->input->post('tipe');
+            array_push($_SESSION["reimbursement"]["attachment_detail"], $data_att);
             $result["status"] = 1;
         }
         echo json_encode($result);
@@ -1258,7 +1274,7 @@ public function fix_all_duplicates() {
     {
         $this->authorized($this->module, 'info');
 
-        $this->data['manage_attachment'] = $this->model->listAttachment($id,'REIMBURESEMENT-DETAIL');
+        $this->data['manage_attachment'] = $this->model->listAttachment($id, 'REIMBURESEMENT-DETAIL');
         $this->data['id'] = $id;
         $this->data['tipe'] = 'REIMBURSEMENT-DETAIL';
         $this->render_view($this->module['view'] . '/manage_attachment');
@@ -1268,14 +1284,14 @@ public function fix_all_duplicates() {
     {
         $result["status"] = 0;
         $date = new DateTime();
-        if($this->input->post('tipe')=='REIMBURSEMENT'){
+        if ($this->input->post('tipe') == 'REIMBURSEMENT') {
             $config['upload_path'] = 'attachment/reimbursement/';
-        }else{
+        } else {
             $config['upload_path'] = 'attachment/reimbursement-detail/';
         }
-        
+
         $config['allowed_types'] = 'jpg|png|jpeg|doc|docx|xls|xlsx|pdf';
-        $config['max_size']  = 2000;
+        $config['max_size'] = 2000;
 
         $this->upload->initialize($config);
 
@@ -1286,7 +1302,7 @@ public function fix_all_duplicates() {
             $data = array('upload_data' => $this->upload->data());
             $url = $config['upload_path'] . $data['upload_data']['file_name'];
             // array_push($_SESSION["poe"]["attachment"], $url);
-            $this->model->add_attachment_to_db($id, $url,$this->input->post('tipe'));
+            $this->model->add_attachment_to_db($id, $url, $this->input->post('tipe'));
             $result["status"] = 1;
         }
         echo json_encode($result);
@@ -1302,7 +1318,7 @@ public function fix_all_duplicates() {
         }
     }
 
-    public function delete_attachment_detail($index,$item_id,$type)
+    public function delete_attachment_detail($index, $item_id, $type)
     {
         $att = $_SESSION["reimbursement"]["attachment_detail"][$index];
         $att_explode = explode("|,", $att);
@@ -1310,21 +1326,21 @@ public function fix_all_duplicates() {
         if (unlink($file)) {
             unset($_SESSION["reimbursement"]["attachment_detail"][$index]);
             $_SESSION["reimbursement"]["attachment_detail"] = array_values($_SESSION["reimbursement"]["attachment_detail"]);
-            redirect($this->module['route'] . "/attachment_detail_reimbursement/".$item_id."/".$type, 'refresh');
+            redirect($this->module['route'] . "/attachment_detail_reimbursement/" . $item_id . "/" . $type, 'refresh');
         }
     }
 
-    public function delete_attachment_in_db($id_att, $id_poe, $tipe='REIMBURSEMENT')
+    public function delete_attachment_in_db($id_att, $id_poe, $tipe = 'REIMBURSEMENT')
     {
         $this->model->delete_attachment_in_db($id_att);
 
-        if ($tipe=='REIMBURSEMENT') {
+        if ($tipe == 'REIMBURSEMENT') {
             redirect($this->module['route'] . "/manage_attachment/" . $id_poe, 'refresh');
-        }else{
+        } else {
             redirect($this->module['route'] . "/manage_attachment_detail/" . $id_poe, 'refresh');
         }
 
-        
+
         // echo json_encode($result);
     }
 }

@@ -1416,7 +1416,7 @@ class Reimbursement_Model extends MY_Model
         if ($check && !empty($check->pr_number)) {
             return ['status' => TRUE, 'pr_number' => $check->pr_number];
         }
-        
+
         $this->db->trans_begin();
 
         $total = 0;
@@ -1942,77 +1942,74 @@ class Reimbursement_Model extends MY_Model
         return TRUE;
     }
 
-/**
- * Mencari semua reference_document yang double di Expense Request
- */
-public function get_duplicate_list_json()
-{
-    $sql = "SELECT reference_document, COUNT(*) as total_row
+    public function get_duplicate_list_json()
+    {
+        // Query mencari reference_document yang terduplikasi
+        $sql = "SELECT reference_document, COUNT(*) as total_row
             FROM tb_expense_purchase_requisitions 
             WHERE reference_document LIKE '[\"RF\"%'
             GROUP BY reference_document 
             HAVING COUNT(*) > 1";
-            
-    return $this->connection->query($sql)->result_array();
-}
+        return $this->connection->query($sql)->result_array();
+    }
 
-/**
- * Logika Reversal Budget & Cleanup (Menyisakan 1, Menghapus sisanya)
- */
-public function fix_expense_double_entry($reimbursement_id)
-{
-    $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
-    $results = $this->connection->get('tb_expense_purchase_requisitions')->result();
+    public function fix_expense_double_entry($reimbursement_id)
+    {
+        // Cari baris yang merujuk ke Reimbursement ID tersebut
+        $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
+        $results = $this->connection->get('tb_expense_purchase_requisitions')->result();
 
-    if (count($results) > 1) {
-        $this->connection->trans_begin();
-        $this->db->trans_begin();
+        if (count($results) > 1) {
+            $this->connection->trans_begin();
+            $this->db->trans_begin();
 
-        // Loop mulai dari index 1 (Sisakan data pertama di index 0)
-        for ($i = 1; $i < count($results); $i++) {
-            $duplicate_er = $results[$i];
-            $er_id = $duplicate_er->id;
+            // Sisakan baris pertama (index 0), hapus & reverse baris sisanya
+            for ($i = 1; $i < count($results); $i++) {
+                $duplicate_er = $results[$i];
+                $er_id = $duplicate_er->id;
 
-            // AMBIL DATA BUDGET YANG TERPAKAI OLEH DATA DOUBLE INI
-            $used_budgets = $this->connection->get_where('tb_expense_used_budgets', [
-                'expense_purchase_requisition_id' => $er_id
-            ])->result();
+                // Proses Reversal Budget (MTD & YTD)
+                $used_budgets = $this->connection->get_where('tb_expense_used_budgets', [
+                    'expense_purchase_requisition_id' => $er_id
+                ])->result();
 
-            foreach ($used_budgets as $ub) {
-                // 1. KEMBALIKAN SALDO MTD
-                $this->connection->set('mtd_used_budget', 'mtd_used_budget - ' . $ub->used_budget, FALSE);
-                $this->connection->where('id', $ub->expense_monthly_budget_id);
-                $this->connection->update('tb_expense_monthly_budgets');
-
-                // 2. KEMBALIKAN SALDO YTD (Sampai akhir tahun)
-                for ($m = $ub->month_number; $m <= 12; $m++) {
-                    $this->connection->set('ytd_used_budget', 'ytd_used_budget - ' . $ub->used_budget, FALSE);
-                    $this->connection->where('annual_cost_center_id', $duplicate_er->annual_cost_center_id);
-                    $this->connection->where('account_id', $ub->account_id);
-                    $this->connection->where('month_number', $m);
+                foreach ($used_budgets as $ub) {
+                    // Balikkan MTD
+                    $this->connection->set('mtd_used_budget', 'mtd_used_budget - ' . $ub->used_budget, FALSE);
+                    $this->connection->where('id', $ub->expense_monthly_budget_id);
                     $this->connection->update('tb_expense_monthly_budgets');
+
+                    // Balikkan YTD (sampai bulan 12)
+                    for ($m = $ub->month_number; $m <= 12; $m++) {
+                        $this->connection->set('ytd_used_budget', 'ytd_used_budget - ' . $ub->used_budget, FALSE);
+                        $this->connection->where('annual_cost_center_id', $duplicate_er->annual_cost_center_id);
+                        $this->connection->where('account_id', $ub->account_id);
+                        $this->connection->where('month_number', $m);
+                        $this->connection->update('tb_expense_monthly_budgets');
+                    }
                 }
+
+                // Hapus data duplikat
+                $this->connection->delete('tb_expense_used_budgets', ['expense_purchase_requisition_id' => $er_id]);
+                $this->connection->delete('tb_expense_purchase_requisition_details', ['expense_purchase_requisition_id' => $er_id]);
+                $this->connection->delete('tb_expense_purchase_requisitions', ['id' => $er_id]);
             }
 
-            // 3. HAPUS DATA DOUBLE
-            $this->connection->delete('tb_expense_used_budgets', ['expense_purchase_requisition_id' => $er_id]);
-            $this->connection->delete('tb_expense_purchase_requisition_details', ['expense_purchase_requisition_id' => $er_id]);
-            $this->connection->delete('tb_expense_purchase_requisitions', ['id' => $er_id]);
-        }
+            // Sinkronisasi PR Number di tabel utama
+            $this->db->set('pr_number', $results[0]->pr_number);
+            $this->db->where('id', $reimbursement_id);
+            $this->db->update('tb_reimbursements');
 
-        // UPDATE NOMOR PR DI TABEL UTAMA KE DATA YANG DISISAKAN
-        $this->db->set('pr_number', $results[0]->pr_number);
-        $this->db->where('id', $reimbursement_id);
-        $this->db->update('tb_reimbursements');
-
-        if ($this->connection->trans_status() === FALSE || $this->db->trans_status() === FALSE) {
-            $this->connection->trans_rollback(); $this->db->trans_rollback();
-            return false;
-        } else {
-            $this->connection->trans_commit(); $this->db->trans_commit();
-            return true;
+            if ($this->connection->trans_status() === FALSE || $this->db->trans_status() === FALSE) {
+                $this->connection->trans_rollback();
+                $this->db->trans_rollback();
+                return false;
+            } else {
+                $this->connection->trans_commit();
+                $this->db->trans_commit();
+                return true;
+            }
         }
+        return false;
     }
-    return false;
-}
 }
