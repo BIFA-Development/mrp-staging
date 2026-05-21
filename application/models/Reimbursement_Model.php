@@ -2006,4 +2006,75 @@ public function fix_all_duplicates_with_report()
 
         return $query->result_array();
     }
+
+    /**
+     * FUNGSI INTI: Memperbaiki duplikasi per baris
+     * Dipanggil oleh fix_all_duplicates_with_report()
+     */
+    public function fix_expense_double_entry($reimbursement_id)
+    {
+        // Pastikan koneksi ke budgetcontrol aktif
+        if (!isset($this->connection)) {
+            $this->connection = $this->load->database('budgetcontrol', TRUE);
+        }
+
+        // Cari baris yang merujuk ke Reimbursement ID tersebut di budgetcontrol
+        $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
+        $results = $this->connection->get('tb_expense_purchase_requisitions')->result();
+
+        // Jika ditemukan lebih dari 1 baris (Duplikat)
+        if (count($results) > 1) {
+            $this->connection->trans_begin(); // Start Transaction Postgres/MySQL BudgetControl
+            $this->db->trans_begin();         // Start Transaction MySQL Utama (New_MRP_V4)
+
+            // Loop: Sisakan data pertama (index 0), hapus & reverse budget baris sisanya
+            for ($i = 1; $i < count($results); $i++) {
+                $duplicate_er = $results[$i];
+                $er_id = $duplicate_er->id;
+
+                // 1. Proses Reversal Budget (Kembalikan Saldo)
+                $used_budgets = $this->connection->get_where('tb_expense_used_budgets', [
+                    'expense_purchase_requisition_id' => $er_id
+                ])->result();
+
+                foreach ($used_budgets as $ub) {
+                    // Balikkan MTD (Month to Date)
+                    $this->connection->set('mtd_used_budget', 'mtd_used_budget - ' . $ub->used_budget, FALSE);
+                    $this->connection->where('id', $ub->expense_monthly_budget_id);
+                    $this->connection->update('tb_expense_monthly_budgets');
+
+                    // Balikkan YTD (Year to Date) dari bulan berjalan sampai Desember
+                    for ($m = $ub->month_number; $m <= 12; $m++) {
+                        $this->connection->set('ytd_used_budget', 'ytd_used_budget - ' . $ub->used_budget, FALSE);
+                        $this->connection->where('annual_cost_center_id', $duplicate_er->annual_cost_center_id);
+                        $this->connection->where('account_id', $ub->account_id);
+                        $this->connection->where('month_number', $m);
+                        $this->connection->update('tb_expense_monthly_budgets');
+                    }
+                }
+
+                // 2. Hapus data fisik duplikat
+                $this->connection->delete('tb_expense_used_budgets', ['expense_purchase_requisition_id' => $er_id]);
+                $this->connection->delete('tb_expense_purchase_requisition_details', ['expense_purchase_requisition_id' => $er_id]);
+                $this->connection->delete('tb_expense_purchase_requisitions', ['id' => $er_id]);
+            }
+
+            // 3. Sinkronisasi data di tabel Reimbursement Utama agar merujuk ke PR yang benar
+            $this->db->set('pr_number', $results[0]->pr_number);
+            $this->db->where('id', $reimbursement_id);
+            $this->db->update('tb_reimbursements');
+
+            // Cek apakah semua query berhasil
+            if ($this->connection->trans_status() === FALSE || $this->db->trans_status() === FALSE) {
+                $this->connection->trans_rollback();
+                $this->db->trans_rollback();
+                return false;
+            } else {
+                $this->connection->trans_commit();
+                $this->db->trans_commit();
+                return true;
+            }
+        }
+        return false;
+    }
 }
