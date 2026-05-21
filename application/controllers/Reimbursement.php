@@ -995,7 +995,38 @@ class Reimbursement extends MY_Controller
     }
 
 
+/**
+ * Fungsi sekali pakai untuk membersihkan data double di Expense Request
+ * dan mengembalikan saldo budget.
+ */
+public function cleanup_tool()
+{
+    $this->authorized($this->module, 'index'); // Pastikan user punya hak akses
+    $this->data['module'] = $this->module;
+    $this->render_view($this->module['view'] . '/v_cleanup_budget');
+}
 
+public function process_cleanup()
+{
+    $reimbursement_id = $this->input->post('reimb_id');
+
+    if (!empty($reimbursement_id)) {
+        $result = $this->model->fix_expense_double_entry($reimbursement_id);
+        
+        // Menggunakan format alert sesuai helper Material Theme Anda
+        $this->session->set_flashdata('alert', array(
+            'type' => 'info',
+            'info' => $result
+        ));
+    } else {
+        $this->session->set_flashdata('alert', array(
+            'type' => 'danger',
+            'info' => 'ID Reimbursement tidak boleh kosong!'
+        ));
+    }
+
+    redirect($this->module['route'] . '/cleanup_tool');
+}
 
  public function multi_approve()
 {
