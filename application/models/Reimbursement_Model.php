@@ -1942,74 +1942,68 @@ class Reimbursement_Model extends MY_Model
         return TRUE;
     }
 
-    public function get_duplicate_list_json()
-    {
-        // Query mencari reference_document yang terduplikasi
-        $sql = "SELECT reference_document, COUNT(*) as total_row
-            FROM tb_expense_purchase_requisitions 
-            WHERE reference_document LIKE '[\"RF\"%'
-            GROUP BY reference_document 
-            HAVING COUNT(*) > 1";
-        return $this->connection->query($sql)->result_array();
+public function fix_all_duplicates_with_report()
+{
+    $list = $this->get_duplicate_list_json();
+    $report_data = [];
+    $count = 0;
+
+    if (empty($list)) return [];
+
+    foreach ($list as $row) {
+        $ref = json_decode($row['reference_document'], true);
+        $reimb_id = $ref[1];
+
+        // Ambil info dari database utama (New_MRP_V4)
+        $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
+        
+        if ($this->fix_expense_double_entry($reimb_id)) {
+            $report_data[] = [
+                'reimbursement_id' => $reimb_id,
+                'document_number'  => $reimb['document_number'],
+                'employee'         => $reimb['person_name'],
+                'amount'           => (float)$reimb['total'],
+                'duplicate_count'  => $row['total_row']
+            ];
+            $count++;
+        }
     }
 
-    public function fix_expense_double_entry($reimbursement_id)
+    if ($count > 0) {
+        // Simpan Log ke tb_cleanup_logs di database New_MRP_V4
+        $this->db->insert('tb_cleanup_logs', [
+            'executed_by'   => config_item('auth_username'),
+            'total_cleaned' => $count,
+            'details_json'  => json_encode($report_data),
+            'executed_at'   => date('Y-m-d H:i:s')
+        ]);
+    }
+
+    return $report_data;
+}
+
+/**
+     * Mengambil daftar duplikasi dari database budgetcontrol
+     */
+    public function get_duplicate_list_json()
     {
-        // Cari baris yang merujuk ke Reimbursement ID tersebut
-        $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
-        $results = $this->connection->get('tb_expense_purchase_requisitions')->result();
-
-        if (count($results) > 1) {
-            $this->connection->trans_begin();
-            $this->db->trans_begin();
-
-            // Sisakan baris pertama (index 0), hapus & reverse baris sisanya
-            for ($i = 1; $i < count($results); $i++) {
-                $duplicate_er = $results[$i];
-                $er_id = $duplicate_er->id;
-
-                // Proses Reversal Budget (MTD & YTD)
-                $used_budgets = $this->connection->get_where('tb_expense_used_budgets', [
-                    'expense_purchase_requisition_id' => $er_id
-                ])->result();
-
-                foreach ($used_budgets as $ub) {
-                    // Balikkan MTD
-                    $this->connection->set('mtd_used_budget', 'mtd_used_budget - ' . $ub->used_budget, FALSE);
-                    $this->connection->where('id', $ub->expense_monthly_budget_id);
-                    $this->connection->update('tb_expense_monthly_budgets');
-
-                    // Balikkan YTD (sampai bulan 12)
-                    for ($m = $ub->month_number; $m <= 12; $m++) {
-                        $this->connection->set('ytd_used_budget', 'ytd_used_budget - ' . $ub->used_budget, FALSE);
-                        $this->connection->where('annual_cost_center_id', $duplicate_er->annual_cost_center_id);
-                        $this->connection->where('account_id', $ub->account_id);
-                        $this->connection->where('month_number', $m);
-                        $this->connection->update('tb_expense_monthly_budgets');
-                    }
-                }
-
-                // Hapus data duplikat
-                $this->connection->delete('tb_expense_used_budgets', ['expense_purchase_requisition_id' => $er_id]);
-                $this->connection->delete('tb_expense_purchase_requisition_details', ['expense_purchase_requisition_id' => $er_id]);
-                $this->connection->delete('tb_expense_purchase_requisitions', ['id' => $er_id]);
-            }
-
-            // Sinkronisasi PR Number di tabel utama
-            $this->db->set('pr_number', $results[0]->pr_number);
-            $this->db->where('id', $reimbursement_id);
-            $this->db->update('tb_reimbursements');
-
-            if ($this->connection->trans_status() === FALSE || $this->db->trans_status() === FALSE) {
-                $this->connection->trans_rollback();
-                $this->db->trans_rollback();
-                return false;
-            } else {
-                $this->connection->trans_commit();
-                $this->db->trans_commit();
-                return true;
-            }
+        // Pastikan variabel $this->connection merujuk ke database budgetcontrol
+        if (!isset($this->connection)) {
+            $this->connection = $this->load->database('budgetcontrol', TRUE);
         }
-        return false;
+
+        $sql = "SELECT reference_document, COUNT(*) as total_row
+                FROM tb_expense_purchase_requisitions 
+                WHERE reference_document LIKE '[\"RF\"%'
+                GROUP BY reference_document 
+                HAVING COUNT(*) > 1";
+
+        $query = $this->connection->query($sql);
+        
+        if (!$query) {
+            return [];
+        }
+
+        return $query->result_array();
     }
 }

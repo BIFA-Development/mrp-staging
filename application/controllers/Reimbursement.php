@@ -1002,32 +1002,39 @@ class Reimbursement extends MY_Controller
         $this->data['module'] = $this->module;
         $this->render_view($this->module['view'] . '/v_cleanup_budget');
     }
-
-    // Suplai data JSON untuk DataTable
-    public function cleanup_data_index()
-    {
-        $duplicates = $this->model->get_duplicate_list_json();
-        $data = array();
-
+public function cleanup_data_index() {
+    // Bersihkan buffer agar tidak ada spasi/output lain sebelum JSON
+    if (ob_get_level() > 0) ob_clean(); 
+    
+    $duplicates = $this->model->get_duplicate_list_json();
+    $data = array();
+    
+    if (!empty($duplicates)) {
         foreach ($duplicates as $row) {
             $ref = json_decode($row['reference_document'], true);
-            // Ambil data dari tabel utama (Reimbursement)
-            $reimb = $this->db->get_where('tb_reimbursements', ['id' => $ref[1]])->row_array();
+            $reimb_id = (isset($ref[1])) ? $ref[1] : null;
 
-            if ($reimb) {
-                $data[] = [
-                    'doc' => $reimb['document_number'],
-                    'person' => $reimb['person_name'],
-                    'total' => 'Rp ' . number_format($reimb['total'], 0, ',', '.'),
-                    'status' => '<span class="badge style-danger">' . $row['total_row'] . ' Baris</span>',
-                    'action' => '<a href="' . site_url($this->module['route'] . '/process_fix/' . $reimb['id']) . '" 
-                                class="btn btn-xs btn-danger ink-reaction" 
-                                onclick="return confirm(\'Fix this document?\')">FIX</a>'
-                ];
+            if ($reimb_id) {
+                $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
+                
+                if ($reimb) {
+                    $data[] = [
+                        'doc'    => (string)$reimb['document_number'],
+                        'person' => (string)$reimb['person_name'],
+                        'total'  => 'Rp ' . number_format($reimb['total'], 0, ',', '.'),
+                        'status' => '<span class="badge style-danger">'.$row['total_row'].' Baris</span>',
+                        'action' => '<a href="'.site_url($this->module['route'].'/process_fix/'.$reimb['id']).'" class="btn btn-xs btn-danger">FIX</a>'
+                    ];
+                }
             }
         }
-        echo json_encode(['data' => $data]);
     }
+    
+    // Kirim header JSON yang kuat
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['data' => $data]);
+    exit; // Pastikan script berhenti di sini
+}
 
     // Fix per satu dokumen
     public function process_fix($id)
@@ -1038,17 +1045,60 @@ class Reimbursement extends MY_Controller
     }
 
     // Fix massal (Bulk Fix)
-    public function fix_all_duplicates()
+ public function fix_all_duplicates()
     {
-        $list = $this->model->get_duplicate_list_json();
-        $count = 0;
-        foreach ($list as $row) {
-            $ref = json_decode($row['reference_document'], true);
-            if ($this->model->fix_expense_double_entry($ref[1])) {
-                $count++;
+        $this->authorized($this->module, 'approval');
+        
+        // Eksekusi cleanup dan ambil data untuk laporan
+        $results = $this->model->fix_all_duplicates_with_report();
+        $total = count($results);
+
+        if ($total > 0) {
+            // 1. Generate CSV Attachment
+            $filename = 'Cleanup_Report_' . date('Ymd_His') . '.csv';
+            $filepath = FCPATH . 'uploads/logs/' . $filename;
+            
+            if (!is_dir(FCPATH . 'uploads/logs/')) {
+                mkdir(FCPATH . 'uploads/logs/', 0777, true);
             }
+
+            $file = fopen($filepath, 'w');
+            // Header CSV
+            fputcsv($file, array('ID', 'Doc Number', 'Employee', 'Amount', 'Duplicate Count'));
+            foreach ($results as $line) {
+                fputcsv($file, $line);
+            }
+            fclose($file);
+
+            // 2. Kirim Email Notifikasi
+            $this->load->library('email');
+            
+        
+            $this->email->initialize($config);
+
+            $this->email->from('itsupervisor@baliflightacademy.com', 'BIFA System');
+            $this->email->to('kcang.ijau@gmail.com'); // Email Admin/Manager
+            $this->email->subject('[LOG] Budget Cleanup Success - ' . $total . ' Items');
+
+            $body = "<h3>Budget Cleanup Report</h3>
+                    <p>Sistem telah mendeteksi dan menghapus duplikasi budget pada Expense Request.</p>
+                    <ul>
+                        <li><b>Executor:</b> ".config_item('auth_username')."</li>
+                        <li><b>Total cleaned:</b> $total Documents</li>
+                        <li><b>Date:</b> ".date('Y-m-d H:i:s')."</li>
+                    </ul>
+                    <p>Detail dokumen terlampir dalam file CSV.</p>";
+
+            $this->email->message($body);
+            $this->email->attach($filepath);
+            $this->email->send();
+
+            $flash_msg = "Berhasil membersihkan $total data. Log tersimpan di Postgres & Laporan terkirim ke Email.";
+        } else {
+            $flash_msg = "Tidak ada data duplikat yang ditemukan.";
         }
-        $this->session->set_flashdata('alert', ['type' => 'success', 'info' => "$count documents cleaned and budgets restored!"]);
+
+        $this->session->set_flashdata('alert', ['type' => 'success', 'info' => $flash_msg]);
         redirect($this->module['route'] . '/cleanup_tool');
     }
     public function multi_approve()

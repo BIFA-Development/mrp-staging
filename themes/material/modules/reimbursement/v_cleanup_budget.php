@@ -76,6 +76,42 @@
                 </div>
             </div>
 
+            <di<div class="card" style="margin-top: 25px;">
+    <div class="card-head style-default-bright">
+        <header><i class="md md-history"></i> Recent Activity Logs</header>
+    </div>
+    <div class="card-body no-padding">
+        <div class="table-responsive">
+            <table class="table table-condensed table-hover no-margin">
+                <thead>
+                    <tr>
+                        <th>Execution Date</th>
+                        <th>User</th>
+                        <th class="text-center">Items Fixed</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    // Menggunakan database default ($this->db)
+                    $logs = $this->db->order_by('executed_at', 'DESC')->limit(5)->get('tb_cleanup_logs')->result();
+                    if($logs):
+                        foreach($logs as $log): ?>
+                        <tr>
+                            <td><?= date('d M Y H:i', strtotime($log->executed_at)) ?></td>
+                            <td><?= $log->executed_by ?></td>
+                            <td class="text-center"><span class="badge style-info"><?= $log->total_cleaned ?></span></td>
+                            <td><small class="text-muted">ID Log: #<?= $log->id ?></small></td>
+                        </tr>
+                    <?php endforeach; else: ?>
+                        <tr><td colspan="4" class="text-center">No logs recorded yet.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
             <div id="empty-state" class="text-center" style="display:none; padding: 80px 20px;">
                 <i class="md md-verified-user text-success" style="font-size: 100px; opacity: 0.3;"></i>
                 <h3 class="text-light">Database is Clean!</h3>
