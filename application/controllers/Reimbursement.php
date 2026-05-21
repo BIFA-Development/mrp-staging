@@ -994,43 +994,47 @@ class Reimbursement extends MY_Controller
         echo $this->model->test_sendmail();
     }
 
-
-/**
- * Fungsi sekali pakai untuk membersihkan data double di Expense Request
- * dan mengembalikan saldo budget.
- */
-public function cleanup_tool()
-{
+public function cleanup_tool() {
     $this->authorized($this->module, 'index');
-    
-    // Scan data duplikat secara otomatis
-    $this->data['duplicates'] = $this->model->get_duplicate_list();
-    $this->data['module']     = $this->module;
-    $this->data['page_title'] = "Auto Cleanup Double Expenses";
-
+    $this->data['page_title'] = "Budget Cleanup Tool";
     $this->render_view($this->module['view'] . '/v_cleanup_budget');
 }
 
-public function fix_all_duplicates()
-{
-    $this->authorized($this->module, 'approval');
-    $duplicates = $this->model->get_duplicate_list();
-    
-    $success = 0;
+public function cleanup_data_index() {
+    $duplicates = $this->model->get_duplicate_list_json();
+    $data = array();
     foreach ($duplicates as $row) {
         $ref = json_decode($row['reference_document'], true);
-        if ($this->model->fix_expense_double_entry($ref[1])) {
-            $success++;
+        $reimb = $this->db->get_where('tb_reimbursements', ['id' => $ref[1]])->row_array();
+        if ($reimb) {
+            $data[] = [
+                'doc'    => $reimb['document_number'],
+                'person' => $reimb['person_name'],
+                'total'  => number_format($reimb['total'], 0, ',', '.'),
+                'status' => '<span class="badge style-danger">'.$row['total_row'].' Entries</span>',
+                'action' => '<a href="'.site_url($this->module['route'].'/process_fix/'.$reimb['id']).'" class="btn btn-xs btn-danger ink-reaction" onclick="return confirm(\'Fix budget?\')">FIX</a>'
+            ];
         }
     }
+    echo json_encode(['data' => $data]);
+}
 
-    $this->session->set_flashdata('alert', [
-        'type' => 'success',
-        'info' => "Berhasil memperbaiki $success dokumen. Saldo budget telah dikembalikan."
-    ]);
+public function process_fix($id) {
+    $this->model->fix_expense_double_entry($id);
+    $this->session->set_flashdata('alert', ['type' => 'success', 'info' => 'Data ID #'.$id.' cleaned!']);
     redirect($this->module['route'] . '/cleanup_tool');
 }
 
+public function fix_all_duplicates() {
+    $list = $this->model->get_duplicate_list_json();
+    $count = 0;
+    foreach ($list as $row) {
+        $ref = json_decode($row['reference_document'], true);
+        if ($this->model->fix_expense_double_entry($ref[1])) $count++;
+    }
+    $this->session->set_flashdata('alert', ['type' => 'success', 'info' => "Total $count documents cleaned!"]);
+    redirect($this->module['route'] . '/cleanup_tool');
+}
  public function multi_approve()
 {
     $document_id = $this->input->post('document_id');
