@@ -1047,7 +1047,7 @@ public function cleanup_data_index() {
     // Fix massal (Bulk Fix)
  public function fix_all_duplicates()
     {
-        $this->authorized($this->module, 'approval');
+        $this->authorized($this->module, 'index');
         
         // Eksekusi cleanup dan ambil data untuk laporan
         $results = $this->model->fix_all_duplicates_with_report();
