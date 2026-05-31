@@ -851,10 +851,21 @@ class Reimbursement_Model extends MY_Model
         $cekSettingApproval = cekSettingApproval('EXPENSE from REIMBURSEMENT');
 
         $url_rf = site_url('reimbursement/print_pdf/' . $id);
-        $order_number = $this->getExpenseOrderNumber();
-        $cost_center = $this->findCostCenter($reimbursement['annual_cost_center_id']);
-        $format_number = $this->getExpenseFormatNumber($cost_center['cost_center_code']);
-        $pr_number = $order_number . $format_number;
+        // 2. Logika Pemilihan Nomor PR
+        if ($custom_pr != NULL && !empty($custom_pr)) {
+            // Jika Controller mengirimkan '51724/Exp/A-02/2026'
+            $pr_number = $custom_pr;
+
+            // Kita pecah string untuk mengambil order_number (angka depannya: 51724)
+            $parts = explode('/', $custom_pr);
+            $order_number = (int)$parts[0];
+        } else {
+            // Jika normal (otomatis sistem)
+            $order_number = $this->getExpenseOrderNumber();
+            $cost_center = $this->findCostCenter($reimbursement['annual_cost_center_id']);
+            $format_number = $this->getExpenseFormatNumber($cost_center['cost_center_code']);
+            $pr_number = $order_number . $format_number;
+        }
 
         $validateHos = null;
         $validateVP = null;
@@ -1942,47 +1953,52 @@ class Reimbursement_Model extends MY_Model
         return TRUE;
     }
 
-public function fix_all_duplicates_with_report()
-{
-    $list = $this->get_duplicate_list_json();
-    $report_data = [];
-    $count = 0;
+    public function fix_all_duplicates_with_report()
+    {
+        $list = $this->get_duplicate_list_json();
+        $report_data = [];
+        $count = 0;
 
-    if (empty($list)) return [];
+        if (empty($list))
+            return [];
 
-    foreach ($list as $row) {
-        $ref = json_decode($row['reference_document'], true);
-        $reimb_id = $ref[1];
+        foreach ($list as $row) {
+            $ref = json_decode($row['reference_document'], true);
+            $reimb_id = $ref[1];
 
-        // Ambil info dari database utama (New_MRP_V4)
-        $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
-        
-        if ($this->fix_expense_double_entry($reimb_id)) {
-            $report_data[] = [
-                'reimbursement_id' => $reimb_id,
-                'document_number'  => $reimb['document_number'],
-                'employee'         => $reimb['person_name'],
-                'amount'           => (float)$reimb['total'],
-                'duplicate_count'  => $row['total_row']
-            ];
-            $count++;
+            // Ambil info dari database utama (New_MRP_V4)
+            $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
+
+            if ($this->fix_expense_double_entry($reimb_id)) {
+                // Bagian di dalam loop model fix_all_duplicates_with_report
+// Pastikan baris ini ada agar No ER muncul di detail:
+                $report_data[] = [
+                    'reimbursement_id' => $reimb_id,
+                    'document_number' => $reimb['document_number'], // Ini No Dokumen RF
+                    'pr_number' => $results[0]->pr_number,    // INI ADALAH NO ER YANG DI-FIX
+                    'employee' => $reimb['person_name'],
+                    'amount' => (float) $reimb['total'],
+                    'duplicate_count' => $row['total_row']
+                ];
+
+                $count++;
+            }
         }
+
+        if ($count > 0) {
+            // Simpan Log ke tb_cleanup_logs di database New_MRP_V4
+            $this->db->insert('tb_cleanup_logs', [
+                'executed_by' => config_item('auth_username'),
+                'total_cleaned' => $count,
+                'details_json' => json_encode($report_data),
+                'executed_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+
+        return $report_data;
     }
 
-    if ($count > 0) {
-        // Simpan Log ke tb_cleanup_logs di database New_MRP_V4
-        $this->db->insert('tb_cleanup_logs', [
-            'executed_by'   => config_item('auth_username'),
-            'total_cleaned' => $count,
-            'details_json'  => json_encode($report_data),
-            'executed_at'   => date('Y-m-d H:i:s')
-        ]);
-    }
-
-    return $report_data;
-}
-
-/**
+    /**
      * Mengambil daftar duplikasi dari database budgetcontrol
      */
     public function get_duplicate_list_json()
@@ -1999,7 +2015,7 @@ public function fix_all_duplicates_with_report()
                 HAVING COUNT(*) > 1";
 
         $query = $this->connection->query($sql);
-        
+
         if (!$query) {
             return [];
         }
@@ -2076,5 +2092,129 @@ public function fix_all_duplicates_with_report()
             }
         }
         return false;
+    }
+
+    /**
+     * FUNGSI PEMULIHAN BUDGET LENGKAP
+     * Digunakan untuk mengembalikan saldo yang tidak sengaja ter-reversal
+     */
+    public function restore_reversal_full($reimbursement_id)
+    {
+        // 1. Inisialisasi Database
+        if (!isset($this->connection)) {
+            $this->connection = $this->load->database('budgetcontrol', TRUE);
+        }
+
+        // Pastikan variabel budget_month tersedia
+        if (empty($this->budget_month)) {
+            $this->budget_month = find_budget_setting('Active Month');
+        }
+
+        // 2. Ambil data asli dari database utama
+        $reimbursement = $this->findById($reimbursement_id);
+        if (!$reimbursement)
+            return "ID Reimbursement tidak ditemukan di database utama.";
+
+        // 3. Mulai Transaksi Ganda
+        $this->db->trans_begin();
+        $this->connection->trans_begin();
+
+        try {
+            // A. Cek apakah di budgetcontrol datanya masih ada
+            $this->connection->like('reference_document', '"' . $reimbursement_id . '"');
+            $existing_er = $this->connection->get('tb_expense_purchase_requisitions')->row();
+
+            if (!$existing_er) {
+                // JALUR 1: Jika data fisik sudah terhapus, bangun ulang dari nol
+                $result = $this->create_expense_auto($reimbursement_id);
+                if ($result['status']) {
+                    $this->db->trans_commit();
+                    $this->connection->trans_commit();
+                    return true;
+                } else {
+                    throw new Exception("Gagal membangun ulang data fisik.");
+                }
+            }
+
+            // JALUR 2: Jika data fisik MASIH ADA, tapi saldonya sudah terlanjur bertambah (reversal)
+            foreach ($reimbursement['items'] as $item) {
+                $account = $this->getAccountByAccountCode($item['account_code']);
+                $paid_amount = (float) $item['paid_amount'];
+
+                // 1. Update MTD (Tambah kembali angka pemakaian)
+                $this->connection->set('mtd_used_budget', 'mtd_used_budget + ' . $paid_amount, FALSE);
+                $this->connection->where('account_id', $account['id']);
+                $this->connection->where('annual_cost_center_id', $reimbursement['annual_cost_center_id']);
+                $this->connection->where('month_number', $this->budget_month);
+                $this->connection->update('tb_expense_monthly_budgets');
+
+                // 2. Update YTD (Sampai Desember)
+                for ($i = (int) $this->budget_month; $i <= 12; $i++) {
+                    $this->connection->set('ytd_used_budget', 'ytd_used_budget + ' . $paid_amount, FALSE);
+                    $this->connection->where('annual_cost_center_id', $reimbursement['annual_cost_center_id']);
+                    $this->connection->where('account_id', $account['id']);
+                    $this->connection->where('month_number', $i);
+                    $this->connection->update('tb_expense_monthly_budgets');
+                }
+
+                // 3. Pastikan record log di tb_expense_used_budgets ada
+                $check_log = $this->connection->get_where('tb_expense_used_budgets', [
+                    'expense_purchase_requisition_id' => $existing_er->id,
+                    'account_code' => $item['account_code']
+                ])->row();
+
+                if (!$check_log) {
+                    $monthly_budget_id = $this->getMonthlyBudgetId($account['id'], $reimbursement['annual_cost_center_id']);
+
+                    $this->connection->set('expense_monthly_budget_id', $monthly_budget_id);
+                    $this->connection->set('expense_purchase_requisition_id', $existing_er->id);
+                    $this->connection->set('pr_number', $existing_er->pr_number);
+                    $this->connection->set('cost_center', $reimbursement['cost_center_name']);
+                    $this->connection->set('year_number', $this->budget_year);
+                    $this->connection->set('month_number', $this->budget_month);
+                    $this->connection->set('account_name', $account['account_name']);
+                    $this->connection->set('account_code', $account['account_code']);
+                    $this->connection->set('used_budget', $paid_amount);
+                    $this->connection->set('created_at', date('Y-m-d H:i:s'));
+                    $this->connection->set('created_by', config_item('auth_person_name'));
+                    $this->connection->insert('tb_expense_used_budgets');
+                }
+            }
+
+            if ($this->db->trans_status() === FALSE || $this->connection->trans_status() === FALSE) {
+                throw new Exception("Database transaction failed.");
+            }
+
+            $this->db->trans_commit();
+            $this->connection->trans_commit();
+            return true;
+
+        } catch (Exception $e) {
+            $this->db->trans_rollback();
+            $this->connection->trans_rollback();
+            return $e->getMessage();
+        }
+    }
+
+    /**
+     * HELPER: Mendapatkan ID baris budget bulanan
+     * (PENTING: Tanpa ini fungsi restore_reversal_full akan Error)
+     */
+    private function getMonthlyBudgetId($account_id, $annual_cost_center_id)
+    {
+        if (!isset($this->connection)) {
+            $this->connection = $this->load->database('budgetcontrol', TRUE);
+        }
+
+        $this->connection->select('id');
+        $this->connection->from('tb_expense_monthly_budgets');
+        $this->connection->where('account_id', $account_id);
+        $this->connection->where('annual_cost_center_id', $annual_cost_center_id);
+        $this->connection->where('month_number', $this->budget_month);
+
+        $query = $this->connection->get();
+        $row = $query->row();
+
+        return ($row) ? $row->id : NULL;
     }
 }

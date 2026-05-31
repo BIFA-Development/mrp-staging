@@ -1002,39 +1002,41 @@ class Reimbursement extends MY_Controller
         $this->data['module'] = $this->module;
         $this->render_view($this->module['view'] . '/v_cleanup_budget');
     }
-public function cleanup_data_index() {
-    // Bersihkan buffer agar tidak ada spasi/output lain sebelum JSON
-    if (ob_get_level() > 0) ob_clean(); 
-    
-    $duplicates = $this->model->get_duplicate_list_json();
-    $data = array();
-    
-    if (!empty($duplicates)) {
-        foreach ($duplicates as $row) {
-            $ref = json_decode($row['reference_document'], true);
-            $reimb_id = (isset($ref[1])) ? $ref[1] : null;
+    public function cleanup_data_index()
+    {
+        // Bersihkan buffer agar tidak ada spasi/output lain sebelum JSON
+        if (ob_get_level() > 0)
+            ob_clean();
 
-            if ($reimb_id) {
-                $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
-                
-                if ($reimb) {
-                    $data[] = [
-                        'doc'    => (string)$reimb['document_number'],
-                        'person' => (string)$reimb['person_name'],
-                        'total'  => 'Rp ' . number_format($reimb['total'], 0, ',', '.'),
-                        'status' => '<span class="badge style-danger">'.$row['total_row'].' Baris</span>',
-                        'action' => '<a href="'.site_url($this->module['route'].'/process_fix/'.$reimb['id']).'" class="btn btn-xs btn-danger">FIX</a>'
-                    ];
+        $duplicates = $this->model->get_duplicate_list_json();
+        $data = array();
+
+        if (!empty($duplicates)) {
+            foreach ($duplicates as $row) {
+                $ref = json_decode($row['reference_document'], true);
+                $reimb_id = (isset($ref[1])) ? $ref[1] : null;
+
+                if ($reimb_id) {
+                    $reimb = $this->db->get_where('tb_reimbursements', ['id' => $reimb_id])->row_array();
+
+                    if ($reimb) {
+                        $data[] = [
+                            'doc' => (string) $reimb['document_number'],
+                            'person' => (string) $reimb['person_name'],
+                            'total' => 'Rp ' . number_format($reimb['total'], 0, ',', '.'),
+                            'status' => '<span class="badge style-danger">' . $row['total_row'] . ' Baris</span>',
+                            'action' => '<a href="' . site_url($this->module['route'] . '/process_fix/' . $reimb['id']) . '" class="btn btn-xs btn-danger">FIX</a>'
+                        ];
+                    }
                 }
             }
         }
+
+        // Kirim header JSON yang kuat
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['data' => $data]);
+        exit; // Pastikan script berhenti di sini
     }
-    
-    // Kirim header JSON yang kuat
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['data' => $data]);
-    exit; // Pastikan script berhenti di sini
-}
 
     // Fix per satu dokumen
     public function process_fix($id)
@@ -1045,10 +1047,10 @@ public function cleanup_data_index() {
     }
 
     // Fix massal (Bulk Fix)
- public function fix_all_duplicates()
+    public function fix_all_duplicates()
     {
         $this->authorized($this->module, 'index');
-        
+
         // Eksekusi cleanup dan ambil data untuk laporan
         $results = $this->model->fix_all_duplicates_with_report();
         $total = count($results);
@@ -1057,7 +1059,7 @@ public function cleanup_data_index() {
             // 1. Generate CSV Attachment
             $filename = 'Cleanup_Report_' . date('Ymd_His') . '.csv';
             $filepath = FCPATH . 'uploads/logs/' . $filename;
-            
+
             if (!is_dir(FCPATH . 'uploads/logs/')) {
                 mkdir(FCPATH . 'uploads/logs/', 0777, true);
             }
@@ -1072,8 +1074,8 @@ public function cleanup_data_index() {
 
             // 2. Kirim Email Notifikasi
             $this->load->library('email');
-            
-        
+
+
             $this->email->initialize($config);
 
             $this->email->from('itsupervisor@baliflightacademy.com', 'BIFA System');
@@ -1083,9 +1085,9 @@ public function cleanup_data_index() {
             $body = "<h3>Budget Cleanup Report</h3>
                     <p>Sistem telah mendeteksi dan menghapus duplikasi budget pada Expense Request.</p>
                     <ul>
-                        <li><b>Executor:</b> ".config_item('auth_username')."</li>
+                        <li><b>Executor:</b> " . config_item('auth_username') . "</li>
                         <li><b>Total cleaned:</b> $total Documents</li>
-                        <li><b>Date:</b> ".date('Y-m-d H:i:s')."</li>
+                        <li><b>Date:</b> " . date('Y-m-d H:i:s') . "</li>
                     </ul>
                     <p>Detail dokumen terlampir dalam file CSV.</p>";
 
@@ -1393,4 +1395,61 @@ public function cleanup_data_index() {
 
         // echo json_encode($result);
     }
+/**
+ * Fitur Pemulihan ER Otomatis (Silent Restore)
+ * Digunakan untuk memulihkan data ER yang hilang tanpa perlu klik Approve manual
+ */
+
+// Di controllers/Reimbursement.php
+public function fix_missing_er($id)
+{
+    // 1. Load Model
+    $this->load->model('Reimbursement_Model', 'model'); 
+
+    // 2. Ambil data saat ini dari database untuk pengecekan
+    $check = $this->db->get_where('tb_reimbursements', ['id' => $id])->row();
+
+    if (!$check) {
+        die("<h3>❌ ERROR</h3><p>Data Reimbursement ID $id tidak ditemukan.</p>");
+    }
+
+    // --- FITUR PENGAMAN (VALIDASI) ---
+    // Jika pr_number sudah ada isinya DAN statusnya sudah 'EXPENSE REQUEST'
+    if (!empty($check->pr_number) && $check->status == 'EXPENSE REQUEST') {
+        echo "<h3>⚠️ PERINGATAN PENGAMAN</h3>";
+        echo "Dokumen ini <b>SUDAH PERNAH DI-RESTORE</b> atau sudah memiliki No ER.<br>";
+        echo "No ER Aktif: <b style='color:blue;'>" . $check->pr_number . "</b><br>";
+        echo "<p>Sistem menolak restore ganda untuk mencegah pemotongan budget dua kali.</p>";
+        echo "<a href='".site_url('reimbursement/cleanup_tool')."'>Kembali ke Cleanup Tool</a>";
+        return; // Hentikan proses di sini
+    }
+
+    // 3. Tentukan Target PR
+    $target = '51724/Exp/A-02/2026';
+
+    // 4. Jalankan Proses jika lolos validasi
+    $this->db->trans_begin();
+    try {
+        // Kosongkan dulu untuk pancingan pemulihan
+        $this->db->set('pr_number', NULL);
+        $this->db->set('status', 'APPROVED');
+        $this->db->where('id', $id);
+        $this->db->update('tb_reimbursements');
+
+        // Panggil fungsi pembuat ER otomatis
+        $result = $this->model->create_expense_auto($id, $target);
+
+        if ($result['status']) {
+            $this->db->trans_commit();
+            echo "<h3>✅ PEMULIHAN BERHASIL</h3>";
+            echo "ID: $id | No ER Baru: <b>" . $result['pr_number'] . "</b><br>";
+            echo "<p>Data berhasil dipulihkan dan saldo budget telah diperbarui.</p>";
+        } else {
+            throw new Exception("Gagal menjalankan fungsi create_expense_auto.");
+        }
+    } catch (Exception $e) {
+        $this->db->trans_rollback();
+        echo "<h3>❌ GAGAL RESTORE</h3><p>" . $e->getMessage() . "</p>";
+    }
+}
 }
